@@ -142,6 +142,54 @@ class DecisionEngine:
     # Cost matrix
     # ------------------------------------------------------------------ #
 
+    @staticmethod
+    def _new_cost_totals() -> dict:
+        return {
+            "legit_volume": 0.0,
+            "fp_count": 0, "fp_cost_usd": 0.0,
+            "fn_count": 0, "fn_loss_usd": 0.0,
+            "tp_count": 0, "tp_saved_usd": 0.0,
+        }
+
+    def apply_to_running_totals(self, totals: dict, record: dict, truth: str) -> None:
+        """Fold ONE decision into running counters (live cost tracking for
+        the dashboard). truth: 'legit' | anything else counts as attack."""
+        amt = float(record["amount"])
+        d = record["decision"]
+        if truth == "legit":
+            totals["legit_volume"] += amt
+            if d != APPROVE:  # any friction on honest customers is FP
+                totals["fp_count"] += 1
+                totals["fp_cost_usd"] += amt * FP_FRICTION_BPS / 10_000.0
+        else:
+            if d == APPROVE:
+                totals["fn_count"] += 1
+                totals["fn_loss_usd"] += amt          # fraud loss: full amount
+            elif d == DECLINE:
+                totals["tp_count"] += 1
+                totals["tp_saved_usd"] += amt         # prevented loss
+            # STEP_UP / MANUAL_REVIEW on attacks: challenged — neither lost
+            # nor saved until the challenge resolves.
+
+    @classmethod
+    def summarize_totals(cls, totals: dict) -> dict:
+        """Wire shape for /cost_update events and final reports."""
+        fp_usd = round(totals["fp_cost_usd"], 2)
+        fn_loss = round(totals["fn_loss_usd"], 2)
+        tp_saved = round(totals["tp_saved_usd"], 2)
+        return {
+            "fp_cost_bps": round(fp_usd / max(totals["legit_volume"], 1e-9) * 10_000, 2),
+            "fp_cost_usd": fp_usd,
+            "fn_loss": fn_loss,
+            "tp_saved": tp_saved,
+            "net_savings": round(tp_saved - fn_loss - fp_usd, 2),
+            "counts": {
+                "false_positives": totals["fp_count"],
+                "false_negatives": totals["fn_count"],
+                "true_positives_declined": totals["tp_count"],
+            },
+        }
+
     def compute_cost_matrix(
         self,
         decisions: Iterable[dict],
@@ -151,37 +199,10 @@ class DecisionEngine:
         decisions: outputs of .decide(); ground_truth: aligned labels where
         'legit' means genuine traffic and anything else is attack.
         """
-        fp_cnt = fn_cnt = tp_cnt = 0
-        fp_usd = fn_usd = tp_usd = legit_volume = 0.0
-
+        totals = self._new_cost_totals()
         for rec, truth in zip(decisions, ground_truth):
-            amt = rec["amount"]
-            d = rec["decision"]
-            is_attack = truth != "legit"
-
-            if not is_attack:
-                legit_volume += amt
-                if d != APPROVE:  # any friction on honest customers is FP
-                    fp_cnt += 1
-                    fp_usd += amt * FP_FRICTION_BPS / 10_000.0
-            else:
-                if d == APPROVE:
-                    fn_cnt += 1
-                    fn_usd += amt                      # fraud loss: full amount
-                elif d == DECLINE:
-                    tp_cnt += 1
-                    tp_usd += amt                      # prevented loss
-                # STEP_UP / MANUAL_REVIEW on attacks: challenged, not yet
-                # lost nor saved — tracked implicitly by absence from both.
-
-        return {
-            "fp_cost_bps": round(fp_usd / max(legit_volume, 1e-9) * 10_000, 2),
-            "fp_cost_usd": round(fp_usd, 2),
-            "fn_loss": round(fn_usd, 2),
-            "tp_saved": round(tp_usd, 2),
-            "net_savings": round(tp_usd - fn_usd - fp_usd, 2),
-            "counts": {"false_positives": fp_cnt, "false_negatives": fn_cnt, "true_positives_declined": tp_cnt},
-        }
+            self.apply_to_running_totals(totals, rec, truth)
+        return self.summarize_totals(totals)
 
 
 __all__ = [
