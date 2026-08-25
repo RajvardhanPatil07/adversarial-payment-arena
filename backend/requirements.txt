@@ -1,0 +1,27 @@
+# Backend Python deps — full project manifest.
+# Step 2 needs only: pydantic, faker, pytest (installed in backend/.venv).
+# Later steps (FastAPI server, defense ML) install the rest; run.sh will
+# sync this file end-to-end.
+
+# --- API layer ---
+fastapi>=0.115
+uvicorn[standard]>=0.32
+websockets>=13.0
+
+# --- Contracts & data ---
+pydantic>=2.9
+faker>=33.0
+pyyaml>=6.0
+
+# --- Defense ML ---
+scikit-learn>=1.6
+xgboost>=2.1
+networkx>=3.4
+
+# --- LLM access (OpenRouter via OpenAI-compatible client) ---
+openai>=1.60
+
+# --- Utils / testing ---
+httpx>=0.28
+python-dotenv>=1.0
+pytest>=8.3

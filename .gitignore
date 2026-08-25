@@ -39,3 +39,13 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# ---- backend (python) ----
+backend/.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# generated artifacts (regenerate via `python backend/data/legit_generator.py`)
+backend/data/legit_baseline.jsonl
+
