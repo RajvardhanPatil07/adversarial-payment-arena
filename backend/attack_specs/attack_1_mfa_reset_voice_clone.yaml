@@ -1,0 +1,40 @@
+# ATTACK 1 — MFA Reset via Voice Cloning (IVR Account Takeover)
+# Taxon: account_takeover / social engineering against the phone channel.
+#
+# Story: the fraudster has bought victim PII ("fullz") and a 10-second voice
+# clone good enough to beat the issuer's voice-biometric IVR. They socially
+# engineer an MFA reset over the phone, then monetize the session through
+# card-not-present spend that the (now re-registered) device looks legitimate.
+
+spec_id: ATTACK_1_MFA_RESET_VOICE_CLONE
+attack_name: "MFA Reset via Voice Cloning (IVR Takeover)"
+taxon: account_takeover
+
+description: >
+  Voice-clone the enrolled cardholder, defeat IVR voice authentication to
+  trigger an MFA/credential reset, then run mid-ticket CNP purchases that
+  inherit the freshness of the reset session before fraud ops wakes up.
+
+preconditions: >
+  Victim PII bundle (name, SSN last4, DOB, billing address), a cloned voice
+  sample of the enrolled cardholder, knowledge of the issuer's IVR menu flow,
+  and patience for one 6-minute call per victim. No card present at any point.
+
+economic_model:
+  acquisition_cost_usd: 50        # cloned-voice kit + fullz bundle
+  expected_payoff_usd: 2400       # realistic multi-victim drain
+  breakeven_txns: 3
+
+constraints:
+  stolen_resource: cloned_voice
+  pos_entry_modes: [CNP]           # phone-channel monetization
+  preferred_three_ds: [N, A]       # avoid challenge friction; accept attempted
+  target_verticals: [electronics, ecommerce]
+  min_amount_usd: 60               # clears the $50 clone-cost floor
+  max_amount_usd: 1400             # stay under manual-review ticket size
+
+evasion_notes: >
+  Issuer runs three screens: economic-viability floors on claimed acquisition
+  vectors; metadata coherence (MCC + GeoIP vs merchant registry); rail
+  feasibility pairing (entry mode x 3DS). Keep amounts above the floor but
+  boring; keep MCC and IP country consistent with the merchant you claim.
