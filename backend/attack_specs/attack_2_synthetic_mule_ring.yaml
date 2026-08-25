@@ -1,0 +1,38 @@
+# ATTACK 2 — Synthetic Mule Ring (Cash-Out Topology)
+# Taxon: synthetic_identity / money laundering through recruited mules.
+#
+# Story: one operator buys a synthetic identity kit, spins up a ring of
+# synthetic "customers", and distributes the work across a handful of devices
+# and egress IPs. The infra sharing is the fingerprint: no legitimate family
+# shares ONE device across a dozen accounts.
+
+spec_id: ATTACK_2_SYNTHETIC_MULE_RING
+attack_name: "Synthetic Mule Ring Cash-Out"
+taxon: synthetic_fraud
+
+description: >
+  A dozen synthetic customers, provisioned in bulk, transact through one or
+  two shared devices and a single egress IP, converting stolen lines into
+  resaleable electronics before the first statement cycle.
+
+preconditions: >
+  One synthetic identity kit (reused across the ring), control of mule
+  accounts or the PII to open them, 1-2 physical devices for the tap rail,
+  and a fenced goods channel to liquidate electronics.
+
+economic_model:
+  acquisition_cost_usd: 200        # synthetic ID kit (amortized across ring)
+  expected_payoff_usd: 5200        # per cash-out wave
+  breakeven_txns: 3
+
+constraints:
+  stolen_resource: synthetic_identity
+  pos_entry_modes: [CONTACTLESS]   # physical tap with cloned provisioned cards
+  preferred_three_ds: [N]          # card-present never runs 3DS
+  target_verticals: [electronics]
+  min_amount_usd: 220              # must clear the $200 kit floor
+  max_amount_usd: 950
+
+evasion_notes: >
+  Issuer runs economic floors, MCC/GeoIP coherence, and rail pairing. The
+  ring's weakness is topology: shared device/IP across >=3 customer profiles.

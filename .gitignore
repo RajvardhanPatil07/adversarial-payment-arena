@@ -48,4 +48,9 @@ __pycache__/
 
 # generated artifacts (regenerate via `python backend/data/legit_generator.py`)
 backend/data/legit_baseline.jsonl
+backend/data/training_corpus.jsonl
+
+# trained model binaries (rebuild via `python backend/data/corpus_builder.py`)
+backend/models/*
+!backend/models/.gitkeep
 

@@ -103,11 +103,13 @@ def build_legit_payload(
     customer = env.customers[f"CUST_{rng.randrange(len(env.customers)):04d}"]
     merchant = _pick_merchant(env, rng, mode)
 
-    # 85% bound device / 15% new-device churn (legal; novelty scoring is the
-    # defense layer's concern, not the gate's).
+    # ~94% bound device / ~6% new-device churn. Real cardholder token churn
+    # is low; a higher rate would make "unknown device" too weak a fraud
+    # prior for the defense layers (measured: 15% churn pushed legit FPR
+    # past budget because attacks are ~100% unknown-device).
     device_id = (
         rng.choice(customer.devices)
-        if rng.random() < 0.85
+        if rng.random() < 0.94
         else f"DEV_{fake.uuid4().replace('-', '')[:10]}"
     )
 

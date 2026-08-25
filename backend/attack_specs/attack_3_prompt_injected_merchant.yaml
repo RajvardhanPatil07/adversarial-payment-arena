@@ -1,0 +1,42 @@
+# ATTACK 3 — Prompt-Injected / Compromised Merchant Endpoint
+# Taxon: merchant-side compromise (injected skimmer on the payment flow).
+#
+# Story: the attacker has bought access to a compromised e-commerce checkout
+# (or injected malicious instructions into its LLM-powered support/checkout
+# agent). Every "sale" is a fabricated basket charged to real cardholders'
+# stored credentials. Per-customer behavior looks NORMAL — the anomaly lives
+# at the MERCHANT: a burst of distinct buyers, clustered just-above-floor
+# tickets, inside minutes.
+
+spec_id: ATTACK_3_PROMPT_INJECTED_MERCHANT
+attack_name: "Compromised Merchant Checkout Burst"
+taxon: merchant_compromise
+
+description: >
+  Fabricated transactions fired from a single hijacked merchant endpoint:
+  many distinct legitimate customers, mostly on their known devices and
+  passing full 3DS, all converging on one MID in a short window.
+
+preconditions: >
+  Purchased access to the merchant's payment integration (~$500 street),
+  the MID's registry coherence details, and a queue of harvested
+  customer-session tokens so most charges present bound devices.
+
+economic_model:
+  acquisition_cost_usd: 500        # compromised integration access
+  expected_payoff_usd: 12000       # burst take before acquirer review
+  breakeven_txns: 5
+
+constraints:
+  stolen_resource: compromised_merchant
+  pos_entry_modes: [ECOM]          # looks like ordinary checkout traffic
+  preferred_three_ds: [Y, A]       # deliberately passes authentication
+  target_verticals: [ecommerce]
+  min_amount_usd: 520              # clears the $500 access floor
+  max_amount_usd: 1500             # baskets stay plausible
+
+evasion_notes: >
+  Issuer runs economic floors, MCC/GeoIP coherence, and rail pairing; this
+  attack satisfies ALL of them by design. Detection pressure belongs on
+  merchant-centric velocity (distinct customers per MID per minute) and on
+  amount-distribution novelty — not on the individual payload.
