@@ -45,7 +45,11 @@ from schemas.payment import (
 )
 
 DEFAULT_BASE_URL = "https://openrouter.ai/api/v1"
-DEFAULT_MODEL = "stealth/ox-alpha"
+# The project brief names stealth/ox-alpha. That slug is not always served
+# to every account on OpenRouter; the runtime override is OPENROUTER_MODEL.
+# A reasoning-class free model keeps the "LLM-as-adversary" experience
+# intact when stealth endpoints rotate away.
+DEFAULT_MODEL = "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free"
 
 # Spec: "Agent retries up to 3 times" on rejection.
 RETRY_LIMIT = 3
@@ -57,6 +61,10 @@ _WINDOW = 14
 
 class MalformedMoveError(Exception):
     """LLM output failed local Pydantic validation — retryable."""
+
+
+class LLMProviderError(Exception):
+    """OpenRouter / OpenAI provider error (bad model, auth, rate-limit) — not retryable by gate coaching."""
 
 
 # --------------------------------------------------------------------------- #
@@ -357,9 +365,15 @@ class AttackerAgent:
         kwargs: dict = {"model": self.model, "messages": list(self._window())}
         if response_format is not None:
             kwargs["response_format"] = response_format
-        resp = await asyncio.to_thread(self.client.create, **kwargs)
+        try:
+            resp = await asyncio.to_thread(self.client.create, **kwargs)
+        except Exception as exc:  # noqa: BLE001 — provider surface is OpenAI SDK (NotFoundError, RateLimitError, etc.)
+            raise LLMProviderError(f"LLM provider error for model {self.model!r}: {exc}") from exc
         self.stats["llm_calls"] += 1
-        content = resp.choices[0].message.content or ""
+        msg = resp.choices[0].message
+        # Reasoning models (e.g., Nemotron) may put the JSON in `reasoning`
+        # when `content` is empty. Prefer content, fall back to reasoning.
+        content = (getattr(msg, "content", None) or getattr(msg, "reasoning", None) or "")
         await asyncio.sleep(self.sleep_s)  # rate-limit spacing (async time.sleep)
         return content
 
@@ -381,13 +395,23 @@ class AttackerAgent:
         """Structured output -> (reasoning, PaymentMessage). Local Pydantic
         validation is the real gatekeeper; provider leniency can't bypass it."""
         try:
-            data = json.loads(strip_code_fences(raw))
+            cleaned = strip_code_fences(raw)
+            data = json.loads(cleaned)
+            # Some providers wrap the JSON in extra text — try to extract the
+            # outermost object containing "payload" if the first parse lacks it.
+            if "payload" not in data:
+                # Attempt regex extraction of a JSON object with a payload key
+                m = re.search(r"\{[^{}]*\"payload\"\s*:.*\}", cleaned, flags=re.DOTALL)
+                if m:
+                    data = json.loads(m.group(0))
             reasoning = str(data.get("reasoning", ""))
             payload = PaymentMessage.model_validate(data["payload"])
             return reasoning, payload
         except (json.JSONDecodeError, KeyError, TypeError, ValidationError) as exc:
             self.stats["malformed"] += 1
-            raise MalformedMoveError(f"structured-output violation: {exc}") from exc
+            # Include a preview of the raw output for debugging retries
+            preview = (raw or "")[:400].replace("\n", " ")
+            raise MalformedMoveError(f"structured-output violation: {exc} | raw preview: {preview!r}") from exc
 
     @staticmethod
     def _coach_back(reason: str) -> str:
@@ -410,7 +434,26 @@ class AttackerAgent:
         # ---- PLANNER phase: strategy before any payload ------------------
         plan_instruction = _PLANNER_INSTRUCTION
         self._user_say(plan_instruction)
-        plan_text = await self._complete(response_format=None)
+        try:
+            plan_text = await self._complete(response_format=None)
+        except LLMProviderError as exc:
+            yield {"type": "error", "data": str(exc)}
+            # Graceful end: campaign summary reflects zero progress so the
+            # dashboard can surface the fix ("set OPENROUTER_MODEL to a valid slug").
+            yield {"type": "campaign_summary", "data": {
+                "spec_id": self.spec.spec_id,
+                "txn_slots": 0,
+                "accepted": 0,
+                "accept_rate": 0.0,
+                "attempts": 0,
+                "gate_rejects": {},
+                "malformed": 0,
+                "llm_calls": self.stats["llm_calls"],
+                "gross_value_usd": 0.0,
+                "net_vs_tooling_usd": round(0.0 - self.spec.economic_model.acquisition_cost_usd, 2),
+                "error": str(exc),
+            }}
+            return
         self._assistant_say(plan_text)
         yield {"type": "agent_thought", "role": "PLANNER", "data": plan_text}
 
@@ -424,6 +467,11 @@ class AttackerAgent:
                 try:
                     raw = await self._complete(response_format=self._move_schema)
                     reasoning, payload = self._parse_move(raw)
+                except LLMProviderError as exc:
+                    yield {"type": "error", "data": str(exc), "txn_index": idx}
+                    yield {"type": "txn_abandoned", "txn_index": idx, "data": {"reason": "llm_provider_error"}}
+                    # Persistent config/rate-limit errors won't heal on retry within this slot
+                    continue
                 except MalformedMoveError as exc:
                     self._assistant_say(raw)
                     self._user_say(self._coach_back("malformed_payload"))
@@ -481,4 +529,4 @@ class AttackerAgent:
         }}
 
 
-__all__ = ["AttackerAgent", "MalformedMoveError", "build_move_schema", "render_system_prompt"]
+__all__ = ["AttackerAgent", "MalformedMoveError", "LLMProviderError", "build_move_schema", "render_system_prompt"]

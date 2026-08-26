@@ -150,36 +150,41 @@ async def pump_campaign(
     Event ordering guarantee per accepted payload:
       payload_generated -> defense_decision -> cost_update [-> graph_update]
     """
-    async for evt in agent.run_campaign(campaign_size=campaign_size):
-        await emit(evt)
+    try:
+        async for evt in agent.run_campaign(campaign_size=campaign_size):
+            await emit(evt)
 
-        if evt["type"] != "payload_generated":
-            continue
+            if evt["type"] != "payload_generated":
+                continue
 
-        payload_wire: dict = evt["data"]
-        record = stack.engine.decide(PaymentMessage.model_validate(payload_wire))
-        truth = "attack" if payload_wire.get("stolen_resource") else "legit"
-        stack.apply_cost(record, truth)
+            payload_wire: dict = evt["data"]
+            record = stack.engine.decide(PaymentMessage.model_validate(payload_wire))
+            truth = "attack" if payload_wire.get("stolen_resource") else "legit"
+            stack.apply_cost(record, truth)
 
-        await emit({
-            "type": "defense_decision",
-            "txn_index": evt.get("txn_index"),
-            "decision": record["decision"],
-            "reasons": record["reasons"],
-            "scores": record["scores"],
-            "amount": record["amount"],
-        })
-        await emit({"type": "cost_update", **stack.cost_summary()})
-
-        fresh = stack.graph_diff_and_sync()
-        if fresh:
-            graph = stack.engine.graph.g
-            endpoint_ids = sorted({n for pair in fresh for n in pair})
             await emit({
-                "type": "graph_update",
-                "nodes": [_node_obj(stack.engine.graph.g, n) for n in endpoint_ids],
-                "edges": _edge_objs(stack.engine.graph.g, fresh),
+                "type": "defense_decision",
+                "txn_index": evt.get("txn_index"),
+                "decision": record["decision"],
+                "reasons": record["reasons"],
+                "scores": record["scores"],
+                "amount": record["amount"],
             })
+            await emit({"type": "cost_update", **stack.cost_summary()})
+
+            fresh = stack.graph_diff_and_sync()
+            if fresh:
+                graph = stack.engine.graph.g
+                endpoint_ids = sorted({n for pair in fresh for n in pair})
+                await emit({
+                    "type": "graph_update",
+                    "nodes": [_node_obj(stack.engine.graph.g, n) for n in endpoint_ids],
+                    "edges": _edge_objs(stack.engine.graph.g, fresh),
+                })
+    except Exception as exc:  # noqa: BLE001 — any LLM or engine error must surface to the SOC, not kill the socket
+        import traceback
+
+        await emit({"type": "error", "data": f"Campaign error: {exc}\n{traceback.format_exc()[-600:]}"})
 
 
 # --------------------------------------------------------------------------- #

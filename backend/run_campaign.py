@@ -42,7 +42,11 @@ async def _run(attack: str, size: int, sleep_s: float) -> None:
     }), flush=True)
 
     async def emit(evt: dict) -> None:  # pump awaits its sink
-        print(json.dumps(evt, default=str), flush=True)
+        # Never let a serialization hiccup kill the campaign stream
+        try:
+            print(json.dumps(evt, default=str), flush=True)
+        except Exception as exc:  # noqa: BLE001
+            print(json.dumps({"type": "error", "data": f"emit failed: {exc}"}), flush=True)
 
     agent = AttackerAgent(spec, stack.env, sleep_between_calls_s=sleep_s)
     await pump_campaign(stack, agent, size, emit)
