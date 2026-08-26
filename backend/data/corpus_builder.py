@@ -38,6 +38,8 @@ SPEC_FILES = {
     "ATTACK_1_MFA_RESET_VOICE_CLONE": SPECS_DIR / "attack_1_mfa_reset_voice_clone.yaml",
     "ATTACK_2_SYNTHETIC_MULE_RING": SPECS_DIR / "attack_2_synthetic_mule_ring.yaml",
     "ATTACK_3_PROMPT_INJECTED_MERCHANT": SPECS_DIR / "attack_3_prompt_injected_merchant.yaml",
+    # ZERO-DAY: generatable for the holdout experiment, NEVER in TRAIN_COUNTS.
+    "ATTACK_4_CNP_HIGH_VELOCITY": SPECS_DIR / "attack_4_cnp_high_velocity.yaml",
 }
 
 # Attacks fire "recently"; legit history trails 90 days. A 12h base keeps
@@ -178,10 +180,56 @@ def synth_attack_3_compromised_merchant(
     return out
 
 
+def synth_attack_4_card_testing(
+    env: PaymentEnvironment, rng: random.Random, fake: Faker, spec: AttackSpec, n: int
+) -> list[PaymentMessage]:
+    """THE ZERO-DAY (never trained on). Bot-farm card testing: ONE shared
+    device + egress IP fires rapid small ECOM tickets across dozens of
+    victim cards. Tells are structural — infra sharing, merchant velocity,
+    and an ECOM/3DS=N amount mix unlike honest checkout traffic."""
+    cons = spec.constraints
+    lo, hi = cons.amount_band
+    out: list[PaymentMessage] = []
+    cursor = _ATTACK_BASE
+    while len(out) < n:
+        device, ip = _new_device(rng), fake.ipv4_public()   # one bot box per wave
+        merchants = [
+            _merchant_for(env, rng, cons.target_verticals, online=True)
+            for _ in range(2)
+        ]
+        victims = rng.sample(sorted(env.customers.keys()), min(rng.randint(10, 20), len(env.customers)))
+        for cid in victims:
+            customer = env.customers[cid]
+            for _ in range(2):                               # validate + drain attempt
+                if len(out) >= n:
+                    break
+                merchant = rng.choice(merchants)
+                known = rng.random() < 0.15                  # some victims' own sessions
+                device_use = rng.choice(customer.devices) if known else device
+                cursor += timedelta(seconds=rng.randint(20, 60))
+                tds = ThreeDSStatus.N if rng.random() < 0.85 else ThreeDSStatus.A
+                out.append(PaymentMessage(
+                    transaction_id=f"{rng.getrandbits(64):016X}",
+                    customer_id=cid,
+                    merchant_id=merchant.merchant_id,
+                    mcc=merchant.mcc,
+                    amount=round(rng.uniform(lo, hi), 2),
+                    pos_entry_mode=cons.pos_entry_modes[0],
+                    **{"3ds_status": tds.value},
+                    ip_address=ip,
+                    ip_country=merchant.country,
+                    device_id=device_use,
+                    stolen_resource=cons.stolen_resource.value,
+                    timestamp=cursor,
+                ))
+    return out
+
+
 _SYNTHESIZERS = {
     "ATTACK_1_MFA_RESET_VOICE_CLONE": synth_attack_1_voice_clone,
     "ATTACK_2_SYNTHETIC_MULE_RING": synth_attack_2_mule_ring,
     "ATTACK_3_PROMPT_INJECTED_MERCHANT": synth_attack_3_compromised_merchant,
+    "ATTACK_4_CNP_HIGH_VELOCITY": synth_attack_4_card_testing,
 }
 
 

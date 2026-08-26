@@ -1,0 +1,44 @@
+# ATTACK 4 — CNP High-Velocity Card Testing (THE ZERO-DAY)
+# Taxon: cnp_velocity / bulk stolen-credential validation.
+#
+# THIS SPEC IS WITHHELD FROM ALL TRAINING PATHS (corpus TRAIN_COUNTS never
+# includes it). It exists to answer one question in the Efficacy demo: what
+# happens when an attack class the supervised model has NEVER seen hits the
+# stack? The unsupervised layers (Isolation Forest + entity graph) are the
+# only ones with a structural reason to catch it.
+#
+# Story: a bot farm with a bulk stolen-card list fires rapid, small CNP
+# tickets through e-commerce checkouts from ONE automated device + egress IP,
+# validating which numbers are alive before reselling them.
+
+spec_id: ATTACK_4_CNP_HIGH_VELOCITY
+attack_name: "CNP Card-Testing Velocity Burst"
+taxon: cnp_velocity
+
+description: >
+  Automation-driven validation burst: dozens of victim cards, one shared bot
+  device and egress IP, small ECOM tickets that skip or fail 3DS, all inside
+  minutes. Individually boring; collectively a fingerprint.
+
+preconditions: >
+  A bulk stolen-card list ("fullz" bundle), headless checkout automation, and
+  resale channels for validated card numbers. No physical anything.
+
+economic_model:
+  acquisition_cost_usd: 30         # fullz bundle
+  expected_payoff_usd: 6000        # resale of validated cards
+  breakeven_txns: 8
+
+constraints:
+  stolen_resource: fullz
+  pos_entry_modes: [ECOM]
+  preferred_three_ds: [N]          # bots avoid challenge flows; some "A"
+  target_verticals: [ecommerce]
+  min_amount_usd: 35               # clears the $30 list cost
+  max_amount_usd: 400              # small tickets dodge manual review
+
+evasion_notes: >
+  Issuer runs economic floors, MCC/GeoIP coherence, and rail pairing — this
+  attack satisfies all three. Its tells are structural: shared automation
+  infra across unrelated cardholders, merchant-centric velocity, and an
+  amount/3DS mix unlike honest checkout traffic.
