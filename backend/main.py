@@ -2,11 +2,15 @@
 FastAPI backend — the arena's control tower.
 
 REST:
-  GET  /api/health          model status + uptime probe
-  GET  /api/merchants       merchant registry
-  GET  /api/attacks         available attack YAMLs
-  POST /api/load_attack     load + validate one AttackSpec
-  GET  /api/graph/snapshot  full entity graph {nodes, edges}
+  GET  /api/health              model status + uptime probe
+  GET  /api/merchants           merchant registry
+  GET  /api/attacks             available attack YAMLs
+  POST /api/load_attack         load + validate one AttackSpec
+  GET  /api/graph/snapshot      full entity graph {nodes, edges}
+  GET  /api/evidence/index      generated artifact set + reproduce commands
+  GET  /api/evidence/summary    headline transfer/fidelity/economics numbers
+  GET  /api/evidence/claims     claim -> artifact -> derivation -> boundary
+  GET  /api/evidence/artifact/* raw artifact JSON (allow-listed names)
 
 WebSocket /ws — the real-time fight. Client sends
   {"type": "start_campaign", "attack_file": "attack_1", "campaign_size": 50}
@@ -21,6 +25,10 @@ and receives, in order:
 An ambient legit-traffic task drips cardholder transactions through the same
 engine so the cost matrix has honest false positives to price and the SOC
 dashboard shows mixed traffic, not just attacks.
+
+The /api/evidence/* routes are read-only: they serve JSON artifacts produced by
+backend/experiments/*.py, so any number rendered in the UI is the same number a
+reviewer can open on disk and regenerate with `make reproduce`.
 """
 
 from __future__ import annotations
@@ -39,6 +47,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
 from agents.attacker import RATE_LIMIT_SLEEP_S, AttackerAgent
+from api.evidence import router as evidence_router
 from data.legit_generator import build_legit_payload
 from defense.decision import APPROVE, DECLINE, DecisionEngine
 from defense.novelty import NoveltyDetector
@@ -203,7 +212,7 @@ async def lifespan(app: FastAPI):
     ambient.cancel()
 
 
-app = FastAPI(title="Adversarial Payment Arena", version="0.5.0", lifespan=lifespan)
+app = FastAPI(title="Adversarial Payment Arena", version="0.6.0", lifespan=lifespan)
 
 
 def _origins() -> list[str]:
@@ -220,6 +229,11 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Evidence endpoints are strictly additive and read-only. They serve artifacts
+# produced by backend/experiments/*.py so that every number in the UI is
+# traceable to a file on disk and to the command that regenerated it.
+app.include_router(evidence_router)
 
 
 async def _ambient_legit_drip(stack: ArenaStack) -> None:
