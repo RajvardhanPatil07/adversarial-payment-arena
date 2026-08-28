@@ -1,16 +1,10 @@
 """
 Evidence API -- serves the artifact set to the UI.
 
-Additive router. It reads only files under `artifacts/` that were produced by
-the experiment scripts; it never computes metrics on request. That separation
-is deliberate: numbers shown in the UI are the same numbers a judge can open in
-a JSON file and regenerate with a published command.
-
-Mount:
-    from api.evidence import router as evidence_router
-    app.include_router(evidence_router)
+Artifacts are generated offline by experiment scripts; requests never recompute
+metrics. The allow-list prevents path traversal and exposes the exact command
+used to reproduce each artifact.
 """
-
 from __future__ import annotations
 
 import json
@@ -23,8 +17,6 @@ ARTIFACTS_DIR = BACKEND_ROOT.parent / "artifacts"
 
 router = APIRouter(prefix="/api/evidence", tags=["evidence"])
 
-# Only these names are servable. Prevents path traversal and accidental
-# exposure of anything else that lands in the artifacts directory.
 KNOWN_ARTIFACTS = {
     "metrics": "Flat summary of every headline number.",
     "transfer_ledger": "Three-arm transfer ablation: does generator fidelity determine real-fraud transfer?",
@@ -32,6 +24,9 @@ KNOWN_ARTIFACTS = {
     "calibration_audit": "Threshold provenance and the validation-to-test calibration gap.",
     "prevalence_metrics": "The same operating point reported across plausible fraud base rates.",
     "economics": "INR business impact including the insult cost of false positives.",
+    "behavioural_fidelity": "Held-out row, temporal and graph fidelity for the lightweight generators.",
+    "privacy_audit": "Membership, duplication and attribute-inference audit of synthetic fraud.",
+    "action_policy": "Validation-selected four-action policy evaluated once on held-out test traffic.",
     "claim_ledger": "Every public claim mapped to artifact, field, derivation and boundary.",
 }
 
@@ -42,7 +37,10 @@ REPRODUCE_COMMANDS = {
     "prevalence_metrics": "python backend/experiments/run_transfer_ablation.py",
     "economics": "python backend/experiments/run_transfer_ablation.py",
     "metrics": "python backend/experiments/run_transfer_ablation.py",
-    "claim_ledger": "python backend/experiments/run_transfer_ablation.py",
+    "behavioural_fidelity": "python backend/experiments/run_behavioural_fidelity.py",
+    "privacy_audit": "python backend/experiments/run_privacy_audit.py",
+    "action_policy": "python backend/experiments/run_action_policy.py",
+    "claim_ledger": "make reproduce",
     "all": "make reproduce",
 }
 
@@ -65,7 +63,6 @@ def _load(name: str) -> dict:
 
 @router.get("/index")
 async def list_artifacts() -> dict:
-    """Which artifacts exist, what each one proves, and how to regenerate it."""
     entries = []
     for name, description in KNOWN_ARTIFACTS.items():
         path = ARTIFACTS_DIR / f"{name}.json"
@@ -73,9 +70,11 @@ async def list_artifacts() -> dict:
         generated_at = None
         if exists:
             try:
-                generated_at = json.loads(path.read_text(encoding="utf-8")).get(
-                    "provenance", {}
-                ).get("generated_at")
+                generated_at = (
+                    json.loads(path.read_text(encoding="utf-8"))
+                    .get("provenance", {})
+                    .get("generated_at")
+                )
             except Exception:
                 generated_at = None
         entries.append(
@@ -99,11 +98,6 @@ async def list_artifacts() -> dict:
 
 @router.get("/summary")
 async def summary() -> dict:
-    """The four numbers that matter, plus their boundary conditions.
-
-    Returns 404 with a reproduce command rather than fabricating placeholders
-    when the evidence set has not been generated.
-    """
     metrics = _load("metrics")
     headline = metrics.get("headline", {})
     return {
@@ -130,13 +124,11 @@ async def summary() -> dict:
 
 @router.get("/claims")
 async def claims() -> dict:
-    """The claim ledger: claim, supporting artifact field, derivation, boundary."""
     return _load("claim_ledger")
 
 
 @router.get("/artifact/{name}")
 async def artifact(name: str) -> dict:
-    """Raw artifact JSON for one allow-listed artifact name."""
     if name not in KNOWN_ARTIFACTS:
         raise HTTPException(
             status_code=404,
