@@ -1,0 +1,43 @@
+name: Evidence methodology CI
+
+on:
+  pull_request:
+    paths:
+      - "backend/evidence/**"
+      - "backend/fidelity/**"
+      - "backend/ml/**"
+      - "backend/experiments/**"
+      - "backend/tests/test_evidence_methodology.py"
+      - "backend/tests/run_tests.py"
+      - "Makefile"
+      - ".github/workflows/evidence-methodology.yml"
+  push:
+    branches: [main]
+    paths:
+      - "backend/evidence/**"
+      - "backend/fidelity/**"
+      - "backend/ml/**"
+      - "backend/experiments/**"
+      - "backend/tests/test_evidence_methodology.py"
+      - "backend/tests/run_tests.py"
+      - "Makefile"
+
+jobs:
+  evidence:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install lightweight evidence dependencies
+        run: python -m pip install --upgrade pip numpy pandas pytest
+      - name: Compile evidence code
+        run: python -m compileall -q backend/evidence backend/fidelity backend/ml backend/experiments
+      - name: Run methodology regression tests
+        run: cd backend && python -m pytest tests/test_evidence_methodology.py -q
+      - name: Run dependency-light regression runner
+        run: cd backend && python tests/run_tests.py
+      - name: Smoke reproduce corrected evidence
+        run: make smoke-evidence

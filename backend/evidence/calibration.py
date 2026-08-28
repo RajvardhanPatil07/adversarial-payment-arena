@@ -1,25 +1,13 @@
 """
 Leakage-free threshold calibration and prevalence-adjusted reporting.
 
-Why this module exists
-----------------------
-A detector quoted as "94% recall at 0.8% false-positive rate" is close to
-meaningless unless two things are stated:
-
-1. WHERE the operating threshold came from. If the threshold that produces
-   0.8% FPR was chosen on the same rows used to report 0.8% FPR, the number is
-   an in-sample fit, not a measurement.
-2. WHAT base rate the precision assumes. Laboratory corpora run fraud
-   prevalence in the double digits; production authorisation traffic runs it
-   near 1% or below. Precision does not survive that change, and the collapse
-   is a property of the base rate, not of the model.
-
-Everything here is deliberately simple arithmetic so a judge can audit it.
+Thresholds are pinned on validation data and evaluated on disjoint test data.
+Finite-sample ties are handled explicitly so the empirical validation FPR never
+silently exceeds the requested target.
 """
-
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass
 from typing import Sequence
 
 import numpy as np
@@ -34,8 +22,6 @@ class SplitSizes:
 
 @dataclass
 class CalibrationResult:
-    """One audited operating point."""
-
     threshold: float
     target_fpr: float
     validation_fpr: float
@@ -53,11 +39,6 @@ def chronological_split(
     validation_frac: float = 0.25,
     test_frac: float = 0.25,
 ) -> tuple[list, list, list]:
-    """Split an already time-ordered sequence into train / validation / test.
-
-    Temporal rather than random: fraud data is non-stationary, and a random
-    split lets tomorrow's traffic calibrate yesterday's threshold.
-    """
     if not 0.0 < validation_frac + test_frac < 1.0:
         raise ValueError("validation_frac + test_frac must be in (0, 1)")
     n = len(items)
@@ -66,25 +47,33 @@ def chronological_split(
     n_train = n - n_val - n_test
     if min(n_train, n_val, n_test) <= 0:
         raise ValueError(f"split too small for n={n}")
-    return list(items[:n_train]), list(items[n_train:n_train + n_val]), list(items[n_train + n_val:])
+    return (
+        list(items[:n_train]),
+        list(items[n_train:n_train + n_val]),
+        list(items[n_train + n_val:]),
+    )
 
 
 def pin_threshold_at_fpr(legit_scores: Sequence[float], target_fpr: float) -> float:
-    """Smallest threshold whose false-positive rate on `legit_scores` does not
-    exceed `target_fpr`. Scores are 'higher is more suspicious'.
-    """
-    scores = np.sort(np.asarray(legit_scores, dtype=float))
+    """Smallest threshold whose empirical ``score >= threshold`` FPR is <= target."""
+    scores = np.asarray(legit_scores, dtype=float).ravel()
+    scores = scores[np.isfinite(scores)]
     if scores.size == 0:
         raise ValueError("cannot calibrate on an empty legitimate sample")
     if not 0.0 < target_fpr < 1.0:
         raise ValueError("target_fpr must be in (0, 1)")
-    # Quantile at (1 - target_fpr) is the threshold that flags exactly the top
-    # target_fpr proportion of legitimate traffic.
-    return float(np.quantile(scores, 1.0 - target_fpr, method="higher"))
+
+    values, counts = np.unique(scores, return_counts=True)
+    flagged = np.cumsum(counts[::-1])[::-1]
+    valid = flagged / float(scores.size) <= target_fpr
+    if np.any(valid):
+        return float(values[np.flatnonzero(valid)[0]])
+    return float(np.nextafter(values[-1], np.inf))
 
 
 def fpr_at_threshold(legit_scores: Sequence[float], threshold: float) -> float:
     scores = np.asarray(legit_scores, dtype=float)
+    scores = scores[np.isfinite(scores)]
     if scores.size == 0:
         return float("nan")
     return float(np.mean(scores >= threshold))
@@ -92,6 +81,7 @@ def fpr_at_threshold(legit_scores: Sequence[float], threshold: float) -> float:
 
 def recall_at_threshold(fraud_scores: Sequence[float], threshold: float) -> float:
     scores = np.asarray(fraud_scores, dtype=float)
+    scores = scores[np.isfinite(scores)]
     if scores.size == 0:
         return float("nan")
     return float(np.mean(scores >= threshold))
@@ -102,17 +92,14 @@ def calibrate(
     test_legit_scores: Sequence[float],
     target_fpr: float = 0.01,
 ) -> CalibrationResult:
-    """Pin the threshold on validation, then MEASURE it on test.
-
-    The gap between `validation_fpr` and `test_fpr` is the honest estimate of
-    how well the operating point generalises. Reporting only the first number
-    is the error this function exists to prevent.
-    """
     tau = pin_threshold_at_fpr(validation_legit_scores, target_fpr)
+    validation_fpr = fpr_at_threshold(validation_legit_scores, tau)
+    if np.isfinite(validation_fpr) and validation_fpr > target_fpr + 1e-12:
+        raise AssertionError("calibration threshold violates target FPR")
     return CalibrationResult(
         threshold=tau,
         target_fpr=target_fpr,
-        validation_fpr=fpr_at_threshold(validation_legit_scores, tau),
+        validation_fpr=validation_fpr,
         validation_rows=len(validation_legit_scores),
         test_fpr=fpr_at_threshold(test_legit_scores, tau),
         test_rows=len(test_legit_scores),
@@ -120,15 +107,6 @@ def calibrate(
 
 
 def precision_at_prevalence(recall: float, fpr: float, prevalence: float) -> float:
-    """Bayes-adjusted precision for an operating point at a given base rate.
-
-        precision = p*R / (p*R + (1-p)*FPR)
-
-    `recall` and `fpr` are measured quantities; `prevalence` is a deployment
-    assumption. Keeping them separate is the whole point: the model does not
-    change when the base rate does, but the precision a fraud analyst
-    experiences changes enormously.
-    """
     if not 0.0 <= prevalence <= 1.0:
         raise ValueError("prevalence must be in [0, 1]")
     tp = prevalence * recall
@@ -139,8 +117,6 @@ def precision_at_prevalence(recall: float, fpr: float, prevalence: float) -> flo
 
 
 def alerts_per_million(recall: float, fpr: float, prevalence: float) -> dict:
-    """Operational load at a base rate: what a review queue actually receives
-    per million authorisations."""
     n = 1_000_000
     frauds = n * prevalence
     legits = n - frauds
@@ -161,11 +137,6 @@ def prevalence_sweep(
     fpr: float,
     prevalences: Sequence[float] = (0.5, 0.1, 0.05, 0.013, 0.005, 0.001),
 ) -> list[dict]:
-    """The same detector reported across plausible base rates.
-
-    Publishing this table is the difference between a laboratory claim and a
-    deployable claim.
-    """
     return [alerts_per_million(recall, fpr, float(p)) for p in prevalences]
 
 
@@ -175,11 +146,6 @@ def bootstrap_ci(
     alpha: float = 0.05,
     seed: int = 42,
 ) -> dict:
-    """Nonparametric bootstrap CI for the mean of `values`.
-
-    Used for seed-level means so that every headline number ships with an
-    interval rather than a single point.
-    """
     arr = np.asarray([v for v in values if np.isfinite(v)], dtype=float)
     if arr.size == 0:
         return {"mean": float("nan"), "lo": float("nan"), "hi": float("nan"), "n": 0}
