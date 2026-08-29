@@ -1,0 +1,67 @@
+{
+  "provenance": {
+    "schema_version": "1.0.0",
+    "generated_at": "2026-08-29T14:16:41.214780+00:00",
+    "git_sha": "87c0ec6",
+    "python": "3.12.13",
+    "platform": "macOS-26.6.2-arm64-arm-64bit",
+    "seeds": [
+      11,
+      23,
+      37
+    ],
+    "command": "python backend/experiments/run_transfer_ablation.py"
+  },
+  "headline": {
+    "baseline_recall": {
+      "mean": 0.9955666666666666,
+      "lo": 0.9933,
+      "hi": 0.9967,
+      "n": 3,
+      "method": "nonparametric bootstrap, 2000 resamples"
+    },
+    "delta_recall_independent_marginal": {
+      "mean": -0.013366666666666666,
+      "lo": -0.02,
+      "hi": -0.0067,
+      "n": 3,
+      "method": "nonparametric bootstrap, 2000 resamples"
+    },
+    "delta_recall_gaussian_copula": {
+      "mean": -0.008866666666666667,
+      "lo": -0.0166,
+      "hi": 0.0,
+      "n": 3,
+      "method": "nonparametric bootstrap, 2000 resamples"
+    },
+    "c2st_independent_marginal": {
+      "mean": 0.9805,
+      "lo": 0.9784,
+      "hi": 0.9842,
+      "n": 3,
+      "method": "nonparametric bootstrap, 2000 resamples"
+    },
+    "c2st_gaussian_copula": {
+      "mean": 0.9541333333333334,
+      "lo": 0.9399000000000001,
+      "hi": 0.9674,
+      "n": 3,
+      "method": "nonparametric bootstrap, 2000 resamples"
+    },
+    "pinned_fpr": 0.01,
+    "seeds": [
+      11,
+      23,
+      37
+    ]
+  },
+  "precision_at_production_prevalence": {
+    "mean": 0.5264666666666666,
+    "lo": 0.4562,
+    "hi": 0.6393,
+    "n": 3,
+    "method": "nonparametric bootstrap, 2000 resamples"
+  },
+  "net_benefit_inr_at_production_prevalence": 226411515.0,
+  "insult_share_of_total_cost": 0.47
+}

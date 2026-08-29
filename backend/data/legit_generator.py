@@ -40,6 +40,12 @@ from schemas.payment import (
 DATA_DIR = Path(__file__).resolve().parent
 BASELINE_PATH = DATA_DIR / "legit_baseline.jsonl"
 
+# Fixed clock anchor for the trailing-90-day legit history, so corpora are
+# bit-reproducible across processes at a given seed (see corpus_builder
+# _ATTACK_BASE for the same reasoning). Legit history trails this anchor;
+# attacks fire ~12h before it, keeping the whole corpus internally ordered.
+_LEGIT_NOW = datetime(2026, 6, 2, 0, 0, 0, tzinfo=timezone.utc)
+
 # Per-vertical amount distributions: (mu, sigma) for lognormal + clamp range.
 _AMOUNT_DIST = {
     "grocery":     (3.6, 0.7, 4.00, 320.00),
@@ -114,7 +120,7 @@ def build_legit_payload(
     )
 
     tds = rng.choices([s for s, _ in _TDS_MIX[mode]], weights=[w for _, w in _TDS_MIX[mode]])[0]
-    timestamp = timestamp or datetime.now(timezone.utc) - timedelta(
+    timestamp = timestamp or _LEGIT_NOW - timedelta(
         minutes=rng.randint(0, 60 * 24 * 90)  # spread over trailing 90 days
     )
 

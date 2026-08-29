@@ -1,9 +1,10 @@
 /**
  * /api/analyst — streams a fraud-ops narration of the live session.
  *
- * Uses the Vercel AI SDK (streamText) pointed at stealth/ox-alpha through
- * OpenRouter's OpenAI-compatible endpoint — the SAME model that plays the
- * attacker, now briefing the defenders. Requires OPENROUTER_API_KEY in the
+ * Uses the Vercel AI SDK (streamText) pointed at an OpenRouter model — by
+ * default the same free reasoning model that plays the attacker (override
+ * with OPENROUTER_MODEL; `stealth/ox-alpha` when that slug is served to the
+ * account), now briefing the defenders. Requires OPENROUTER_API_KEY in the
  * frontend environment (.env.local); without it the route fails loudly and
  * the UI shows a toast-able error instead of pretending.
  */
@@ -38,7 +39,7 @@ export async function POST(req: Request) {
   });
 
   const result = streamText({
-    model: openai(process.env.OPENROUTER_MODEL ?? "stealth/ox-alpha"),
+    model: openai(process.env.OPENROUTER_MODEL ?? "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free"),
     system:
       "You are a senior fraud-ops analyst narrating a live adversarial payment simulation. " +
       "In under 130 words: name the attack pattern the decisions suggest, call out the most " +

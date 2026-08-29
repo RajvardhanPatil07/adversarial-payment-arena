@@ -42,6 +42,7 @@ next-env.d.ts
 
 # ---- backend (python) ----
 backend/.venv/
+.venv/
 __pycache__/
 *.pyc
 .pytest_cache/
@@ -50,7 +51,11 @@ __pycache__/
 backend/data/legit_baseline.jsonl
 backend/data/training_corpus.jsonl
 
-# trained model binaries (rebuild via `python backend/data/corpus_builder.py`)
+# trained model binaries (rebuild via `make models`). The two serialized
+# models below ARE committed so a fresh clone demos a working detector with
+# zero build step; every other file under models/ stays ignored.
 backend/models/*
 !backend/models/.gitkeep
+!backend/models/xgb_model.json
+!backend/models/iforest_model.joblib
 

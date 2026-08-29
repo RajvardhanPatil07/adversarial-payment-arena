@@ -1,0 +1,71 @@
+{
+  "provenance": {
+    "schema_version": "1.0.0",
+    "generated_at": "2026-08-29T14:16:41.191889+00:00",
+    "git_sha": "87c0ec6",
+    "python": "3.12.13",
+    "platform": "macOS-26.6.2-arm64-arm-64bit",
+    "seeds": [
+      11,
+      23,
+      37
+    ],
+    "command": "python backend/experiments/run_transfer_ablation.py"
+  },
+  "operating_point": {
+    "arm": "A2_gaussian_copula",
+    "recall": 0.9867,
+    "fpr": 0.0122
+  },
+  "sweep": [
+    {
+      "prevalence": 0.5,
+      "true_alerts": 493350.0,
+      "false_alerts": 6100.0,
+      "total_alerts": 499450.0,
+      "precision": 0.987787,
+      "missed_frauds": 6650.0
+    },
+    {
+      "prevalence": 0.1,
+      "true_alerts": 98670.0,
+      "false_alerts": 10980.0,
+      "total_alerts": 109650.0,
+      "precision": 0.899863,
+      "missed_frauds": 1330.0
+    },
+    {
+      "prevalence": 0.05,
+      "true_alerts": 49335.0,
+      "false_alerts": 11590.0,
+      "total_alerts": 60925.0,
+      "precision": 0.809766,
+      "missed_frauds": 665.0
+    },
+    {
+      "prevalence": 0.013,
+      "true_alerts": 12827.1,
+      "false_alerts": 12041.4,
+      "total_alerts": 24868.5,
+      "precision": 0.515797,
+      "missed_frauds": 172.9
+    },
+    {
+      "prevalence": 0.005,
+      "true_alerts": 4933.5,
+      "false_alerts": 12139.0,
+      "total_alerts": 17072.5,
+      "precision": 0.288973,
+      "missed_frauds": 66.5
+    },
+    {
+      "prevalence": 0.001,
+      "true_alerts": 986.7,
+      "false_alerts": 12187.8,
+      "total_alerts": 13174.5,
+      "precision": 0.074895,
+      "missed_frauds": 13.3
+    }
+  ],
+  "note": "The model is identical across every row. Only the assumed base rate changes. Precision collapse under realistic prevalence is a property of the base rate and belongs in the result, not in a footnote."
+}

@@ -2,9 +2,10 @@
 
 /**
  * AnalystPanel — Vercel AI SDK wiring. POSTs the live session stats to
- * /api/analyst (which streams from stealth/ox-alpha via OpenRouter) and
- * renders the tokens as they arrive. Graceful when unkeyed: the route
- * returns 500 and we surface it as a toast-able error line.
+ * /api/analyst (which streams from an OpenRouter model — the same LLM that
+ * plays the attacker, set via OPENROUTER_MODEL) and renders the tokens as
+ * they arrive. Graceful when unkeyed: the route returns 500 and we surface
+ * it as a toast-able error line.
  */
 
 import { useCallback, useRef, useState } from "react";

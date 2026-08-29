@@ -10,7 +10,7 @@ BACKEND := backend
 ARTIFACTS := artifacts
 
 .DEFAULT_GOAL := help
-.PHONY: help install reproduce calibration fidelity transfer zero-day artifacts clean-artifacts serve ui test check
+.PHONY: help install reproduce calibration fidelity transfer zero-day artifacts clean-artifacts models serve ui test check
 
 help: ## Show available targets
 	@echo "Adversarial Payment Arena -- make targets"
@@ -19,6 +19,9 @@ help: ## Show available targets
 
 install: ## Install backend dependencies
 	$(PY) -m pip install -r $(BACKEND)/requirements.txt
+
+models: ## Train + serialize the defense models (xgb + iForest) into backend/models/
+	$(PY) $(BACKEND)/data/corpus_builder.py
 
 reproduce: calibration fidelity transfer ## Regenerate the complete evidence set
 	@echo ""

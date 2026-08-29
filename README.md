@@ -47,7 +47,7 @@ The arena simulates an active fight between an autonomous **LLM Red-Team Attacke
 
 ### 1. Autonomous LLM Red-Team Agent
 - Dynamically crafts attacks constrained by real-world fraud economics (acquisition costs, target verticals, 3DS tolerances, POS entry modes).
-- Operates online via **OpenRouter** (e.g. `anthropic/claude-3.5-sonnet`, `stealth/ox-alpha`) or offline via deterministic fallback engines.
+- Operates online via **OpenRouter** (any model, set with `OPENROUTER_MODEL`; defaults to a free reasoning model, and uses `stealth/ox-alpha` when that slug is served to the account) or fully offline via a deterministic fallback fraudster — so the demo runs with **no API key**.
 - Adaptive payload mutation based on real-time defense feedback and system telemetry.
 
 ### 2. Multi-Layer Defense Decisioning Stack
@@ -56,13 +56,15 @@ The arena simulates an active fight between an autonomous **LLM Red-Team Attacke
 - **Graph Intelligence (NetworkX):** Real-time entity-resolution graph tracking shared infrastructure across unrelated accounts to uncover mule rings.
 - **Asymmetric Cost Matrix:** Dynamically weighs False Negatives (fraud loss) vs False Positives (customer insult cost) to optimize net business impact.
 
-### 3. Zero-Day Holdout Robustness
-- **Research question:** Can the defense hold when attacked by a vector never seen during training?
-- Supervised model is trained only on baseline + Attacks 1-3. **Attack 4 (CNP High-Velocity Card Testing) is strictly withheld.**
-- **Results:**
-  - **94% zero-day detection rate**
-  - **92% caught by unsupervised Isolation Forest** alone
-  - **0.8% false positive rate** on holdout legitimate traffic.
+### 3. Reproducible Headline: does generator fidelity determine transfer?
+
+- **Research question:** when you train a fraud detector on *synthetic* red-team data, does the **fidelity** of the generator decide whether that data **helps or hurts** the detector on real fraud?
+- **Design:** a pre-registered three-arm ablation (`A0` real-only baseline · `A1` independent-marginal synthetic · `A2` Gaussian-copula synthetic), everything else held constant — same real rows, same augmentation budget, same detector, thresholds pinned at **1% FPR** on a disjoint legitimate split, evaluated on held-out real fraud over seeds `[11, 23, 37]` with bootstrap CIs.
+- **Result (every number below is emitted by `make reproduce` into `artifacts/`):**
+  - The higher-fidelity generator is measurably more realistic: **C2ST AUC 0.954 (copula) vs 0.981 (independent)**, and rank-dependence error **0.98 vs 2.46** (Frobenius). Lower is more realistic; `0.5` C2ST would be indistinguishable-from-real.
+  - Fidelity tracks transfer: the copula's recall penalty is **smaller** (Δrecall **−0.009**, CI touches 0) than the independent control's (**−0.013**). At a baseline already near-ceiling (0.996 recall), better fidelity does **less harm** — the relationship holds directionally, and the pre-registered fidelity gate is what flags a generator that would degrade a live detector *before* deployment.
+  - **Economics:** at a 1.3% production base rate and 1% FPR, the stack nets **≈ ₹226M per million authorisations** — and wrongly-declined legitimate payments are the **single largest cost term (≈ 47%)**, which is exactly why the cost matrix is asymmetric.
+- **No unverifiable hero numbers.** Every figure in this README is reachable from `make reproduce`, lands in `artifacts/*.json` with a provenance stamp (git SHA, seeds, command), and is mapped claim-by-claim in [`artifacts/claim_ledger.json`](artifacts/claim_ledger.json) / the `/evidence` page. A separate zero-day holdout (`make zero-day`) stress-tests an unseen attack family.
 
 ### 4. Interactive SOC Command Center
 - **Next.js 16 + React 19 + Tailwind CSS v4** interface.
@@ -92,18 +94,22 @@ adversarial-payment-arena/
 │   ├── data/              # Synthetic generator, corpus builder & schemas
 │   ├── defense/           # XGBoost, Isolation Forest, NetworkX Graph & Cost Engine
 │   ├── environment/       # Payment state machine & Plausibility Gate
-│   ├── experiments/       # Zero-day holdout evaluation protocol
-│   ├── models/            # Serialized ML models (.joblib / .json)
+│   ├── evidence/          # Calibration, economics & the claim→artifact ledger
+│   ├── experiments/       # Transfer-vs-fidelity ablation + zero-day holdout
+│   ├── models/            # Serialized ML models (committed: xgb .json + iForest .joblib)
 │   ├── schemas/           # Pydantic data schemas
 │   ├── tests/             # Pytest test suite
 │   ├── main.py            # FastAPI REST & WebSocket streaming server
 │   └── run_campaign.py    # CLI runner for headless campaign benchmarks
+├── artifacts/             # Provenance-stamped JSON evidence (via `make reproduce`)
 ├── docs/
-│   ├── ZERO_DAY_EXPERIMENT.md   # Benchmark protocol & detailed breakdown
-│   └── zero_day_results.png     # ROC and confusion matrix visualizations
+│   ├── TRANSFER_LEDGER.md      # Headline fidelity-vs-transfer experiment write-up
+│   ├── transfer_ledger.png     # The three-arm result figure
+│   ├── ATTACK_TAXONOMY.md      # Full attack taxonomy
+│   └── FEASIBILITY.md          # ISO 8583/20022 mapping & deployment path
 └── frontend/
     ├── src/
-    │   ├── app/           # Next.js App Router (SOC dashboard)
+    │   ├── app/           # Next.js App Router (SOC dashboard + /evidence page)
     │   ├── components/    # xyflow canvas, logs feed, cost telemetry, analyst panel
     │   └── lib/           # WebSocket client & state management
     └── package.json
@@ -133,9 +139,16 @@ pip install -r requirements.txt
 # Run automated test suite
 pytest tests/
 
+# (Optional) retrain + re-serialize the defense models into backend/models/.
+# The repo already ships trained models, so this is only needed if you change
+# the corpus or feature pipeline. Run from the repo root:
+#   make models
+
 # Start FastAPI server (Port 8000)
 uvicorn main:app --reload --port 8000
 ```
+
+> The two serialized detectors (`backend/models/xgb_model.json`, `iforest_model.joblib`) are **committed**, so a fresh clone demos a working four-layer defense with **no build and no API key**.
 
 ### 2. Frontend Setup
 
@@ -157,12 +170,19 @@ Open [http://localhost:3000](http://localhost:3000) to view the SOC dashboard.
 
 ### Headless Campaign Execution
 ```bash
+# Offline (no key): the mule-ring campaign visibly forms a ring and gets DECLINED.
+python backend/run_campaign.py --attack attack_2_synthetic_mule_ring --size 25 --fast
 python backend/run_campaign.py --attack attack_1 --size 50
+```
+
+### Regenerate the full evidence set (headline experiment + economics)
+```bash
+make reproduce        # calibration + fidelity + transfer ablation -> artifacts/*.json
 ```
 
 ### Zero-Day Holdout Experiment Benchmark
 ```bash
-python backend/experiments/run_zero_day.py
+make zero-day         # or: python backend/experiments/zero_day_holdout.py
 ```
 
 ---

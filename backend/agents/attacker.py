@@ -1,8 +1,9 @@
 """
 LLM red-team attacker agent — the "Generate" phase of the closed loop.
 
-The LLM (stealth/ox-alpha via OpenRouter, OpenAI-compatible client) does NOT
-classify anything: it *plays the fraudster*. It plans a campaign (PLANNER
+The LLM (an OpenRouter model via an OpenAI-compatible client — a free
+reasoning model by default, overridable via OPENROUTER_MODEL; stealth/ox-alpha
+when that slug is served) does NOT classify anything: it *plays the fraudster*. It plans a campaign (PLANNER
 phase), then emits one PaymentMessage payload per move via OpenAI-compatible
 STRUCTURED OUTPUTS (json_schema derived from the PaymentMessage Pydantic
 model). Anything that fails local Pydantic validation is treated as a
@@ -178,7 +179,7 @@ class _OpenRouterClientAdapter:
 
 class _OfflineHeuristicAttacker:
     """
-    Deterministic stand-in for stealth/ox-alpha used in CI/no-key demos.
+    Deterministic stand-in for the LLM attacker used in CI/no-key demos.
 
     Speaks the same request/response protocol as chat.completions.create
     (messages in, JSON string out) and behaves like a competent fraudster:
@@ -192,6 +193,22 @@ class _OfflineHeuristicAttacker:
         self.env = env
         self.rng = random.Random(seed)
         self.calls = 0
+        # A mule-ring campaign must actually COLLUDE, or the graph layer has
+        # nothing to catch. For ATTACK_2 we pin a fixed set of >=3 mule
+        # customers onto ONE shared device + ONE egress IP, drawn round-robin
+        # below, so >=3 distinct customers land on the same directly-linked
+        # infra node and the ring rule (graph.py:96,102) fires deterministically
+        # in a no-key demo. Every other spec keeps fresh-identity-per-payload.
+        self._ring: dict | None = None
+        self._ring_i = 0
+        if spec.spec_id == "ATTACK_2_SYNTHETIC_MULE_RING":
+            pool = sorted(self.env.customers.keys())
+            self._ring = {
+                "customers": self.rng.sample(pool, min(4, len(pool))),
+                "device": f"DEV_{self.rng.getrandbits(40):010x}",
+                "ip": f"{self.rng.randint(1, 223)}.{self.rng.randint(0, 255)}."
+                      f"{self.rng.randint(0, 255)}.{self.rng.randint(1, 254)}",
+            }
 
     # -- protocol shim -----------------------------------------------------
     # Call sequence is deterministic: call 1 -> planner, call 2 -> first move
@@ -245,6 +262,20 @@ class _OfflineHeuristicAttacker:
         )
         amount = round(min(max(self.rng.uniform(lo, hi), floor + 5), hi), 2)
         device = f"DEV_{self.rng.getrandbits(40):010x}"
+        ip_address = (
+            f"{self.rng.randint(1,223)}.{self.rng.randint(0,255)}."
+            f"{self.rng.randint(0,255)}.{self.rng.randint(1,254)}"
+        )
+        if self._ring is not None:
+            # Mule ring: override the fresh identity with a fixed mule drawn
+            # round-robin over the shared device + egress IP, so >=3 distinct
+            # customers collude on one infra node and graph.py's ring rule
+            # fires. The RNG draws above are kept intact so non-ring specs stay
+            # byte-for-byte identical.
+            customer_id = self._ring["customers"][self._ring_i % len(self._ring["customers"])]
+            self._ring_i += 1
+            device = self._ring["device"]
+            ip_address = self._ring["ip"]
         reasoning = (
             f"Victim session is fresh post-MFA-reset; monetizing via {mode.value} at "
             f"{merchant.name} (mcc {merchant.mcc}, geo {merchant.country}) for ${amount}. "
@@ -262,7 +293,7 @@ class _OfflineHeuristicAttacker:
                 "currency": "USD",
                 "pos_entry_mode": mode.value,
                 "3ds_status": tds.value,
-                "ip_address": f"{self.rng.randint(1,223)}.{self.rng.randint(0,255)}.{self.rng.randint(0,255)}.{self.rng.randint(1,254)}",
+                "ip_address": ip_address,
                 "ip_country": merchant.country,
                 "device_id": device,
                 "stolen_resource": cons.stolen_resource.value if cons.stolen_resource else None,

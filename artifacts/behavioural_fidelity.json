@@ -1,0 +1,3121 @@
+{
+  "provenance": {
+    "schema_version": "1.0.0",
+    "generated_at": "2026-08-28T09:57:21.335851+00:00",
+    "git_sha": "87c0ec6",
+    "python": "3.12.13",
+    "platform": "macOS-26.6.2-arm64-arm-64bit",
+    "seeds": [
+      11,
+      23,
+      37
+    ],
+    "command": "python backend/experiments/run_behavioural_fidelity.py"
+  },
+  "experiment": "behavioural_fidelity",
+  "question": "Does row-level (marginal) fidelity predict whether synthetic red-team data improves detection of real fraud it has never seen?",
+  "protocol": {
+    "seeds": [
+      11,
+      23,
+      37
+    ],
+    "n_legit": 6000,
+    "n_real_fraud": 400,
+    "real_fraud_visible_to_generator": 90,
+    "synth_budget": 750,
+    "legit_split": "chronological 60/20/20 train/validation/test",
+    "threshold": "pinned at 1% FPR on the legitimate validation split, disjoint from test",
+    "production_prevalence": 0.013,
+    "n_trees": 60,
+    "fidelity_measured_against": "the 90 real fraud rows the generator was fitted on",
+    "transfer_measured_against": "the 310 real fraud rows no generator ever saw"
+  },
+  "headline": {
+    "A0_baseline_no_synthetic|row": {
+      "recall_on_held_out_real_fraud": {
+        "mean": 0.735484,
+        "lo": 0.687097,
+        "hi": 0.780645,
+        "n": 3
+      },
+      "realised_test_fpr": {
+        "mean": 0.012584,
+        "lo": 0.011715,
+        "hi": 0.013536,
+        "n": 3
+      },
+      "precision_at_production_prevalence": {
+        "mean": 0.435263,
+        "lo": 0.400681,
+        "hi": 0.467418,
+        "n": 3
+      }
+    },
+    "A0_baseline_no_synthetic|behavioural": {
+      "recall_on_held_out_real_fraud": {
+        "mean": 0.953763,
+        "lo": 0.86129,
+        "hi": 1.0,
+        "n": 3
+      },
+      "realised_test_fpr": {
+        "mean": 0.012861,
+        "lo": 0.010879,
+        "hi": 0.014167,
+        "n": 3
+      },
+      "precision_at_production_prevalence": {
+        "mean": 0.495144,
+        "lo": 0.481794,
+        "hi": 0.510475,
+        "n": 3
+      }
+    },
+    "A1_marginal_generator|row": {
+      "recall_on_held_out_real_fraud": {
+        "mean": 0.772043,
+        "lo": 0.709677,
+        "hi": 0.809677,
+        "n": 3
+      },
+      "realised_test_fpr": {
+        "mean": 0.01034,
+        "lo": 0.008368,
+        "hi": 0.0125,
+        "n": 3
+      },
+      "precision_at_production_prevalence": {
+        "mean": 0.498776,
+        "lo": 0.456392,
+        "hi": 0.527635,
+        "n": 3
+      }
+    },
+    "A1_marginal_generator|behavioural": {
+      "recall_on_held_out_real_fraud": {
+        "mean": 0.578495,
+        "lo": 0.116129,
+        "hi": 1.0,
+        "n": 3
+      },
+      "realised_test_fpr": {
+        "mean": 0.008367,
+        "lo": 0.00423,
+        "hi": 0.011667,
+        "n": 3
+      },
+      "precision_at_production_prevalence": {
+        "mean": 0.443767,
+        "lo": 0.142489,
+        "hi": 0.658525,
+        "n": 3
+      }
+    },
+    "A2_joint_behavioural_generator|row": {
+      "recall_on_held_out_real_fraud": {
+        "mean": 0.798925,
+        "lo": 0.764516,
+        "hi": 0.845161,
+        "n": 3
+      },
+      "realised_test_fpr": {
+        "mean": 0.01203,
+        "lo": 0.010042,
+        "hi": 0.014382,
+        "n": 3
+      },
+      "precision_at_production_prevalence": {
+        "mean": 0.469176,
+        "lo": 0.436298,
+        "hi": 0.507967,
+        "n": 3
+      }
+    },
+    "A2_joint_behavioural_generator|behavioural": {
+      "recall_on_held_out_real_fraud": {
+        "mean": 0.968817,
+        "lo": 0.906452,
+        "hi": 1.0,
+        "n": 3
+      },
+      "realised_test_fpr": {
+        "mean": 0.013425,
+        "lo": 0.011667,
+        "hi": 0.014382,
+        "n": 3
+      },
+      "precision_at_production_prevalence": {
+        "mean": 0.488203,
+        "lo": 0.456299,
+        "hi": 0.530288,
+        "n": 3
+      }
+    }
+  },
+  "delta_recall_pct_points_vs_A0": {
+    "A1_marginal_generator|row": 3.6559,
+    "A1_marginal_generator|behavioural": -37.5268,
+    "A2_joint_behavioural_generator|row": 6.3441,
+    "A2_joint_behavioural_generator|behavioural": 1.5054
+  },
+  "fidelity_composites": {
+    "A1_marginal_generator": {
+      "row": 0.956592,
+      "temporal": 0.606171,
+      "graph": 0.089506,
+      "c2st_row": 0.685383,
+      "c2st_behavioural": 1.0
+    },
+    "A2_joint_behavioural_generator": {
+      "row": 0.946548,
+      "temporal": 0.704854,
+      "graph": 0.551091,
+      "c2st_row": 0.676548,
+      "c2st_behavioural": 0.993457
+    }
+  },
+  "ordering": {
+    "rank_by_row_level_fidelity": [
+      "A1_marginal_generator",
+      "A2_joint_behavioural_generator"
+    ],
+    "rank_by_transfer": [
+      "A2_joint_behavioural_generator",
+      "A1_marginal_generator"
+    ],
+    "ordering_inversion_detected": true
+  },
+  "comparator": {
+    "label": "published parametric red-team",
+    "c2st": 0.9801,
+    "delta_recall": -0.038
+  },
+  "per_seed": [
+    {
+      "seed": 11,
+      "n_legit_train": 3544,
+      "n_legit_val": 1181,
+      "n_legit_test": 1182,
+      "n_fraud_fit": 90,
+      "n_fraud_holdout": 310,
+      "arms": [
+        {
+          "arm": "A0_baseline_no_synthetic",
+          "generator": null,
+          "fidelity": null,
+          "n_synthetic_rows": 0,
+          "transfer": {
+            "row": {
+              "threshold": 0.47495713,
+              "threshold_source": "legitimate validation split (disjoint from test)",
+              "target_fpr": 0.01,
+              "realised_test_fpr": 0.013536,
+              "calibration_gap_pct_points": 0.3536,
+              "recall_on_held_out_real_fraud": 0.687097,
+              "production_prevalence": 0.013,
+              "precision_at_production_prevalence": 0.400681,
+              "n_legit_validation": 1181,
+              "n_legit_test": 1182,
+              "n_fraud_test": 310,
+              "n_train_rows": 3634,
+              "n_train_positive": 90
+            },
+            "behavioural": {
+              "threshold": 0.03287422,
+              "threshold_source": "legitimate validation split (disjoint from test)",
+              "target_fpr": 0.01,
+              "realised_test_fpr": 0.013536,
+              "calibration_gap_pct_points": 0.3536,
+              "recall_on_held_out_real_fraud": 1.0,
+              "production_prevalence": 0.013,
+              "precision_at_production_prevalence": 0.493164,
+              "n_legit_validation": 1181,
+              "n_legit_test": 1182,
+              "n_fraud_test": 310,
+              "n_train_rows": 3634,
+              "n_train_positive": 90
+            }
+          }
+        },
+        {
+          "arm": "A1_marginal_generator",
+          "generator": "marginal",
+          "n_synthetic_rows": 750,
+          "fidelity": {
+            "row_level": {
+              "measures": [
+                {
+                  "measure": "amount",
+                  "kind": "numeric",
+                  "ks": 0.029778,
+                  "normalised_w1": 0.074759,
+                  "jsd": 0.004374,
+                  "similarity": 0.970222,
+                  "similarity_transform": "1 - KS",
+                  "real_median": 3401.192396,
+                  "synth_median": 3407.884132,
+                  "real_n": 90,
+                  "synth_n": 750
+                },
+                {
+                  "measure": "log_amount",
+                  "kind": "numeric",
+                  "ks": 0.029778,
+                  "normalised_w1": 0.0686,
+                  "jsd": 0.003623,
+                  "similarity": 0.970222,
+                  "similarity_transform": "1 - KS",
+                  "real_median": 8.132175,
+                  "synth_median": 8.13414,
+                  "real_n": 90,
+                  "synth_n": 750
+                },
+                {
+                  "measure": "hour_of_day",
+                  "kind": "numeric",
+                  "ks": 0.153778,
+                  "normalised_w1": 0.113666,
+                  "jsd": 0.250841,
+                  "similarity": 0.846222,
+                  "similarity_transform": "1 - KS",
+                  "real_median": 15.369765,
+                  "synth_median": 12.471501,
+                  "real_n": 90,
+                  "synth_n": 750
+                },
+                {
+                  "measure": "mcc",
+                  "kind": "categorical",
+                  "tvd": 0.042667,
+                  "similarity": 0.957333,
+                  "similarity_transform": "1 - TVD"
+                },
+                {
+                  "measure": "entry_mode",
+                  "kind": "categorical",
+                  "tvd": 0.008444,
+                  "similarity": 0.991556,
+                  "similarity_transform": "1 - TVD"
+                }
+              ],
+              "composite_similarity": 0.947111
+            },
+            "temporal": {
+              "family": "temporal",
+              "grouped_by": "customer",
+              "measures": [
+                {
+                  "measure": "inter_arrival_seconds",
+                  "kind": "numeric",
+                  "ks": null,
+                  "normalised_w1": null,
+                  "jsd": null,
+                  "similarity": null,
+                  "similarity_transform": "1 - KS",
+                  "real_median": 5.616014,
+                  "synth_median": null,
+                  "real_n": 79,
+                  "synth_n": 0
+                },
+                {
+                  "measure": "burstiness",
+                  "kind": "numeric",
+                  "ks": null,
+                  "normalised_w1": null,
+                  "jsd": null,
+                  "similarity": null,
+                  "similarity_transform": "1 - KS",
+                  "real_median": 0.098453,
+                  "synth_median": null,
+                  "real_n": 7,
+                  "synth_n": 0
+                },
+                {
+                  "measure": "burstiness_by_device",
+                  "kind": "numeric",
+                  "ks": null,
+                  "normalised_w1": null,
+                  "jsd": null,
+                  "similarity": null,
+                  "similarity_transform": "1 - KS",
+                  "real_median": 0.113678,
+                  "synth_median": null,
+                  "real_n": 4,
+                  "synth_n": 0
+                },
+                {
+                  "measure": "inter_arrival_seconds_by_device",
+                  "kind": "numeric",
+                  "ks": null,
+                  "normalised_w1": null,
+                  "jsd": null,
+                  "similarity": null,
+                  "similarity_transform": "1 - KS",
+                  "real_median": 4.385474,
+                  "synth_median": null,
+                  "real_n": 85,
+                  "synth_n": 0
+                },
+                {
+                  "measure": "velocity_5m",
+                  "kind": "numeric",
+                  "ks": 0.466667,
+                  "normalised_w1": 2.07369,
+                  "jsd": 0.285381,
+                  "similarity": 0.533333,
+                  "similarity_transform": "1 - KS",
+                  "real_median": 0.0,
+                  "synth_median": 0.0,
+                  "real_n": 90,
+                  "synth_n": 750
+                },
+                {
+                  "measure": "velocity_1h",
+                  "kind": "numeric",
+                  "ks": 0.466667,
+                  "normalised_w1": 1.779224,
+                  "jsd": 0.285381,
+                  "similarity": 0.533333,
+                  "similarity_transform": "1 - KS",
+                  "real_median": 0.0,
+                  "synth_median": 0.0,
+                  "real_n": 90,
+                  "synth_n": 750
+                },
+                {
+                  "measure": "sequence_length",
+                  "kind": "numeric",
+                  "ks": 0.727273,
+                  "normalised_w1": 6.846685,
+                  "jsd": 0.522985,
+                  "similarity": 0.272727,
+                  "similarity_transform": "1 - KS",
+                  "real_median": 12.0,
+                  "synth_median": 1.0,
+                  "real_n": 11,
+                  "synth_n": 750
+                },
+                {
+                  "measure": "campaign_duration_seconds",
+                  "kind": "numeric",
+                  "ks": 0.727273,
+                  "normalised_w1": 7.327728,
+                  "jsd": 0.522985,
+                  "similarity": 0.272727,
+                  "similarity_transform": "1 - KS",
+                  "real_median": 10.530018,
+                  "synth_median": 0.0,
+                  "real_n": 11,
+                  "synth_n": 750
+                },
+                {
+                  "measure": "hour_of_day",
+                  "kind": "numeric",
+                  "ks": 0.153778,
+                  "normalised_w1": 0.113666,
+                  "jsd": 0.250841,
+                  "similarity": 0.846222,
+                  "similarity_transform": "1 - KS",
+                  "real_median": 15.369765,
+                  "synth_median": 12.471501,
+                  "real_n": 90,
+                  "synth_n": 750
+                },
+                {
+                  "measure": "entry_mode_given_night",
+                  "kind": "categorical",
+                  "tvd": 0.038048,
+                  "similarity": 0.961952,
+                  "similarity_transform": "1 - TVD"
+                }
+              ],
+              "composite_similarity": 0.570049,
+              "real_night_share": 0.144444,
+              "synth_night_share": 0.248,
+              "interpretation": "composite_similarity is the unweighted mean of per-measure (1 - KS) or (1 - TVD). 1.0 means indistinguishable temporal behaviour; a generator that resamples columns independently typically scores high on row-level marginals and low here."
+            },
+            "graph": {
+              "family": "graph",
+              "measures": [
+                {
+                  "measure": "fanout_device_to_customer",
+                  "kind": "numeric",
+                  "ks": 1.0,
+                  "normalised_w1": 11.06436,
+                  "jsd": 1.0,
+                  "similarity": 0.0,
+                  "similarity_transform": "1 - KS",
+                  "real_median": 3.0,
+                  "synth_median": 1.0,
+                  "real_n": 5,
+                  "synth_n": 750
+                },
+                {
+                  "measure": "fanout_ip_to_customer",
+                  "kind": "numeric",
+                  "ks": 1.0,
+                  "normalised_w1": 11.844547,
+                  "jsd": 1.0,
+                  "similarity": 0.0,
+                  "similarity_transform": "1 - KS",
+                  "real_median": 2.5,
+                  "synth_median": 1.0,
+                  "real_n": 4,
+                  "synth_n": 750
+                },
+                {
+                  "measure": "fanout_merchant_to_customer",
+                  "kind": "numeric",
+                  "ks": 1.0,
+                  "normalised_w1": 10.356612,
+                  "jsd": 1.0,
+                  "similarity": 0.0,
+                  "similarity_transform": "1 - KS",
+                  "real_median": 2.0,
+                  "synth_median": 1.0,
+                  "real_n": 6,
+                  "synth_n": 750
+                },
+                {
+                  "measure": "fanout_customer_to_device",
+                  "kind": "numeric",
+                  "ks": 0.272727,
+                  "normalised_w1": 3.993586,
+                  "jsd": 0.15196,
+                  "similarity": 0.727273,
+                  "similarity_transform": "1 - KS",
+                  "real_median": 1.0,
+                  "synth_median": 1.0,
+                  "real_n": 11,
+                  "synth_n": 750
+                },
+                {
+                  "measure": "degree_customer",
+                  "kind": "numeric",
+                  "ks": 0.727273,
+                  "normalised_w1": 6.846685,
+                  "jsd": 0.522985,
+                  "similarity": 0.272727,
+                  "similarity_transform": "1 - KS",
+                  "real_median": 12.0,
+                  "synth_median": 1.0,
+                  "real_n": 11,
+                  "synth_n": 750
+                },
+                {
+                  "measure": "degree_device",
+                  "kind": "numeric",
+                  "ks": 1.0,
+                  "normalised_w1": 7.604569,
+                  "jsd": 0.395816,
+                  "similarity": 0.0,
+                  "similarity_transform": "1 - KS",
+                  "real_median": 17.0,
+                  "synth_median": 1.0,
+                  "real_n": 5,
+                  "synth_n": 750
+                },
+                {
+                  "measure": "degree_ip",
+                  "kind": "numeric",
+                  "ks": 1.0,
+                  "normalised_w1": 9.370133,
+                  "jsd": 0.311278,
+                  "similarity": 0.0,
+                  "similarity_transform": "1 - KS",
+                  "real_median": 19.0,
+                  "synth_median": 1.0,
+                  "real_n": 4,
+                  "synth_n": 750
+                },
+                {
+                  "measure": "degree_merchant",
+                  "kind": "numeric",
+                  "ks": 1.0,
+                  "normalised_w1": 9.55557,
+                  "jsd": 0.654858,
+                  "similarity": 0.0,
+                  "similarity_transform": "1 - KS",
+                  "real_median": 17.5,
+                  "synth_median": 1.0,
+                  "real_n": 6,
+                  "synth_n": 750
+                },
+                {
+                  "measure": "component_size",
+                  "kind": "numeric",
+                  "ks": 1.0,
+                  "normalised_w1": 12.173878,
+                  "jsd": 1.0,
+                  "similarity": 0.0,
+                  "similarity_transform": "1 - KS",
+                  "real_median": 1.994492,
+                  "synth_median": 1.609438,
+                  "real_n": 4,
+                  "synth_n": 750
+                }
+              ],
+              "composite_similarity": 0.111111,
+              "real_entity_sharing": {
+                "device_multi_customer_share": 1.0,
+                "ip_multi_customer_share": 1.0,
+                "merchant_multi_customer_share": 1.0,
+                "customer_multi_device_share": 0.272727
+              },
+              "synth_entity_sharing": {
+                "device_multi_customer_share": 0.0,
+                "ip_multi_customer_share": 0.0,
+                "merchant_multi_customer_share": 0.0,
+                "customer_multi_device_share": 0.0
+              },
+              "entity_sharing_absolute_gap": {
+                "device_multi_customer_share": 1.0,
+                "ip_multi_customer_share": 1.0,
+                "merchant_multi_customer_share": 1.0,
+                "customer_multi_device_share": 0.272727
+              },
+              "real_largest_component": 8.0,
+              "synth_largest_component": 4.0,
+              "interpretation": "A generator with no notion of entity identity produces a graph of isolated edges: fanout collapses to 1, entity-sharing shares collapse to 0, and the largest connected component shrinks to the number of entity types. That is visible here even when row-level marginals match."
+            },
+            "c2st_row_features": {
+              "c2st_auc": 0.81083,
+              "ci95": {
+                "lo": 0.755006,
+                "hi": 0.855906
+              },
+              "gate": 0.8,
+              "passes_gate": false,
+              "permutation_null": {
+                "mean": 0.502528,
+                "p95": 0.56044,
+                "n_permutations": 12
+              },
+              "permutation_p_value": 0.076923,
+              "most_discriminative_features": [
+                {
+                  "feature": "hour_sin",
+                  "importance": 0.328
+                },
+                {
+                  "feature": "hour_cos",
+                  "importance": 0.32408
+                },
+                {
+                  "feature": "log_amount",
+                  "importance": 0.141675
+                },
+                {
+                  "feature": "amount_round_frac",
+                  "importance": 0.129412
+                },
+                {
+                  "feature": "mcc_num",
+                  "importance": 0.054418
+                }
+              ],
+              "n_real": 90,
+              "n_synth": 750,
+              "policy": "The observed AUC is published whether or not the gate is cleared. The gate is a policy choice, not a law of statistics; the permutation null shows what this classifier scores on indistinguishable data."
+            },
+            "c2st_behavioural_features": {
+              "c2st_auc": 1.0,
+              "ci95": {
+                "lo": 1.0,
+                "hi": 1.0
+              },
+              "gate": 0.8,
+              "passes_gate": false,
+              "permutation_null": {
+                "mean": 0.506127,
+                "p95": 0.55675,
+                "n_permutations": 12
+              },
+              "permutation_p_value": 0.076923,
+              "most_discriminative_features": [
+                {
+                  "feature": "ip_customer_count",
+                  "importance": 0.24434
+                },
+                {
+                  "feature": "device_customer_count",
+                  "importance": 0.222251
+                },
+                {
+                  "feature": "merchant_customer_count",
+                  "importance": 0.211494
+                },
+                {
+                  "feature": "log_gap_prev",
+                  "importance": 0.134243
+                },
+                {
+                  "feature": "seq_index",
+                  "importance": 0.110556
+                }
+              ],
+              "n_real": 90,
+              "n_synth": 750,
+              "policy": "The observed AUC is published whether or not the gate is cleared. The gate is a policy choice, not a law of statistics; the permutation null shows what this classifier scores on indistinguishable data."
+            },
+            "composites": {
+              "row": 0.947111,
+              "temporal": 0.570049,
+              "graph": 0.111111,
+              "c2st_row": 0.81083,
+              "c2st_behavioural": 1.0
+            }
+          },
+          "transfer": {
+            "row": {
+              "threshold": 0.80202506,
+              "threshold_source": "legitimate validation split (disjoint from test)",
+              "target_fpr": 0.01,
+              "realised_test_fpr": 0.010152,
+              "calibration_gap_pct_points": 0.0152,
+              "recall_on_held_out_real_fraud": 0.809677,
+              "production_prevalence": 0.013,
+              "precision_at_production_prevalence": 0.512302,
+              "n_legit_validation": 1181,
+              "n_legit_test": 1182,
+              "n_fraud_test": 310,
+              "n_train_rows": 4384,
+              "n_train_positive": 840
+            },
+            "behavioural": {
+              "threshold": 0.86479669,
+              "threshold_source": "legitimate validation split (disjoint from test)",
+              "target_fpr": 0.01,
+              "realised_test_fpr": 0.00423,
+              "calibration_gap_pct_points": -0.577,
+              "recall_on_held_out_real_fraud": 0.619355,
+              "production_prevalence": 0.013,
+              "precision_at_production_prevalence": 0.658525,
+              "n_legit_validation": 1181,
+              "n_legit_test": 1182,
+              "n_fraud_test": 310,
+              "n_train_rows": 4384,
+              "n_train_positive": 840
+            }
+          }
+        },
+        {
+          "arm": "A2_joint_behavioural_generator",
+          "generator": "joint_behavioural",
+          "n_synthetic_rows": 750,
+          "fidelity": {
+            "row_level": {
+              "measures": [
+                {
+                  "measure": "amount",
+                  "kind": "numeric",
+                  "ks": 0.027111,
+                  "normalised_w1": 0.029173,
+                  "jsd": 0.020391,
+                  "similarity": 0.972889,
+                  "similarity_transform": "1 - KS",
+                  "real_median": 3401.192396,
+                  "synth_median": 3375.355597,
+                  "real_n": 90,
+                  "synth_n": 750
+                },
+                {
+                  "measure": "log_amount",
+                  "kind": "numeric",
+                  "ks": 0.027111,
+                  "normalised_w1": 0.027833,
+                  "jsd": 0.012604,
+                  "similarity": 0.972889,
+                  "similarity_transform": "1 - KS",
+                  "real_median": 8.132175,
+                  "synth_median": 8.124552,
+                  "real_n": 90,
+                  "synth_n": 750
+                },
+                {
+                  "measure": "hour_of_day",
+                  "kind": "numeric",
+                  "ks": 0.186222,
+                  "normalised_w1": 0.115587,
+                  "jsd": 0.271176,
+                  "similarity": 0.813778,
+                  "similarity_transform": "1 - KS",
+                  "real_median": 15.369765,
+                  "synth_median": 14.278886,
+                  "real_n": 90,
+                  "synth_n": 750
+                },
+                {
+                  "measure": "mcc",
+                  "kind": "categorical",
+                  "tvd": 0.016889,
+                  "similarity": 0.983111,
+                  "similarity_transform": "1 - TVD"
+                },
+                {
+                  "measure": "entry_mode",
+                  "kind": "categorical",
+                  "tvd": 0.002222,
+                  "similarity": 0.997778,
+                  "similarity_transform": "1 - TVD"
+                }
+              ],
+              "composite_similarity": 0.948089
+            },
+            "temporal": {
+              "family": "temporal",
+              "grouped_by": "customer",
+              "measures": [
+                {
+                  "measure": "inter_arrival_seconds",
+                  "kind": "numeric",
+                  "ks": 0.372991,
+                  "normalised_w1": 0.161772,
+                  "jsd": 0.205391,
+                  "similarity": 0.627009,
+                  "similarity_transform": "1 - KS",
+                  "real_median": 5.616014,
+                  "synth_median": 5.237237,
+                  "real_n": 79,
+                  "synth_n": 667
+                },
+                {
+                  "measure": "burstiness",
+                  "kind": "numeric",
+                  "ks": 0.512821,
+                  "normalised_w1": 0.452646,
+                  "jsd": 0.43784,
+                  "similarity": 0.487179,
+                  "similarity_transform": "1 - KS",
+                  "real_median": 0.098453,
+                  "synth_median": 0.201505,
+                  "real_n": 7,
+                  "synth_n": 78
+                },
+                {
+                  "measure": "burstiness_by_device",
+                  "kind": "numeric",
+                  "ks": 0.456897,
+                  "normalised_w1": 0.626938,
+                  "jsd": 0.627512,
+                  "similarity": 0.543103,
+                  "similarity_transform": "1 - KS",
+                  "real_median": 0.113678,
+                  "synth_median": 0.253086,
+                  "real_n": 4,
+                  "synth_n": 58
+                },
+                {
+                  "measure": "inter_arrival_seconds_by_device",
+                  "kind": "numeric",
+                  "ks": 0.162367,
+                  "normalised_w1": 0.085404,
+                  "jsd": 0.064074,
+                  "similarity": 0.837633,
+                  "similarity_transform": "1 - KS",
+                  "real_median": 4.385474,
+                  "synth_median": 4.700216,
+                  "real_n": 85,
+                  "synth_n": 689
+                },
+                {
+                  "measure": "velocity_5m",
+                  "kind": "numeric",
+                  "ks": 0.193778,
+                  "normalised_w1": 0.308055,
+                  "jsd": 0.077277,
+                  "similarity": 0.806222,
+                  "similarity_transform": "1 - KS",
+                  "real_median": 0.0,
+                  "synth_median": 1.0,
+                  "real_n": 90,
+                  "synth_n": 750
+                },
+                {
+                  "measure": "velocity_1h",
+                  "kind": "numeric",
+                  "ks": 0.106667,
+                  "normalised_w1": 0.271311,
+                  "jsd": 0.033675,
+                  "similarity": 0.893333,
+                  "similarity_transform": "1 - KS",
+                  "real_median": 0.0,
+                  "synth_median": 1.0,
+                  "real_n": 90,
+                  "synth_n": 750
+                },
+                {
+                  "measure": "sequence_length",
+                  "kind": "numeric",
+                  "ks": 0.311062,
+                  "normalised_w1": 0.466207,
+                  "jsd": 0.595216,
+                  "similarity": 0.688938,
+                  "similarity_transform": "1 - KS",
+                  "real_median": 12.0,
+                  "synth_median": 8.0,
+                  "real_n": 11,
+                  "synth_n": 83
+                },
+                {
+                  "measure": "campaign_duration_seconds",
+                  "kind": "numeric",
+                  "ks": 0.272727,
+                  "normalised_w1": 1.98051,
+                  "jsd": 0.388753,
+                  "similarity": 0.727273,
+                  "similarity_transform": "1 - KS",
+                  "real_median": 10.530018,
+                  "synth_median": 10.18904,
+                  "real_n": 11,
+                  "synth_n": 83
+                },
+                {
+                  "measure": "hour_of_day",
+                  "kind": "numeric",
+                  "ks": 0.186222,
+                  "normalised_w1": 0.115587,
+                  "jsd": 0.271176,
+                  "similarity": 0.813778,
+                  "similarity_transform": "1 - KS",
+                  "real_median": 15.369765,
+                  "synth_median": 14.278886,
+                  "real_n": 90,
+                  "synth_n": 750
+                },
+                {
+                  "measure": "entry_mode_given_night",
+                  "kind": "categorical",
+                  "tvd": 0.008037,
+                  "similarity": 0.991963,
+                  "similarity_transform": "1 - TVD"
+                }
+              ],
+              "composite_similarity": 0.741643,
+              "real_night_share": 0.144444,
+              "synth_night_share": 0.178667,
+              "interpretation": "composite_similarity is the unweighted mean of per-measure (1 - KS) or (1 - TVD). 1.0 means indistinguishable temporal behaviour; a generator that resamples columns independently typically scores high on row-level marginals and low here."
+            },
+            "graph": {
+              "family": "graph",
+              "measures": [
+                {
+                  "measure": "fanout_device_to_customer",
+                  "kind": "numeric",
+                  "ks": 0.354098,
+                  "normalised_w1": 0.39212,
+                  "jsd": 0.232035,
+                  "similarity": 0.645902,
+                  "similarity_transform": "1 - KS",
+                  "real_median": 3.0,
+                  "synth_median": 2.0,
+                  "real_n": 5,
+                  "synth_n": 61
+                },
+                {
+                  "measure": "fanout_ip_to_customer",
+                  "kind": "numeric",
+                  "ks": 0.186047,
+                  "normalised_w1": 0.34905,
+                  "jsd": 0.113059,
+                  "similarity": 0.813953,
+                  "similarity_transform": "1 - KS",
+                  "real_median": 2.5,
+                  "synth_median": 2.0,
+                  "real_n": 4,
+                  "synth_n": 43
+                },
+                {
+                  "measure": "fanout_merchant_to_customer",
+                  "kind": "numeric",
+                  "ks": 0.40625,
+                  "normalised_w1": 0.770336,
+                  "jsd": 0.45041,
+                  "similarity": 0.59375,
+                  "similarity_transform": "1 - KS",
+                  "real_median": 2.0,
+                  "synth_median": 2.5,
+                  "real_n": 6,
+                  "synth_n": 32
+                },
+                {
+                  "measure": "fanout_customer_to_device",
+                  "kind": "numeric",
+                  "ks": 0.156627,
+                  "normalised_w1": 0.220298,
+                  "jsd": 0.090198,
+                  "similarity": 0.843373,
+                  "similarity_transform": "1 - KS",
+                  "real_median": 1.0,
+                  "synth_median": 1.0,
+                  "real_n": 11,
+                  "synth_n": 83
+                },
+                {
+                  "measure": "degree_customer",
+                  "kind": "numeric",
+                  "ks": 0.311062,
+                  "normalised_w1": 0.466207,
+                  "jsd": 0.595216,
+                  "similarity": 0.688938,
+                  "similarity_transform": "1 - KS",
+                  "real_median": 12.0,
+                  "synth_median": 8.0,
+                  "real_n": 11,
+                  "synth_n": 83
+                },
+                {
+                  "measure": "degree_device",
+                  "kind": "numeric",
+                  "ks": 0.354098,
+                  "normalised_w1": 0.439352,
+                  "jsd": 0.642866,
+                  "similarity": 0.645902,
+                  "similarity_transform": "1 - KS",
+                  "real_median": 17.0,
+                  "synth_median": 10.0,
+                  "real_n": 5,
+                  "synth_n": 61
+                },
+                {
+                  "measure": "degree_ip",
+                  "kind": "numeric",
+                  "ks": 0.453488,
+                  "normalised_w1": 0.426459,
+                  "jsd": 0.789827,
+                  "similarity": 0.546512,
+                  "similarity_transform": "1 - KS",
+                  "real_median": 19.0,
+                  "synth_median": 14.0,
+                  "real_n": 4,
+                  "synth_n": 43
+                },
+                {
+                  "measure": "degree_merchant",
+                  "kind": "numeric",
+                  "ks": 0.375,
+                  "normalised_w1": 0.34268,
+                  "jsd": 0.588785,
+                  "similarity": 0.625,
+                  "similarity_transform": "1 - KS",
+                  "real_median": 17.5,
+                  "synth_median": 20.5,
+                  "real_n": 6,
+                  "synth_n": 32
+                },
+                {
+                  "measure": "component_size",
+                  "kind": "numeric",
+                  "ks": 0.666667,
+                  "normalised_w1": 4.052787,
+                  "jsd": 0.425284,
+                  "similarity": 0.333333,
+                  "similarity_transform": "1 - KS",
+                  "real_median": 1.994492,
+                  "synth_median": 2.302585,
+                  "real_n": 4,
+                  "synth_n": 3
+                }
+              ],
+              "composite_similarity": 0.637407,
+              "real_entity_sharing": {
+                "device_multi_customer_share": 1.0,
+                "ip_multi_customer_share": 1.0,
+                "merchant_multi_customer_share": 1.0,
+                "customer_multi_device_share": 0.272727
+              },
+              "synth_entity_sharing": {
+                "device_multi_customer_share": 0.655738,
+                "ip_multi_customer_share": 0.813953,
+                "merchant_multi_customer_share": 0.75,
+                "customer_multi_device_share": 0.313253
+              },
+              "entity_sharing_absolute_gap": {
+                "device_multi_customer_share": 0.344262,
+                "ip_multi_customer_share": 0.186047,
+                "merchant_multi_customer_share": 0.25,
+                "customer_multi_device_share": 0.040526
+              },
+              "real_largest_component": 8.0,
+              "synth_largest_component": 202.0,
+              "interpretation": "A generator with no notion of entity identity produces a graph of isolated edges: fanout collapses to 1, entity-sharing shares collapse to 0, and the largest connected component shrinks to the number of entity types. That is visible here even when row-level marginals match."
+            },
+            "c2st_row_features": {
+              "c2st_auc": 0.777763,
+              "ci95": {
+                "lo": 0.73187,
+                "hi": 0.823389
+              },
+              "gate": 0.8,
+              "passes_gate": true,
+              "permutation_null": {
+                "mean": 0.505055,
+                "p95": 0.563658,
+                "n_permutations": 12
+              },
+              "permutation_p_value": 0.076923,
+              "most_discriminative_features": [
+                {
+                  "feature": "hour_cos",
+                  "importance": 0.301268
+                },
+                {
+                  "feature": "hour_sin",
+                  "importance": 0.273739
+                },
+                {
+                  "feature": "amount_round_frac",
+                  "importance": 0.180511
+                },
+                {
+                  "feature": "log_amount",
+                  "importance": 0.165952
+                },
+                {
+                  "feature": "mcc_num",
+                  "importance": 0.053853
+                }
+              ],
+              "n_real": 90,
+              "n_synth": 750,
+              "policy": "The observed AUC is published whether or not the gate is cleared. The gate is a policy choice, not a law of statistics; the permutation null shows what this classifier scores on indistinguishable data."
+            },
+            "c2st_behavioural_features": {
+              "c2st_auc": 0.98997,
+              "ci95": {
+                "lo": 0.979663,
+                "hi": 0.99806
+              },
+              "gate": 0.8,
+              "passes_gate": false,
+              "permutation_null": {
+                "mean": 0.527778,
+                "p95": 0.573286,
+                "n_permutations": 12
+              },
+              "permutation_p_value": 0.076923,
+              "most_discriminative_features": [
+                {
+                  "feature": "merchant_customer_count",
+                  "importance": 0.335666
+                },
+                {
+                  "feature": "device_customer_count",
+                  "importance": 0.214579
+                },
+                {
+                  "feature": "ip_customer_count",
+                  "importance": 0.119033
+                },
+                {
+                  "feature": "hour_cos",
+                  "importance": 0.064309
+                },
+                {
+                  "feature": "log_gap_prev",
+                  "importance": 0.059705
+                }
+              ],
+              "n_real": 90,
+              "n_synth": 750,
+              "policy": "The observed AUC is published whether or not the gate is cleared. The gate is a policy choice, not a law of statistics; the permutation null shows what this classifier scores on indistinguishable data."
+            },
+            "composites": {
+              "row": 0.948089,
+              "temporal": 0.741643,
+              "graph": 0.637407,
+              "c2st_row": 0.777763,
+              "c2st_behavioural": 0.98997
+            }
+          },
+          "transfer": {
+            "row": {
+              "threshold": 0.79405546,
+              "threshold_source": "legitimate validation split (disjoint from test)",
+              "target_fpr": 0.01,
+              "realised_test_fpr": 0.014382,
+              "calibration_gap_pct_points": 0.4382,
+              "recall_on_held_out_real_fraud": 0.845161,
+              "production_prevalence": 0.013,
+              "precision_at_production_prevalence": 0.436298,
+              "n_legit_validation": 1181,
+              "n_legit_test": 1182,
+              "n_fraud_test": 310,
+              "n_train_rows": 4384,
+              "n_train_positive": 840
+            },
+            "behavioural": {
+              "threshold": 0.06439976,
+              "threshold_source": "legitimate validation split (disjoint from test)",
+              "target_fpr": 0.01,
+              "realised_test_fpr": 0.014382,
+              "calibration_gap_pct_points": 0.4382,
+              "recall_on_held_out_real_fraud": 1.0,
+              "production_prevalence": 0.013,
+              "precision_at_production_prevalence": 0.478021,
+              "n_legit_validation": 1181,
+              "n_legit_test": 1182,
+              "n_fraud_test": 310,
+              "n_train_rows": 4384,
+              "n_train_positive": 840
+            }
+          }
+        }
+      ]
+    },
+    {
+      "seed": 23,
+      "n_legit_train": 3600,
+      "n_legit_val": 1200,
+      "n_legit_test": 1200,
+      "n_fraud_fit": 90,
+      "n_fraud_holdout": 310,
+      "arms": [
+        {
+          "arm": "A0_baseline_no_synthetic",
+          "generator": null,
+          "fidelity": null,
+          "n_synthetic_rows": 0,
+          "transfer": {
+            "row": {
+              "threshold": 0.45249605,
+              "threshold_source": "legitimate validation split (disjoint from test)",
+              "target_fpr": 0.01,
+              "realised_test_fpr": 0.0125,
+              "calibration_gap_pct_points": 0.25,
+              "recall_on_held_out_real_fraud": 0.73871,
+              "production_prevalence": 0.013,
+              "precision_at_production_prevalence": 0.43769,
+              "n_legit_validation": 1200,
+              "n_legit_test": 1200,
+              "n_fraud_test": 310,
+              "n_train_rows": 3690,
+              "n_train_positive": 90
+            },
+            "behavioural": {
+              "threshold": 0.01606426,
+              "threshold_source": "legitimate validation split (disjoint from test)",
+              "target_fpr": 0.01,
+              "realised_test_fpr": 0.014167,
+              "calibration_gap_pct_points": 0.4167,
+              "recall_on_held_out_real_fraud": 1.0,
+              "production_prevalence": 0.013,
+              "precision_at_production_prevalence": 0.481794,
+              "n_legit_validation": 1200,
+              "n_legit_test": 1200,
+              "n_fraud_test": 310,
+              "n_train_rows": 3690,
+              "n_train_positive": 90
+            }
+          }
+        },
+        {
+          "arm": "A1_marginal_generator",
+          "generator": "marginal",
+          "n_synthetic_rows": 750,
+          "fidelity": {
+            "row_level": {
+              "measures": [
+                {
+                  "measure": "amount",
+                  "kind": "numeric",
+                  "ks": 0.031111,
+                  "normalised_w1": 0.03965,
+                  "jsd": 0.005182,
+                  "similarity": 0.968889,
+                  "similarity_transform": "1 - KS",
+                  "real_median": 2987.638927,
+                  "synth_median": 2670.538103,
+                  "real_n": 90,
+                  "synth_n": 750
+                },
+                {
+                  "measure": "log_amount",
+                  "kind": "numeric",
+                  "ks": 0.031111,
+                  "normalised_w1": 0.032532,
+                  "jsd": 0.005177,
+                  "similarity": 0.968889,
+                  "similarity_transform": "1 - KS",
+                  "real_median": 8.002569,
+                  "synth_median": 7.89041,
+                  "real_n": 90,
+                  "synth_n": 750
+                },
+                {
+                  "measure": "hour_of_day",
+                  "kind": "numeric",
+                  "ks": 0.116,
+                  "normalised_w1": 0.070229,
+                  "jsd": 0.260799,
+                  "similarity": 0.884,
+                  "similarity_transform": "1 - KS",
+                  "real_median": 13.353121,
+                  "synth_median": 11.543273,
+                  "real_n": 90,
+                  "synth_n": 750
+                },
+                {
+                  "measure": "mcc",
+                  "kind": "categorical",
+                  "tvd": 0.024889,
+                  "similarity": 0.975111,
+                  "similarity_transform": "1 - TVD"
+                },
+                {
+                  "measure": "entry_mode",
+                  "kind": "categorical",
+                  "tvd": 0.002222,
+                  "similarity": 0.997778,
+                  "similarity_transform": "1 - TVD"
+                }
+              ],
+              "composite_similarity": 0.958933
+            },
+            "temporal": {
+              "family": "temporal",
+              "grouped_by": "customer",
+              "measures": [
+                {
+                  "measure": "inter_arrival_seconds",
+                  "kind": "numeric",
+                  "ks": null,
+                  "normalised_w1": null,
+                  "jsd": null,
+                  "similarity": null,
+                  "similarity_transform": "1 - KS",
+                  "real_median": 8.878298,
+                  "synth_median": null,
+                  "real_n": 73,
+                  "synth_n": 0
+                },
+                {
+                  "measure": "burstiness",
+                  "kind": "numeric",
+                  "ks": null,
+                  "normalised_w1": null,
+                  "jsd": null,
+                  "similarity": null,
+                  "similarity_transform": "1 - KS",
+                  "real_median": -0.248232,
+                  "synth_median": null,
+                  "real_n": 13,
+                  "synth_n": 0
+                },
+                {
+                  "measure": "burstiness_by_device",
+                  "kind": "numeric",
+                  "ks": null,
+                  "normalised_w1": null,
+                  "jsd": null,
+                  "similarity": null,
+                  "similarity_transform": "1 - KS",
+                  "real_median": 0.077248,
+                  "synth_median": null,
+                  "real_n": 7,
+                  "synth_n": 0
+                },
+                {
+                  "measure": "inter_arrival_seconds_by_device",
+                  "kind": "numeric",
+                  "ks": null,
+                  "normalised_w1": null,
+                  "jsd": null,
+                  "similarity": null,
+                  "similarity_transform": "1 - KS",
+                  "real_median": 4.809848,
+                  "synth_median": null,
+                  "real_n": 82,
+                  "synth_n": 0
+                },
+                {
+                  "measure": "velocity_5m",
+                  "kind": "numeric",
+                  "ks": 0.155556,
+                  "normalised_w1": 1.187635,
+                  "jsd": 0.082515,
+                  "similarity": 0.844444,
+                  "similarity_transform": "1 - KS",
+                  "real_median": 0.0,
+                  "synth_median": 0.0,
+                  "real_n": 90,
+                  "synth_n": 750
+                },
+                {
+                  "measure": "velocity_1h",
+                  "kind": "numeric",
+                  "ks": 0.233333,
+                  "normalised_w1": 1.477018,
+                  "jsd": 0.127814,
+                  "similarity": 0.766667,
+                  "similarity_transform": "1 - KS",
+                  "real_median": 0.0,
+                  "synth_median": 0.0,
+                  "real_n": 90,
+                  "synth_n": 750
+                },
+                {
+                  "measure": "sequence_length",
+                  "kind": "numeric",
+                  "ks": 0.823529,
+                  "normalised_w1": 5.654603,
+                  "jsd": 0.64127,
+                  "similarity": 0.176471,
+                  "similarity_transform": "1 - KS",
+                  "real_median": 6.0,
+                  "synth_median": 1.0,
+                  "real_n": 17,
+                  "synth_n": 750
+                },
+                {
+                  "measure": "campaign_duration_seconds",
+                  "kind": "numeric",
+                  "ks": 0.823529,
+                  "normalised_w1": 6.284959,
+                  "jsd": 0.64127,
+                  "similarity": 0.176471,
+                  "similarity_transform": "1 - KS",
+                  "real_median": 10.744669,
+                  "synth_median": 0.0,
+                  "real_n": 17,
+                  "synth_n": 750
+                },
+                {
+                  "measure": "hour_of_day",
+                  "kind": "numeric",
+                  "ks": 0.116,
+                  "normalised_w1": 0.070229,
+                  "jsd": 0.260799,
+                  "similarity": 0.884,
+                  "similarity_transform": "1 - KS",
+                  "real_median": 13.353121,
+                  "synth_median": 11.543273,
+                  "real_n": 90,
+                  "synth_n": 750
+                },
+                {
+                  "measure": "entry_mode_given_night",
+                  "kind": "categorical",
+                  "tvd": 0.020652,
+                  "similarity": 0.979348,
+                  "similarity_transform": "1 - TVD"
+                }
+              ],
+              "composite_similarity": 0.6379,
+              "real_night_share": 0.222222,
+              "synth_night_share": 0.245333,
+              "interpretation": "composite_similarity is the unweighted mean of per-measure (1 - KS) or (1 - TVD). 1.0 means indistinguishable temporal behaviour; a generator that resamples columns independently typically scores high on row-level marginals and low here."
+            },
+            "graph": {
+              "family": "graph",
+              "measures": [
+                {
+                  "measure": "fanout_device_to_customer",
+                  "kind": "numeric",
+                  "ks": 1.0,
+                  "normalised_w1": 9.278619,
+                  "jsd": 1.0,
+                  "similarity": 0.0,
+                  "similarity_transform": "1 - KS",
+                  "real_median": 2.5,
+                  "synth_median": 1.0,
+                  "real_n": 8,
+                  "synth_n": 750
+                },
+                {
+                  "measure": "fanout_ip_to_customer",
+                  "kind": "numeric",
+                  "ks": 1.0,
+                  "normalised_w1": 12.715189,
+                  "jsd": 1.0,
+                  "similarity": 0.0,
+                  "similarity_transform": "1 - KS",
+                  "real_median": 4.0,
+                  "synth_median": 1.0,
+                  "real_n": 4,
+                  "synth_n": 750
+                },
+                {
+                  "measure": "fanout_merchant_to_customer",
+                  "kind": "numeric",
+                  "ks": 1.0,
+                  "normalised_w1": 9.278619,
+                  "jsd": 1.0,
+                  "similarity": 0.0,
+                  "similarity_transform": "1 - KS",
+                  "real_median": 2.5,
+                  "synth_median": 1.0,
+                  "real_n": 8,
+                  "synth_n": 750
+                },
+                {
+                  "measure": "fanout_customer_to_device",
+                  "kind": "numeric",
+                  "ks": 0.176471,
+                  "normalised_w1": 2.508806,
+                  "jsd": 0.094404,
+                  "similarity": 0.823529,
+                  "similarity_transform": "1 - KS",
+                  "real_median": 1.0,
+                  "synth_median": 1.0,
+                  "real_n": 17,
+                  "synth_n": 750
+                },
+                {
+                  "measure": "degree_customer",
+                  "kind": "numeric",
+                  "ks": 0.823529,
+                  "normalised_w1": 5.654603,
+                  "jsd": 0.64127,
+                  "similarity": 0.176471,
+                  "similarity_transform": "1 - KS",
+                  "real_median": 6.0,
+                  "synth_median": 1.0,
+                  "real_n": 17,
+                  "synth_n": 750
+                },
+                {
+                  "measure": "degree_device",
+                  "kind": "numeric",
+                  "ks": 1.0,
+                  "normalised_w1": 7.19251,
+                  "jsd": 0.716917,
+                  "similarity": 0.0,
+                  "similarity_transform": "1 - KS",
+                  "real_median": 8.5,
+                  "synth_median": 1.0,
+                  "real_n": 8,
+                  "synth_n": 750
+                },
+                {
+                  "measure": "degree_ip",
+                  "kind": "numeric",
+                  "ks": 1.0,
+                  "normalised_w1": 9.841684,
+                  "jsd": 1.0,
+                  "similarity": 0.0,
+                  "similarity_transform": "1 - KS",
+                  "real_median": 17.5,
+                  "synth_median": 1.0,
+                  "real_n": 4,
+                  "synth_n": 750
+                },
+                {
+                  "measure": "degree_merchant",
+                  "kind": "numeric",
+                  "ks": 1.0,
+                  "normalised_w1": 7.19251,
+                  "jsd": 0.716917,
+                  "similarity": 0.0,
+                  "similarity_transform": "1 - KS",
+                  "real_median": 8.5,
+                  "synth_median": 1.0,
+                  "real_n": 8,
+                  "synth_n": 750
+                },
+                {
+                  "measure": "component_size",
+                  "kind": "numeric",
+                  "ks": 1.0,
+                  "normalised_w1": 13.500128,
+                  "jsd": 1.0,
+                  "similarity": 0.0,
+                  "similarity_transform": "1 - KS",
+                  "real_median": 2.302585,
+                  "synth_median": 1.609438,
+                  "real_n": 4,
+                  "synth_n": 750
+                }
+              ],
+              "composite_similarity": 0.111111,
+              "real_entity_sharing": {
+                "device_multi_customer_share": 1.0,
+                "ip_multi_customer_share": 1.0,
+                "merchant_multi_customer_share": 1.0,
+                "customer_multi_device_share": 0.176471
+              },
+              "synth_entity_sharing": {
+                "device_multi_customer_share": 0.0,
+                "ip_multi_customer_share": 0.0,
+                "merchant_multi_customer_share": 0.0,
+                "customer_multi_device_share": 0.0
+              },
+              "entity_sharing_absolute_gap": {
+                "device_multi_customer_share": 1.0,
+                "ip_multi_customer_share": 1.0,
+                "merchant_multi_customer_share": 1.0,
+                "customer_multi_device_share": 0.176471
+              },
+              "real_largest_component": 11.0,
+              "synth_largest_component": 4.0,
+              "interpretation": "A generator with no notion of entity identity produces a graph of isolated edges: fanout collapses to 1, entity-sharing shares collapse to 0, and the largest connected component shrinks to the number of entity types. That is visible here even when row-level marginals match."
+            },
+            "c2st_row_features": {
+              "c2st_auc": 0.6988,
+              "ci95": {
+                "lo": 0.633073,
+                "hi": 0.755169
+              },
+              "gate": 0.8,
+              "passes_gate": true,
+              "permutation_null": {
+                "mean": 0.501454,
+                "p95": 0.570489,
+                "n_permutations": 12
+              },
+              "permutation_p_value": 0.076923,
+              "most_discriminative_features": [
+                {
+                  "feature": "hour_sin",
+                  "importance": 0.315159
+                },
+                {
+                  "feature": "hour_cos",
+                  "importance": 0.273864
+                },
+                {
+                  "feature": "amount_round_frac",
+                  "importance": 0.168194
+                },
+                {
+                  "feature": "log_amount",
+                  "importance": 0.162931
+                },
+                {
+                  "feature": "mcc_num",
+                  "importance": 0.056471
+                }
+              ],
+              "n_real": 90,
+              "n_synth": 750,
+              "policy": "The observed AUC is published whether or not the gate is cleared. The gate is a policy choice, not a law of statistics; the permutation null shows what this classifier scores on indistinguishable data."
+            },
+            "c2st_behavioural_features": {
+              "c2st_auc": 1.0,
+              "ci95": {
+                "lo": 1.0,
+                "hi": 1.0
+              },
+              "gate": 0.8,
+              "passes_gate": false,
+              "permutation_null": {
+                "mean": 0.504516,
+                "p95": 0.557521,
+                "n_permutations": 12
+              },
+              "permutation_p_value": 0.076923,
+              "most_discriminative_features": [
+                {
+                  "feature": "merchant_customer_count",
+                  "importance": 0.264271
+                },
+                {
+                  "feature": "device_customer_count",
+                  "importance": 0.258492
+                },
+                {
+                  "feature": "ip_customer_count",
+                  "importance": 0.230433
+                },
+                {
+                  "feature": "seq_index",
+                  "importance": 0.105115
+                },
+                {
+                  "feature": "log_gap_prev",
+                  "importance": 0.100577
+                }
+              ],
+              "n_real": 90,
+              "n_synth": 750,
+              "policy": "The observed AUC is published whether or not the gate is cleared. The gate is a policy choice, not a law of statistics; the permutation null shows what this classifier scores on indistinguishable data."
+            },
+            "composites": {
+              "row": 0.958933,
+              "temporal": 0.6379,
+              "graph": 0.111111,
+              "c2st_row": 0.6988,
+              "c2st_behavioural": 1.0
+            }
+          },
+          "transfer": {
+            "row": {
+              "threshold": 0.82969296,
+              "threshold_source": "legitimate validation split (disjoint from test)",
+              "target_fpr": 0.01,
+              "realised_test_fpr": 0.0125,
+              "calibration_gap_pct_points": 0.25,
+              "recall_on_held_out_real_fraud": 0.796774,
+              "production_prevalence": 0.013,
+              "precision_at_production_prevalence": 0.456392,
+              "n_legit_validation": 1200,
+              "n_legit_test": 1200,
+              "n_fraud_test": 310,
+              "n_train_rows": 4440,
+              "n_train_positive": 840
+            },
+            "behavioural": {
+              "threshold": 0.45972272,
+              "threshold_source": "legitimate validation split (disjoint from test)",
+              "target_fpr": 0.01,
+              "realised_test_fpr": 0.011667,
+              "calibration_gap_pct_points": 0.1667,
+              "recall_on_held_out_real_fraud": 1.0,
+              "production_prevalence": 0.013,
+              "precision_at_production_prevalence": 0.530288,
+              "n_legit_validation": 1200,
+              "n_legit_test": 1200,
+              "n_fraud_test": 310,
+              "n_train_rows": 4440,
+              "n_train_positive": 840
+            }
+          }
+        },
+        {
+          "arm": "A2_joint_behavioural_generator",
+          "generator": "joint_behavioural",
+          "n_synthetic_rows": 750,
+          "fidelity": {
+            "row_level": {
+              "measures": [
+                {
+                  "measure": "amount",
+                  "kind": "numeric",
+                  "ks": 0.034667,
+                  "normalised_w1": 0.045098,
+                  "jsd": 0.030297,
+                  "similarity": 0.965333,
+                  "similarity_transform": "1 - KS",
+                  "real_median": 2987.638927,
+                  "synth_median": 2857.366359,
+                  "real_n": 90,
+                  "synth_n": 750
+                },
+                {
+                  "measure": "log_amount",
+                  "kind": "numeric",
+                  "ks": 0.034667,
+                  "normalised_w1": 0.026189,
+                  "jsd": 0.021174,
+                  "similarity": 0.965333,
+                  "similarity_transform": "1 - KS",
+                  "real_median": 8.002569,
+                  "synth_median": 7.958006,
+                  "real_n": 90,
+                  "synth_n": 750
+                },
+                {
+                  "measure": "hour_of_day",
+                  "kind": "numeric",
+                  "ks": 0.126667,
+                  "normalised_w1": 0.071969,
+                  "jsd": 0.152861,
+                  "similarity": 0.873333,
+                  "similarity_transform": "1 - KS",
+                  "real_median": 13.353121,
+                  "synth_median": 12.276503,
+                  "real_n": 90,
+                  "synth_n": 750
+                },
+                {
+                  "measure": "mcc",
+                  "kind": "categorical",
+                  "tvd": 0.059556,
+                  "similarity": 0.940444,
+                  "similarity_transform": "1 - TVD"
+                },
+                {
+                  "measure": "entry_mode",
+                  "kind": "categorical",
+                  "tvd": 0.023111,
+                  "similarity": 0.976889,
+                  "similarity_transform": "1 - TVD"
+                }
+              ],
+              "composite_similarity": 0.944266
+            },
+            "temporal": {
+              "family": "temporal",
+              "grouped_by": "customer",
+              "measures": [
+                {
+                  "measure": "inter_arrival_seconds",
+                  "kind": "numeric",
+                  "ks": 0.500761,
+                  "normalised_w1": 0.442958,
+                  "jsd": 0.429716,
+                  "similarity": 0.499239,
+                  "similarity_transform": "1 - KS",
+                  "real_median": 8.878298,
+                  "synth_median": 5.271022,
+                  "real_n": 73,
+                  "synth_n": 657
+                },
+                {
+                  "measure": "burstiness",
+                  "kind": "numeric",
+                  "ks": 0.777778,
+                  "normalised_w1": 1.388024,
+                  "jsd": 0.583265,
+                  "similarity": 0.222222,
+                  "similarity_transform": "1 - KS",
+                  "real_median": -0.248232,
+                  "synth_median": 0.147781,
+                  "real_n": 13,
+                  "synth_n": 90
+                },
+                {
+                  "measure": "burstiness_by_device",
+                  "kind": "numeric",
+                  "ks": 0.346639,
+                  "normalised_w1": 0.500838,
+                  "jsd": 0.439691,
+                  "similarity": 0.653361,
+                  "similarity_transform": "1 - KS",
+                  "real_median": 0.077248,
+                  "synth_median": 0.236949,
+                  "real_n": 7,
+                  "synth_n": 68
+                },
+                {
+                  "measure": "inter_arrival_seconds_by_device",
+                  "kind": "numeric",
+                  "ks": 0.229804,
+                  "normalised_w1": 0.126692,
+                  "jsd": 0.183668,
+                  "similarity": 0.770196,
+                  "similarity_transform": "1 - KS",
+                  "real_median": 4.809848,
+                  "synth_median": 4.800797,
+                  "real_n": 82,
+                  "synth_n": 679
+                },
+                {
+                  "measure": "velocity_5m",
+                  "kind": "numeric",
+                  "ks": 0.301778,
+                  "normalised_w1": 0.510393,
+                  "jsd": 0.127687,
+                  "similarity": 0.698222,
+                  "similarity_transform": "1 - KS",
+                  "real_median": 0.0,
+                  "synth_median": 0.0,
+                  "real_n": 90,
+                  "synth_n": 750
+                },
+                {
+                  "measure": "velocity_1h",
+                  "kind": "numeric",
+                  "ks": 0.358667,
+                  "normalised_w1": 0.528034,
+                  "jsd": 0.206042,
+                  "similarity": 0.641333,
+                  "similarity_transform": "1 - KS",
+                  "real_median": 0.0,
+                  "synth_median": 1.0,
+                  "real_n": 90,
+                  "synth_n": 750
+                },
+                {
+                  "measure": "sequence_length",
+                  "kind": "numeric",
+                  "ks": 0.311828,
+                  "normalised_w1": 0.545662,
+                  "jsd": 0.371477,
+                  "similarity": 0.688172,
+                  "similarity_transform": "1 - KS",
+                  "real_median": 6.0,
+                  "synth_median": 7.0,
+                  "real_n": 17,
+                  "synth_n": 93
+                },
+                {
+                  "measure": "campaign_duration_seconds",
+                  "kind": "numeric",
+                  "ks": 0.323846,
+                  "normalised_w1": 1.037582,
+                  "jsd": 0.321995,
+                  "similarity": 0.676154,
+                  "similarity_transform": "1 - KS",
+                  "real_median": 10.744669,
+                  "synth_median": 9.902964,
+                  "real_n": 17,
+                  "synth_n": 93
+                },
+                {
+                  "measure": "hour_of_day",
+                  "kind": "numeric",
+                  "ks": 0.126667,
+                  "normalised_w1": 0.071969,
+                  "jsd": 0.152861,
+                  "similarity": 0.873333,
+                  "similarity_transform": "1 - KS",
+                  "real_median": 13.353121,
+                  "synth_median": 12.276503,
+                  "real_n": 90,
+                  "synth_n": 750
+                },
+                {
+                  "measure": "entry_mode_given_night",
+                  "kind": "categorical",
+                  "tvd": 0.002041,
+                  "similarity": 0.997959,
+                  "similarity_transform": "1 - TVD"
+                }
+              ],
+              "composite_similarity": 0.672019,
+              "real_night_share": 0.222222,
+              "synth_night_share": 0.326667,
+              "interpretation": "composite_similarity is the unweighted mean of per-measure (1 - KS) or (1 - TVD). 1.0 means indistinguishable temporal behaviour; a generator that resamples columns independently typically scores high on row-level marginals and low here."
+            },
+            "graph": {
+              "family": "graph",
+              "measures": [
+                {
+                  "measure": "fanout_device_to_customer",
+                  "kind": "numeric",
+                  "ks": 0.366197,
+                  "normalised_w1": 0.25,
+                  "jsd": 0.216362,
+                  "similarity": 0.633803,
+                  "similarity_transform": "1 - KS",
+                  "real_median": 2.5,
+                  "synth_median": 2.0,
+                  "real_n": 8,
+                  "synth_n": 71
+                },
+                {
+                  "measure": "fanout_ip_to_customer",
+                  "kind": "numeric",
+                  "ks": 0.75,
+                  "normalised_w1": 1.741897,
+                  "jsd": 0.632795,
+                  "similarity": 0.25,
+                  "similarity_transform": "1 - KS",
+                  "real_median": 4.0,
+                  "synth_median": 3.0,
+                  "real_n": 4,
+                  "synth_n": 48
+                },
+                {
+                  "measure": "fanout_merchant_to_customer",
+                  "kind": "numeric",
+                  "ks": 0.677419,
+                  "normalised_w1": 0.973593,
+                  "jsd": 0.647216,
+                  "similarity": 0.322581,
+                  "similarity_transform": "1 - KS",
+                  "real_median": 2.5,
+                  "synth_median": 6.0,
+                  "real_n": 8,
+                  "synth_n": 31
+                },
+                {
+                  "measure": "fanout_customer_to_device",
+                  "kind": "numeric",
+                  "ks": 0.221379,
+                  "normalised_w1": 0.365618,
+                  "jsd": 0.083923,
+                  "similarity": 0.778621,
+                  "similarity_transform": "1 - KS",
+                  "real_median": 1.0,
+                  "synth_median": 1.0,
+                  "real_n": 17,
+                  "synth_n": 93
+                },
+                {
+                  "measure": "degree_customer",
+                  "kind": "numeric",
+                  "ks": 0.311828,
+                  "normalised_w1": 0.545662,
+                  "jsd": 0.371477,
+                  "similarity": 0.688172,
+                  "similarity_transform": "1 - KS",
+                  "real_median": 6.0,
+                  "synth_median": 7.0,
+                  "real_n": 17,
+                  "synth_n": 93
+                },
+                {
+                  "measure": "degree_device",
+                  "kind": "numeric",
+                  "ks": 0.274648,
+                  "normalised_w1": 0.429644,
+                  "jsd": 0.348726,
+                  "similarity": 0.725352,
+                  "similarity_transform": "1 - KS",
+                  "real_median": 8.5,
+                  "synth_median": 9.0,
+                  "real_n": 8,
+                  "synth_n": 71
+                },
+                {
+                  "measure": "degree_ip",
+                  "kind": "numeric",
+                  "ks": 0.354167,
+                  "normalised_w1": 0.483088,
+                  "jsd": 0.721417,
+                  "similarity": 0.645833,
+                  "similarity_transform": "1 - KS",
+                  "real_median": 17.5,
+                  "synth_median": 16.0,
+                  "real_n": 4,
+                  "synth_n": 48
+                },
+                {
+                  "measure": "degree_merchant",
+                  "kind": "numeric",
+                  "ks": 0.524194,
+                  "normalised_w1": 0.747132,
+                  "jsd": 0.582278,
+                  "similarity": 0.475806,
+                  "similarity_transform": "1 - KS",
+                  "real_median": 8.5,
+                  "synth_median": 22.0,
+                  "real_n": 8,
+                  "synth_n": 31
+                },
+                {
+                  "measure": "component_size",
+                  "kind": "numeric",
+                  "ks": 1.0,
+                  "normalised_w1": 17.451204,
+                  "jsd": 1.0,
+                  "similarity": 0.0,
+                  "similarity_transform": "1 - KS",
+                  "real_median": 2.302585,
+                  "synth_median": 5.497168,
+                  "real_n": 4,
+                  "synth_n": 1
+                }
+              ],
+              "composite_similarity": 0.502241,
+              "real_entity_sharing": {
+                "device_multi_customer_share": 1.0,
+                "ip_multi_customer_share": 1.0,
+                "merchant_multi_customer_share": 1.0,
+                "customer_multi_device_share": 0.176471
+              },
+              "synth_entity_sharing": {
+                "device_multi_customer_share": 0.633803,
+                "ip_multi_customer_share": 0.833333,
+                "merchant_multi_customer_share": 0.870968,
+                "customer_multi_device_share": 0.397849
+              },
+              "entity_sharing_absolute_gap": {
+                "device_multi_customer_share": 0.366197,
+                "ip_multi_customer_share": 0.166667,
+                "merchant_multi_customer_share": 0.129032,
+                "customer_multi_device_share": 0.221378
+              },
+              "real_largest_component": 11.0,
+              "synth_largest_component": 243.0,
+              "interpretation": "A generator with no notion of entity identity produces a graph of isolated edges: fanout collapses to 1, entity-sharing shares collapse to 0, and the largest connected component shrinks to the number of entity types. That is visible here even when row-level marginals match."
+            },
+            "c2st_row_features": {
+              "c2st_auc": 0.605304,
+              "ci95": {
+                "lo": 0.539009,
+                "hi": 0.667037
+              },
+              "gate": 0.8,
+              "passes_gate": true,
+              "permutation_null": {
+                "mean": 0.490363,
+                "p95": 0.549899,
+                "n_permutations": 12
+              },
+              "permutation_p_value": 0.076923,
+              "most_discriminative_features": [
+                {
+                  "feature": "hour_sin",
+                  "importance": 0.274095
+                },
+                {
+                  "feature": "hour_cos",
+                  "importance": 0.230276
+                },
+                {
+                  "feature": "amount_round_frac",
+                  "importance": 0.201832
+                },
+                {
+                  "feature": "log_amount",
+                  "importance": 0.199497
+                },
+                {
+                  "feature": "mcc_num",
+                  "importance": 0.068824
+                }
+              ],
+              "n_real": 90,
+              "n_synth": 750,
+              "policy": "The observed AUC is published whether or not the gate is cleared. The gate is a policy choice, not a law of statistics; the permutation null shows what this classifier scores on indistinguishable data."
+            },
+            "c2st_behavioural_features": {
+              "c2st_auc": 0.999259,
+              "ci95": {
+                "lo": 0.998193,
+                "hi": 0.999808
+              },
+              "gate": 0.8,
+              "passes_gate": false,
+              "permutation_null": {
+                "mean": 0.496541,
+                "p95": 0.578635,
+                "n_permutations": 12
+              },
+              "permutation_p_value": 0.076923,
+              "most_discriminative_features": [
+                {
+                  "feature": "ip_customer_count",
+                  "importance": 0.373666
+                },
+                {
+                  "feature": "merchant_customer_count",
+                  "importance": 0.308191
+                },
+                {
+                  "feature": "device_customer_count",
+                  "importance": 0.055475
+                },
+                {
+                  "feature": "velocity_1h",
+                  "importance": 0.050517
+                },
+                {
+                  "feature": "log_gap_prev",
+                  "importance": 0.046404
+                }
+              ],
+              "n_real": 90,
+              "n_synth": 750,
+              "policy": "The observed AUC is published whether or not the gate is cleared. The gate is a policy choice, not a law of statistics; the permutation null shows what this classifier scores on indistinguishable data."
+            },
+            "composites": {
+              "row": 0.944266,
+              "temporal": 0.672019,
+              "graph": 0.502241,
+              "c2st_row": 0.605304,
+              "c2st_behavioural": 0.999259
+            }
+          },
+          "transfer": {
+            "row": {
+              "threshold": 0.79213246,
+              "threshold_source": "legitimate validation split (disjoint from test)",
+              "target_fpr": 0.01,
+              "realised_test_fpr": 0.011667,
+              "calibration_gap_pct_points": 0.1667,
+              "recall_on_held_out_real_fraud": 0.764516,
+              "production_prevalence": 0.013,
+              "precision_at_production_prevalence": 0.463263,
+              "n_legit_validation": 1200,
+              "n_legit_test": 1200,
+              "n_fraud_test": 310,
+              "n_train_rows": 4440,
+              "n_train_positive": 840
+            },
+            "behavioural": {
+              "threshold": 0.04080491,
+              "threshold_source": "legitimate validation split (disjoint from test)",
+              "target_fpr": 0.01,
+              "realised_test_fpr": 0.011667,
+              "calibration_gap_pct_points": 0.1667,
+              "recall_on_held_out_real_fraud": 1.0,
+              "production_prevalence": 0.013,
+              "precision_at_production_prevalence": 0.530288,
+              "n_legit_validation": 1200,
+              "n_legit_test": 1200,
+              "n_fraud_test": 310,
+              "n_train_rows": 4440,
+              "n_train_positive": 840
+            }
+          }
+        }
+      ]
+    },
+    {
+      "seed": 37,
+      "n_legit_train": 3584,
+      "n_legit_val": 1195,
+      "n_legit_test": 1195,
+      "n_fraud_fit": 90,
+      "n_fraud_holdout": 310,
+      "arms": [
+        {
+          "arm": "A0_baseline_no_synthetic",
+          "generator": null,
+          "fidelity": null,
+          "n_synthetic_rows": 0,
+          "transfer": {
+            "row": {
+              "threshold": 0.42791103,
+              "threshold_source": "legitimate validation split (disjoint from test)",
+              "target_fpr": 0.01,
+              "realised_test_fpr": 0.011715,
+              "calibration_gap_pct_points": 0.1715,
+              "recall_on_held_out_real_fraud": 0.780645,
+              "production_prevalence": 0.013,
+              "precision_at_production_prevalence": 0.467418,
+              "n_legit_validation": 1195,
+              "n_legit_test": 1195,
+              "n_fraud_test": 310,
+              "n_train_rows": 3674,
+              "n_train_positive": 90
+            },
+            "behavioural": {
+              "threshold": 0.01514537,
+              "threshold_source": "legitimate validation split (disjoint from test)",
+              "target_fpr": 0.01,
+              "realised_test_fpr": 0.010879,
+              "calibration_gap_pct_points": 0.0879,
+              "recall_on_held_out_real_fraud": 0.86129,
+              "production_prevalence": 0.013,
+              "precision_at_production_prevalence": 0.510475,
+              "n_legit_validation": 1195,
+              "n_legit_test": 1195,
+              "n_fraud_test": 310,
+              "n_train_rows": 3674,
+              "n_train_positive": 90
+            }
+          }
+        },
+        {
+          "arm": "A1_marginal_generator",
+          "generator": "marginal",
+          "n_synthetic_rows": 750,
+          "fidelity": {
+            "row_level": {
+              "measures": [
+                {
+                  "measure": "amount",
+                  "kind": "numeric",
+                  "ks": 0.028444,
+                  "normalised_w1": 0.030125,
+                  "jsd": 0.003734,
+                  "similarity": 0.971556,
+                  "similarity_transform": "1 - KS",
+                  "real_median": 3182.221437,
+                  "synth_median": 3157.0425,
+                  "real_n": 90,
+                  "synth_n": 750
+                },
+                {
+                  "measure": "log_amount",
+                  "kind": "numeric",
+                  "ks": 0.028444,
+                  "normalised_w1": 0.026155,
+                  "jsd": 0.003487,
+                  "similarity": 0.971556,
+                  "similarity_transform": "1 - KS",
+                  "real_median": 8.065618,
+                  "synth_median": 8.057708,
+                  "real_n": 90,
+                  "synth_n": 750
+                },
+                {
+                  "measure": "hour_of_day",
+                  "kind": "numeric",
+                  "ks": 0.106667,
+                  "normalised_w1": 0.066074,
+                  "jsd": 0.212804,
+                  "similarity": 0.893333,
+                  "similarity_transform": "1 - KS",
+                  "real_median": 11.75171,
+                  "synth_median": 11.423671,
+                  "real_n": 90,
+                  "synth_n": 750
+                },
+                {
+                  "measure": "mcc",
+                  "kind": "categorical",
+                  "tvd": 0.008,
+                  "similarity": 0.992,
+                  "similarity_transform": "1 - TVD"
+                },
+                {
+                  "measure": "entry_mode",
+                  "kind": "categorical",
+                  "tvd": 0.009778,
+                  "similarity": 0.990222,
+                  "similarity_transform": "1 - TVD"
+                }
+              ],
+              "composite_similarity": 0.963733
+            },
+            "temporal": {
+              "family": "temporal",
+              "grouped_by": "customer",
+              "measures": [
+                {
+                  "measure": "inter_arrival_seconds",
+                  "kind": "numeric",
+                  "ks": null,
+                  "normalised_w1": null,
+                  "jsd": null,
+                  "similarity": null,
+                  "similarity_transform": "1 - KS",
+                  "real_median": 9.517886,
+                  "synth_median": null,
+                  "real_n": 78,
+                  "synth_n": 0
+                },
+                {
+                  "measure": "burstiness",
+                  "kind": "numeric",
+                  "ks": null,
+                  "normalised_w1": null,
+                  "jsd": null,
+                  "similarity": null,
+                  "similarity_transform": "1 - KS",
+                  "real_median": -0.28616,
+                  "synth_median": null,
+                  "real_n": 12,
+                  "synth_n": 0
+                },
+                {
+                  "measure": "burstiness_by_device",
+                  "kind": "numeric",
+                  "ks": null,
+                  "normalised_w1": null,
+                  "jsd": null,
+                  "similarity": null,
+                  "similarity_transform": "1 - KS",
+                  "real_median": 0.009894,
+                  "synth_median": null,
+                  "real_n": 4,
+                  "synth_n": 0
+                },
+                {
+                  "measure": "inter_arrival_seconds_by_device",
+                  "kind": "numeric",
+                  "ks": null,
+                  "normalised_w1": null,
+                  "jsd": null,
+                  "similarity": null,
+                  "similarity_transform": "1 - KS",
+                  "real_median": 5.287989,
+                  "synth_median": null,
+                  "real_n": 86,
+                  "synth_n": 0
+                },
+                {
+                  "measure": "velocity_5m",
+                  "kind": "numeric",
+                  "ks": 0.022222,
+                  "normalised_w1": 0.355781,
+                  "jsd": 0.011201,
+                  "similarity": 0.977778,
+                  "similarity_transform": "1 - KS",
+                  "real_median": 0.0,
+                  "synth_median": 0.0,
+                  "real_n": 90,
+                  "synth_n": 750
+                },
+                {
+                  "measure": "velocity_1h",
+                  "kind": "numeric",
+                  "ks": 0.133333,
+                  "normalised_w1": 1.02236,
+                  "jsd": 0.070105,
+                  "similarity": 0.866667,
+                  "similarity_transform": "1 - KS",
+                  "real_median": 0.0,
+                  "synth_median": 0.0,
+                  "real_n": 90,
+                  "synth_n": 750
+                },
+                {
+                  "measure": "sequence_length",
+                  "kind": "numeric",
+                  "ks": 1.0,
+                  "normalised_w1": 8.008149,
+                  "jsd": 1.0,
+                  "similarity": 0.0,
+                  "similarity_transform": "1 - KS",
+                  "real_median": 7.5,
+                  "synth_median": 1.0,
+                  "real_n": 12,
+                  "synth_n": 750
+                },
+                {
+                  "measure": "campaign_duration_seconds",
+                  "kind": "numeric",
+                  "ks": 1.0,
+                  "normalised_w1": 8.030841,
+                  "jsd": 1.0,
+                  "similarity": 0.0,
+                  "similarity_transform": "1 - KS",
+                  "real_median": 11.424667,
+                  "synth_median": 0.0,
+                  "real_n": 12,
+                  "synth_n": 750
+                },
+                {
+                  "measure": "hour_of_day",
+                  "kind": "numeric",
+                  "ks": 0.106667,
+                  "normalised_w1": 0.066074,
+                  "jsd": 0.212804,
+                  "similarity": 0.893333,
+                  "similarity_transform": "1 - KS",
+                  "real_median": 11.75171,
+                  "synth_median": 11.423671,
+                  "real_n": 90,
+                  "synth_n": 750
+                },
+                {
+                  "measure": "entry_mode_given_night",
+                  "kind": "categorical",
+                  "tvd": 0.074389,
+                  "similarity": 0.925611,
+                  "similarity_transform": "1 - TVD"
+                }
+              ],
+              "composite_similarity": 0.610565,
+              "real_night_share": 0.233333,
+              "synth_night_share": 0.246667,
+              "interpretation": "composite_similarity is the unweighted mean of per-measure (1 - KS) or (1 - TVD). 1.0 means indistinguishable temporal behaviour; a generator that resamples columns independently typically scores high on row-level marginals and low here."
+            },
+            "graph": {
+              "family": "graph",
+              "measures": [
+                {
+                  "measure": "fanout_device_to_customer",
+                  "kind": "numeric",
+                  "ks": 1.0,
+                  "normalised_w1": 14.008074,
+                  "jsd": 1.0,
+                  "similarity": 0.0,
+                  "similarity_transform": "1 - KS",
+                  "real_median": 7.0,
+                  "synth_median": 1.0,
+                  "real_n": 4,
+                  "synth_n": 750
+                },
+                {
+                  "measure": "fanout_ip_to_customer",
+                  "kind": "numeric",
+                  "ks": 1.0,
+                  "normalised_w1": 16.118326,
+                  "jsd": 1.0,
+                  "similarity": 0.0,
+                  "similarity_transform": "1 - KS",
+                  "real_median": 7.0,
+                  "synth_median": 1.0,
+                  "real_n": 3,
+                  "synth_n": 750
+                },
+                {
+                  "measure": "fanout_merchant_to_customer",
+                  "kind": "numeric",
+                  "ks": 1.0,
+                  "normalised_w1": 13.497381,
+                  "jsd": 1.0,
+                  "similarity": 0.0,
+                  "similarity_transform": "1 - KS",
+                  "real_median": 6.0,
+                  "synth_median": 1.0,
+                  "real_n": 4,
+                  "synth_n": 750
+                },
+                {
+                  "measure": "fanout_customer_to_device",
+                  "kind": "numeric",
+                  "ks": 0.583333,
+                  "normalised_w1": 6.19279,
+                  "jsd": 0.38093,
+                  "similarity": 0.416667,
+                  "similarity_transform": "1 - KS",
+                  "real_median": 3.0,
+                  "synth_median": 1.0,
+                  "real_n": 12,
+                  "synth_n": 750
+                },
+                {
+                  "measure": "degree_customer",
+                  "kind": "numeric",
+                  "ks": 1.0,
+                  "normalised_w1": 8.008149,
+                  "jsd": 1.0,
+                  "similarity": 0.0,
+                  "similarity_transform": "1 - KS",
+                  "real_median": 7.5,
+                  "synth_median": 1.0,
+                  "real_n": 12,
+                  "synth_n": 750
+                },
+                {
+                  "measure": "degree_device",
+                  "kind": "numeric",
+                  "ks": 1.0,
+                  "normalised_w1": 11.39362,
+                  "jsd": 1.0,
+                  "similarity": 0.0,
+                  "similarity_transform": "1 - KS",
+                  "real_median": 17.0,
+                  "synth_median": 1.0,
+                  "real_n": 4,
+                  "synth_n": 750
+                },
+                {
+                  "measure": "degree_ip",
+                  "kind": "numeric",
+                  "ks": 1.0,
+                  "normalised_w1": 14.758348,
+                  "jsd": 1.0,
+                  "similarity": 0.0,
+                  "similarity_transform": "1 - KS",
+                  "real_median": 25.0,
+                  "synth_median": 1.0,
+                  "real_n": 3,
+                  "synth_n": 750
+                },
+                {
+                  "measure": "degree_merchant",
+                  "kind": "numeric",
+                  "ks": 1.0,
+                  "normalised_w1": 13.673476,
+                  "jsd": 1.0,
+                  "similarity": 0.0,
+                  "similarity_transform": "1 - KS",
+                  "real_median": 22.5,
+                  "synth_median": 1.0,
+                  "real_n": 4,
+                  "synth_n": 750
+                },
+                {
+                  "measure": "component_size",
+                  "kind": "numeric",
+                  "ks": 1.0,
+                  "normalised_w1": 18.936488,
+                  "jsd": 1.0,
+                  "similarity": 0.0,
+                  "similarity_transform": "1 - KS",
+                  "real_median": 2.505318,
+                  "synth_median": 1.609438,
+                  "real_n": 2,
+                  "synth_n": 750
+                }
+              ],
+              "composite_similarity": 0.046296,
+              "real_entity_sharing": {
+                "device_multi_customer_share": 1.0,
+                "ip_multi_customer_share": 1.0,
+                "merchant_multi_customer_share": 1.0,
+                "customer_multi_device_share": 0.583333
+              },
+              "synth_entity_sharing": {
+                "device_multi_customer_share": 0.0,
+                "ip_multi_customer_share": 0.0,
+                "merchant_multi_customer_share": 0.0,
+                "customer_multi_device_share": 0.0
+              },
+              "entity_sharing_absolute_gap": {
+                "device_multi_customer_share": 1.0,
+                "ip_multi_customer_share": 1.0,
+                "merchant_multi_customer_share": 1.0,
+                "customer_multi_device_share": 0.583333
+              },
+              "real_largest_component": 14.0,
+              "synth_largest_component": 4.0,
+              "interpretation": "A generator with no notion of entity identity produces a graph of isolated edges: fanout collapses to 1, entity-sharing shares collapse to 0, and the largest connected component shrinks to the number of entity types. That is visible here even when row-level marginals match."
+            },
+            "c2st_row_features": {
+              "c2st_auc": 0.546519,
+              "ci95": {
+                "lo": 0.478952,
+                "hi": 0.6186
+              },
+              "gate": 0.8,
+              "passes_gate": true,
+              "permutation_null": {
+                "mean": 0.504018,
+                "p95": 0.537714,
+                "n_permutations": 12
+              },
+              "permutation_p_value": 0.076923,
+              "most_discriminative_features": [
+                {
+                  "feature": "hour_cos",
+                  "importance": 0.282467
+                },
+                {
+                  "feature": "hour_sin",
+                  "importance": 0.268144
+                },
+                {
+                  "feature": "amount_round_frac",
+                  "importance": 0.193128
+                },
+                {
+                  "feature": "log_amount",
+                  "importance": 0.165305
+                },
+                {
+                  "feature": "mcc_num",
+                  "importance": 0.062294
+                }
+              ],
+              "n_real": 90,
+              "n_synth": 750,
+              "policy": "The observed AUC is published whether or not the gate is cleared. The gate is a policy choice, not a law of statistics; the permutation null shows what this classifier scores on indistinguishable data."
+            },
+            "c2st_behavioural_features": {
+              "c2st_auc": 1.0,
+              "ci95": {
+                "lo": 1.0,
+                "hi": 1.0
+              },
+              "gate": 0.8,
+              "passes_gate": false,
+              "permutation_null": {
+                "mean": 0.503278,
+                "p95": 0.537399,
+                "n_permutations": 12
+              },
+              "permutation_p_value": 0.076923,
+              "most_discriminative_features": [
+                {
+                  "feature": "device_customer_count",
+                  "importance": 0.257674
+                },
+                {
+                  "feature": "merchant_customer_count",
+                  "importance": 0.251729
+                },
+                {
+                  "feature": "ip_customer_count",
+                  "importance": 0.223526
+                },
+                {
+                  "feature": "seq_index",
+                  "importance": 0.111433
+                },
+                {
+                  "feature": "log_gap_prev",
+                  "importance": 0.102389
+                }
+              ],
+              "n_real": 90,
+              "n_synth": 750,
+              "policy": "The observed AUC is published whether or not the gate is cleared. The gate is a policy choice, not a law of statistics; the permutation null shows what this classifier scores on indistinguishable data."
+            },
+            "composites": {
+              "row": 0.963733,
+              "temporal": 0.610565,
+              "graph": 0.046296,
+              "c2st_row": 0.546519,
+              "c2st_behavioural": 1.0
+            }
+          },
+          "transfer": {
+            "row": {
+              "threshold": 0.86150657,
+              "threshold_source": "legitimate validation split (disjoint from test)",
+              "target_fpr": 0.01,
+              "realised_test_fpr": 0.008368,
+              "calibration_gap_pct_points": -0.1632,
+              "recall_on_held_out_real_fraud": 0.709677,
+              "production_prevalence": 0.013,
+              "precision_at_production_prevalence": 0.527635,
+              "n_legit_validation": 1195,
+              "n_legit_test": 1195,
+              "n_fraud_test": 310,
+              "n_train_rows": 4424,
+              "n_train_positive": 840
+            },
+            "behavioural": {
+              "threshold": 0.77195256,
+              "threshold_source": "legitimate validation split (disjoint from test)",
+              "target_fpr": 0.01,
+              "realised_test_fpr": 0.009205,
+              "calibration_gap_pct_points": -0.0795,
+              "recall_on_held_out_real_fraud": 0.116129,
+              "production_prevalence": 0.013,
+              "precision_at_production_prevalence": 0.142489,
+              "n_legit_validation": 1195,
+              "n_legit_test": 1195,
+              "n_fraud_test": 310,
+              "n_train_rows": 4424,
+              "n_train_positive": 840
+            }
+          }
+        },
+        {
+          "arm": "A2_joint_behavioural_generator",
+          "generator": "joint_behavioural",
+          "n_synthetic_rows": 750,
+          "fidelity": {
+            "row_level": {
+              "measures": [
+                {
+                  "measure": "amount",
+                  "kind": "numeric",
+                  "ks": 0.037333,
+                  "normalised_w1": 0.031504,
+                  "jsd": 0.018897,
+                  "similarity": 0.962667,
+                  "similarity_transform": "1 - KS",
+                  "real_median": 3182.221437,
+                  "synth_median": 3270.14089,
+                  "real_n": 90,
+                  "synth_n": 750
+                },
+                {
+                  "measure": "log_amount",
+                  "kind": "numeric",
+                  "ks": 0.037333,
+                  "normalised_w1": 0.02776,
+                  "jsd": 0.01087,
+                  "similarity": 0.962667,
+                  "similarity_transform": "1 - KS",
+                  "real_median": 8.065618,
+                  "synth_median": 8.092894,
+                  "real_n": 90,
+                  "synth_n": 750
+                },
+                {
+                  "measure": "hour_of_day",
+                  "kind": "numeric",
+                  "ks": 0.137778,
+                  "normalised_w1": 0.09039,
+                  "jsd": 0.188251,
+                  "similarity": 0.862222,
+                  "similarity_transform": "1 - KS",
+                  "real_median": 11.75171,
+                  "synth_median": 11.789149,
+                  "real_n": 90,
+                  "synth_n": 750
+                },
+                {
+                  "measure": "mcc",
+                  "kind": "categorical",
+                  "tvd": 0.021333,
+                  "similarity": 0.978667,
+                  "similarity_transform": "1 - TVD"
+                },
+                {
+                  "measure": "entry_mode",
+                  "kind": "categorical",
+                  "tvd": 0.029778,
+                  "similarity": 0.970222,
+                  "similarity_transform": "1 - TVD"
+                }
+              ],
+              "composite_similarity": 0.947289
+            },
+            "temporal": {
+              "family": "temporal",
+              "grouped_by": "customer",
+              "measures": [
+                {
+                  "measure": "inter_arrival_seconds",
+                  "kind": "numeric",
+                  "ks": 0.147269,
+                  "normalised_w1": 0.388016,
+                  "jsd": 0.095626,
+                  "similarity": 0.852731,
+                  "similarity_transform": "1 - KS",
+                  "real_median": 9.517886,
+                  "synth_median": 9.534703,
+                  "real_n": 78,
+                  "synth_n": 575
+                },
+                {
+                  "measure": "burstiness",
+                  "kind": "numeric",
+                  "ks": 0.493902,
+                  "normalised_w1": 0.49649,
+                  "jsd": 0.525284,
+                  "similarity": 0.506098,
+                  "similarity_transform": "1 - KS",
+                  "real_median": -0.28616,
+                  "synth_median": -0.071058,
+                  "real_n": 12,
+                  "synth_n": 123
+                },
+                {
+                  "measure": "burstiness_by_device",
+                  "kind": "numeric",
+                  "ks": 0.438525,
+                  "normalised_w1": 0.62986,
+                  "jsd": 0.475473,
+                  "similarity": 0.561475,
+                  "similarity_transform": "1 - KS",
+                  "real_median": 0.009894,
+                  "synth_median": 0.131475,
+                  "real_n": 4,
+                  "synth_n": 61
+                },
+                {
+                  "measure": "inter_arrival_seconds_by_device",
+                  "kind": "numeric",
+                  "ks": 0.126692,
+                  "normalised_w1": 0.055365,
+                  "jsd": 0.058692,
+                  "similarity": 0.873308,
+                  "similarity_transform": "1 - KS",
+                  "real_median": 5.287989,
+                  "synth_median": 5.186101,
+                  "real_n": 86,
+                  "synth_n": 689
+                },
+                {
+                  "measure": "velocity_5m",
+                  "kind": "numeric",
+                  "ks": 0.015111,
+                  "normalised_w1": 0.107288,
+                  "jsd": 0.001441,
+                  "similarity": 0.984889,
+                  "similarity_transform": "1 - KS",
+                  "real_median": 0.0,
+                  "synth_median": 0.0,
+                  "real_n": 90,
+                  "synth_n": 750
+                },
+                {
+                  "measure": "velocity_1h",
+                  "kind": "numeric",
+                  "ks": 0.014667,
+                  "normalised_w1": 0.047337,
+                  "jsd": 0.001096,
+                  "similarity": 0.985333,
+                  "similarity_transform": "1 - KS",
+                  "real_median": 0.0,
+                  "synth_median": 0.0,
+                  "real_n": 90,
+                  "synth_n": 750
+                },
+                {
+                  "measure": "sequence_length",
+                  "kind": "numeric",
+                  "ks": 0.885714,
+                  "normalised_w1": 0.908693,
+                  "jsd": 0.816967,
+                  "similarity": 0.114286,
+                  "similarity_transform": "1 - KS",
+                  "real_median": 7.5,
+                  "synth_median": 4.0,
+                  "real_n": 12,
+                  "synth_n": 175
+                },
+                {
+                  "measure": "campaign_duration_seconds",
+                  "kind": "numeric",
+                  "ks": 0.685714,
+                  "normalised_w1": 0.878558,
+                  "jsd": 0.614345,
+                  "similarity": 0.314286,
+                  "similarity_transform": "1 - KS",
+                  "real_median": 11.424667,
+                  "synth_median": 10.833085,
+                  "real_n": 12,
+                  "synth_n": 175
+                },
+                {
+                  "measure": "hour_of_day",
+                  "kind": "numeric",
+                  "ks": 0.137778,
+                  "normalised_w1": 0.09039,
+                  "jsd": 0.188251,
+                  "similarity": 0.862222,
+                  "similarity_transform": "1 - KS",
+                  "real_median": 11.75171,
+                  "synth_median": 11.789149,
+                  "real_n": 90,
+                  "synth_n": 750
+                },
+                {
+                  "measure": "entry_mode_given_night",
+                  "kind": "categorical",
+                  "tvd": 0.045635,
+                  "similarity": 0.954365,
+                  "similarity_transform": "1 - TVD"
+                }
+              ],
+              "composite_similarity": 0.700899,
+              "real_night_share": 0.233333,
+              "synth_night_share": 0.288,
+              "interpretation": "composite_similarity is the unweighted mean of per-measure (1 - KS) or (1 - TVD). 1.0 means indistinguishable temporal behaviour; a generator that resamples columns independently typically scores high on row-level marginals and low here."
+            },
+            "graph": {
+              "family": "graph",
+              "measures": [
+                {
+                  "measure": "fanout_device_to_customer",
+                  "kind": "numeric",
+                  "ks": 0.143443,
+                  "normalised_w1": 0.300193,
+                  "jsd": 0.071161,
+                  "similarity": 0.856557,
+                  "similarity_transform": "1 - KS",
+                  "real_median": 7.0,
+                  "synth_median": 7.0,
+                  "real_n": 4,
+                  "synth_n": 61
+                },
+                {
+                  "measure": "fanout_ip_to_customer",
+                  "kind": "numeric",
+                  "ks": 0.058333,
+                  "normalised_w1": 0.106667,
+                  "jsd": 0.027039,
+                  "similarity": 0.941667,
+                  "similarity_transform": "1 - KS",
+                  "real_median": 7.0,
+                  "synth_median": 7.0,
+                  "real_n": 3,
+                  "synth_n": 40
+                },
+                {
+                  "measure": "fanout_merchant_to_customer",
+                  "kind": "numeric",
+                  "ks": 0.545455,
+                  "normalised_w1": 0.710112,
+                  "jsd": 0.37648,
+                  "similarity": 0.454545,
+                  "similarity_transform": "1 - KS",
+                  "real_median": 6.0,
+                  "synth_median": 12.0,
+                  "real_n": 4,
+                  "synth_n": 33
+                },
+                {
+                  "measure": "fanout_customer_to_device",
+                  "kind": "numeric",
+                  "ks": 0.280476,
+                  "normalised_w1": 0.224006,
+                  "jsd": 0.278014,
+                  "similarity": 0.719524,
+                  "similarity_transform": "1 - KS",
+                  "real_median": 3.0,
+                  "synth_median": 2.0,
+                  "real_n": 12,
+                  "synth_n": 175
+                },
+                {
+                  "measure": "degree_customer",
+                  "kind": "numeric",
+                  "ks": 0.885714,
+                  "normalised_w1": 0.908693,
+                  "jsd": 0.816967,
+                  "similarity": 0.114286,
+                  "similarity_transform": "1 - KS",
+                  "real_median": 7.5,
+                  "synth_median": 4.0,
+                  "real_n": 12,
+                  "synth_n": 175
+                },
+                {
+                  "measure": "degree_device",
+                  "kind": "numeric",
+                  "ks": 0.754098,
+                  "normalised_w1": 1.063421,
+                  "jsd": 0.806862,
+                  "similarity": 0.245902,
+                  "similarity_transform": "1 - KS",
+                  "real_median": 17.0,
+                  "synth_median": 12.0,
+                  "real_n": 4,
+                  "synth_n": 61
+                },
+                {
+                  "measure": "degree_ip",
+                  "kind": "numeric",
+                  "ks": 0.725,
+                  "normalised_w1": 0.720572,
+                  "jsd": 0.857015,
+                  "similarity": 0.275,
+                  "similarity_transform": "1 - KS",
+                  "real_median": 25.0,
+                  "synth_median": 16.5,
+                  "real_n": 3,
+                  "synth_n": 40
+                },
+                {
+                  "measure": "degree_merchant",
+                  "kind": "numeric",
+                  "ks": 0.484848,
+                  "normalised_w1": 0.547584,
+                  "jsd": 0.67848,
+                  "similarity": 0.515152,
+                  "similarity_transform": "1 - KS",
+                  "real_median": 22.5,
+                  "synth_median": 20.0,
+                  "real_n": 4,
+                  "synth_n": 33
+                },
+                {
+                  "measure": "component_size",
+                  "kind": "numeric",
+                  "ks": 0.5,
+                  "normalised_w1": 1.561096,
+                  "jsd": 1.0,
+                  "similarity": 0.5,
+                  "similarity_transform": "1 - KS",
+                  "real_median": 2.505318,
+                  "synth_median": 4.092675,
+                  "real_n": 2,
+                  "synth_n": 2
+                }
+              ],
+              "composite_similarity": 0.513626,
+              "real_entity_sharing": {
+                "device_multi_customer_share": 1.0,
+                "ip_multi_customer_share": 1.0,
+                "merchant_multi_customer_share": 1.0,
+                "customer_multi_device_share": 0.583333
+              },
+              "synth_entity_sharing": {
+                "device_multi_customer_share": 1.0,
+                "ip_multi_customer_share": 1.0,
+                "merchant_multi_customer_share": 1.0,
+                "customer_multi_device_share": 0.662857
+              },
+              "entity_sharing_absolute_gap": {
+                "device_multi_customer_share": 0.0,
+                "ip_multi_customer_share": 0.0,
+                "merchant_multi_customer_share": 0.0,
+                "customer_multi_device_share": 0.079524
+              },
+              "real_largest_component": 14.0,
+              "synth_largest_component": 298.0,
+              "interpretation": "A generator with no notion of entity identity produces a graph of isolated edges: fanout collapses to 1, entity-sharing shares collapse to 0, and the largest connected component shrinks to the number of entity types. That is visible here even when row-level marginals match."
+            },
+            "c2st_row_features": {
+              "c2st_auc": 0.646578,
+              "ci95": {
+                "lo": 0.586123,
+                "hi": 0.71492
+              },
+              "gate": 0.8,
+              "passes_gate": true,
+              "permutation_null": {
+                "mean": 0.490681,
+                "p95": 0.533152,
+                "n_permutations": 12
+              },
+              "permutation_p_value": 0.076923,
+              "most_discriminative_features": [
+                {
+                  "feature": "hour_cos",
+                  "importance": 0.271231
+                },
+                {
+                  "feature": "hour_sin",
+                  "importance": 0.247259
+                },
+                {
+                  "feature": "amount_round_frac",
+                  "importance": 0.218266
+                },
+                {
+                  "feature": "log_amount",
+                  "importance": 0.178859
+                },
+                {
+                  "feature": "mcc_num",
+                  "importance": 0.061567
+                }
+              ],
+              "n_real": 90,
+              "n_synth": 750,
+              "policy": "The observed AUC is published whether or not the gate is cleared. The gate is a policy choice, not a law of statistics; the permutation null shows what this classifier scores on indistinguishable data."
+            },
+            "c2st_behavioural_features": {
+              "c2st_auc": 0.991141,
+              "ci95": {
+                "lo": 0.985584,
+                "hi": 0.995616
+              },
+              "gate": 0.8,
+              "passes_gate": false,
+              "permutation_null": {
+                "mean": 0.479186,
+                "p95": 0.519706,
+                "n_permutations": 12
+              },
+              "permutation_p_value": 0.076923,
+              "most_discriminative_features": [
+                {
+                  "feature": "merchant_customer_count",
+                  "importance": 0.46292
+                },
+                {
+                  "feature": "customer_device_count",
+                  "importance": 0.120256
+                },
+                {
+                  "feature": "hour_cos",
+                  "importance": 0.075314
+                },
+                {
+                  "feature": "log_gap_prev",
+                  "importance": 0.06905
+                },
+                {
+                  "feature": "hour_sin",
+                  "importance": 0.060616
+                }
+              ],
+              "n_real": 90,
+              "n_synth": 750,
+              "policy": "The observed AUC is published whether or not the gate is cleared. The gate is a policy choice, not a law of statistics; the permutation null shows what this classifier scores on indistinguishable data."
+            },
+            "composites": {
+              "row": 0.947289,
+              "temporal": 0.700899,
+              "graph": 0.513626,
+              "c2st_row": 0.646578,
+              "c2st_behavioural": 0.991141
+            }
+          },
+          "transfer": {
+            "row": {
+              "threshold": 0.83456968,
+              "threshold_source": "legitimate validation split (disjoint from test)",
+              "target_fpr": 0.01,
+              "realised_test_fpr": 0.010042,
+              "calibration_gap_pct_points": 0.0042,
+              "recall_on_held_out_real_fraud": 0.787097,
+              "production_prevalence": 0.013,
+              "precision_at_production_prevalence": 0.507967,
+              "n_legit_validation": 1195,
+              "n_legit_test": 1195,
+              "n_fraud_test": 310,
+              "n_train_rows": 4424,
+              "n_train_positive": 840
+            },
+            "behavioural": {
+              "threshold": 0.02284044,
+              "threshold_source": "legitimate validation split (disjoint from test)",
+              "target_fpr": 0.01,
+              "realised_test_fpr": 0.014226,
+              "calibration_gap_pct_points": 0.4226,
+              "recall_on_held_out_real_fraud": 0.906452,
+              "production_prevalence": 0.013,
+              "precision_at_production_prevalence": 0.456299,
+              "n_legit_validation": 1195,
+              "n_legit_test": 1195,
+              "n_fraud_test": 310,
+              "n_train_rows": 4424,
+              "n_train_positive": 840
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "boundaries": [
+    "Simulated data. The ring-fraud simulator is our own, so absolute recall is not an estimate of production recall.",
+    "Behavioural-feature recall can saturate at 1.0 for the baseline arm, in which case that column CANNOT show improvement and only the row-feature column and any collapse are informative.",
+    "C2ST on behavioural features can saturate near 1.0 and then cannot rank generators at this sample size.",
+    "Three seeds. Confidence intervals are bootstrapped over seeds, so they describe seed variation, not sampling error in production.",
+    "Behavioural features (velocity, entity counts) are computed within each split, so a row's features depend on which split it landed in.",
+    "Only 90 real fraud rows are visible to the generators, which is the regime we care about but also the regime where generators are least stable.",
+    "Fidelity composites are deliberately UNWEIGHTED. A weighted composite would let us tune our way to whatever conclusion we wanted."
+  ]
+}

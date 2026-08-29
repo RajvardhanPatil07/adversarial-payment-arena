@@ -44,7 +44,11 @@ import matplotlib.pyplot as plt  # noqa: E402
 
 from data.corpus_builder import build_corpus  # noqa: E402
 from evidence.artifacts import write_artifact  # noqa: E402
-from evidence.calibration import bootstrap_ci, chronological_split  # noqa: E402
+from evidence.calibration import (  # noqa: E402
+    bootstrap_ci,
+    chronological_split,
+    stratified_split_by_key,
+)
 from fidelity.copula import SYNTHESIZERS  # noqa: E402
 from fidelity.features import frame_from_rows  # noqa: E402
 from fidelity.metrics import fidelity_report, tstr_report  # noqa: E402
@@ -73,13 +77,19 @@ def run_seed(seed: int) -> dict:
         return sorted(collection, key=lambda r: r["payload"]["timestamp"])
 
     legit_rows = by_time([r for r in rows if r["label"] == 0])
-    fraud_rows = by_time([r for r in rows if r["label"] == 1])
+    fraud_rows = [r for r in rows if r["label"] == 1]
 
     legit_train, legit_validation, legit_test = chronological_split(
         legit_rows, validation_frac=0.25, test_frac=0.25
     )
-    fraud_fit = fraud_rows[:FRAUD_FIT_N]
-    fraud_holdout = fraud_rows[FRAUD_FIT_N:]
+    # Fraud fit/holdout is a RANDOM draw stratified on attack family, not a
+    # chronological slice: a time-ordered fraud split makes C2ST measure
+    # calendar drift instead of generator fidelity (see
+    # calibration.stratified_split_by_key). The legit threshold split stays
+    # temporal, where future->past leakage is the real risk.
+    fraud_fit, fraud_holdout = stratified_split_by_key(
+        fraud_rows, train_n=FRAUD_FIT_N, seed=seed
+    )
 
     legit_train_frame = frame_from_rows(legit_train)
     legit_validation_frame = frame_from_rows(legit_validation)

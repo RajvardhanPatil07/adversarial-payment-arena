@@ -74,6 +74,7 @@ from evidence.calibration import (  # noqa: E402
     pin_threshold_at_fpr,
     precision_at_prevalence,
     prevalence_sweep,
+    stratified_split_by_key,
 )
 from evidence.economics import CostModel, evaluate_operating_point  # noqa: E402
 from fidelity.copula import GaussianCopulaSynthesizer, IndependentMarginalSynthesizer  # noqa: E402
@@ -150,13 +151,19 @@ def run_seed(seed: int) -> dict:
         return sorted(collection, key=lambda r: r["payload"]["timestamp"])
 
     legit_rows = by_time([r for r in rows if r["label"] == 0])
-    fraud_rows = by_time([r for r in rows if r["label"] == 1])
+    fraud_rows = [r for r in rows if r["label"] == 1]
 
     legit_train, legit_validation, legit_test = chronological_split(
         legit_rows, validation_frac=0.25, test_frac=0.25
     )
-    fraud_train = fraud_rows[:REAL_FRAUD_TRAIN_N]
-    fraud_test = fraud_rows[REAL_FRAUD_TRAIN_N:]
+    # Fraud uses a RANDOM draw stratified on attack family, NOT a chronological
+    # slice: a time-ordered fraud split confounds generator fidelity with
+    # calendar drift and forces C2ST to ~1.0 regardless of generator quality
+    # (see calibration.stratified_split_by_key). Thresholds still calibrate on
+    # the temporal legit split above, where future->past leakage is the risk.
+    fraud_train, fraud_test = stratified_split_by_key(
+        fraud_rows, train_n=REAL_FRAUD_TRAIN_N, seed=seed
+    )
     if len(fraud_test) < 50:
         raise RuntimeError("not enough held-out real fraud; raise TRAIN_COUNTS")
 
@@ -392,6 +399,7 @@ def main() -> dict:
                 "Real fraud means the arena environment's topology-aware synthesizers, not issuer production data.",
                 "The claim is about the RELATIONSHIP between fidelity and transfer, not an absolute recall figure for live traffic.",
                 "Augmentation budget is fixed across arms so no generator wins by volume.",
+                "Fraud train/test is a random draw stratified on attack family, so C2ST measures the generator rather than calendar drift; only the legitimate threshold-calibration split is temporal.",
                 LAB_PREVALENCE_NOTE,
             ],
         },
