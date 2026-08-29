@@ -40,6 +40,13 @@ SPEC_FILES = {
     "ATTACK_3_PROMPT_INJECTED_MERCHANT": SPECS_DIR / "attack_3_prompt_injected_merchant.yaml",
     # ZERO-DAY: generatable for the holdout experiment, NEVER in TRAIN_COUNTS.
     "ATTACK_4_CNP_HIGH_VELOCITY": SPECS_DIR / "attack_4_cnp_high_velocity.yaml",
+    # India-first real-time-rail families (taxonomy T-12, T-14, T-17, T-09).
+    # Each one defeats a DIFFERENT defensive signal, which is the point of
+    # adding them: breadth here means coverage of failure modes, not row count.
+    "ATTACK_5_APP_SCAM_PERSONALISED": SPECS_DIR / "attack_5_app_scam_personalised.yaml",
+    "ATTACK_6_VPA_RENTAL_MULE": SPECS_DIR / "attack_6_vpa_rental_mule.yaml",
+    "ATTACK_7_SYNCHRONISED_BURST_CASHOUT": SPECS_DIR / "attack_7_synchronised_burst_cashout.yaml",
+    "ATTACK_8_LEARNED_THRESHOLD_STRUCTURING": SPECS_DIR / "attack_8_learned_threshold_structuring.yaml",
 }
 
 # Attacks fire "recently"; legit history trails 90 days. A FIXED anchor (not
@@ -228,11 +235,203 @@ def synth_attack_4_card_testing(
     return out
 
 
+def synth_attack_5_app_scam(
+    env: PaymentEnvironment, rng: random.Random, fake: Faker, spec: AttackSpec, n: int
+) -> list[PaymentMessage]:
+    """T-12 APP SCAM. The hardest family in the taxonomy, because nothing is
+    stolen: the GENUINE customer, on their OWN bound device, from a normal IP,
+    passing 3DS, authorises the payment themselves.
+
+    Deliberately weak on every classic signal -- known device, 3DS=Y, no infra
+    sharing. The only residue is behavioural: a novel high-value beneficiary and
+    an escalating 1-3 payment sequence over tens of minutes as the coercion
+    proceeds. This family exists to prove the stack is not merely a
+    stolen-credential detector."""
+    cons = spec.constraints
+    lo, hi = cons.amount_band
+    out: list[PaymentMessage] = []
+    cursor = _ATTACK_BASE
+    while len(out) < n:
+        customer = env.customers[f"CUST_{rng.randrange(len(env.customers)):04d}"]
+        # The victim's OWN device: APP scams do not involve device compromise.
+        device = rng.choice(customer.devices)
+        ip = fake.ipv4_public()
+        # A novel beneficiary the victim has never paid before.
+        merchant = _merchant_for(env, rng, cons.target_verticals, online=True)
+        # Escalating sequence: the scammer asks for more once the first clears.
+        escalation = 1.0
+        for _ in range(min(rng.randint(1, 3), n - len(out))):
+            cursor += timedelta(seconds=rng.randint(420, 1800))  # minutes of coercion
+            amount = min(max(rng.uniform(lo, hi) * escalation, lo), hi)
+            escalation *= rng.uniform(1.15, 1.6)
+            out.append(PaymentMessage(
+                transaction_id=f"{rng.getrandbits(64):016X}",
+                customer_id=customer.customer_id,
+                merchant_id=merchant.merchant_id,
+                mcc=merchant.mcc,
+                amount=round(amount, 2),
+                pos_entry_mode=PosEntryMode.CNP,
+                # The victim PASSES the challenge. 3DS proves presence, not intent.
+                **{"3ds_status": ThreeDSStatus.Y.value},
+                ip_address=ip,
+                ip_country=merchant.country,
+                device_id=device,
+                stolen_resource=cons.stolen_resource.value,
+                timestamp=cursor,
+            ))
+    return out
+
+
+def synth_attack_6_vpa_mule(
+    env: PaymentEnvironment, rng: random.Random, fake: Faker, spec: AttackSpec, n: int
+) -> list[PaymentMessage]:
+    """T-14 VPA-RENTAL MULE. Fan-IN topology, the mirror image of ATTACK_2's
+    shared-device ring.
+
+    Here the shared entity is the BENEFICIARY, not the device: many unrelated
+    senders, each on their own device and IP, converge on a small rented pool of
+    payee endpoints. Per-account velocity stays normal by construction -- each
+    sender contributes only one or two events. Only beneficiary-side convergence
+    reveals it, which is precisely the signal a per-account monitor cannot see."""
+    cons = spec.constraints
+    lo, hi = cons.amount_band
+    out: list[PaymentMessage] = []
+    cursor = _ATTACK_BASE
+    while len(out) < n:
+        # A small rented pool absorbing a wide fan-in.
+        pool = [_merchant_for(env, rng, cons.target_verticals, online=True) for _ in range(rng.randint(1, 2))]
+        fan_in = min(rng.randint(9, 16), n - len(out))
+        senders = rng.sample(sorted(env.customers.keys()), min(fan_in, len(env.customers)))
+        for cid in senders:
+            customer = env.customers[cid]
+            # Each sender uses their OWN device: no infra sharing on the send side.
+            device = rng.choice(customer.devices)
+            cursor += timedelta(seconds=rng.randint(45, 240))
+            # MCC and country must come from the SAME payee that receives the
+            # credit, or the Plausibility Gate rejects it as metadata-incoherent.
+            payee = rng.choice(pool)
+            out.append(PaymentMessage(
+                transaction_id=f"{rng.getrandbits(64):016X}",
+                customer_id=cid,
+                merchant_id=payee.merchant_id,
+                mcc=payee.mcc,
+                amount=round(rng.uniform(lo, hi), 2),
+                pos_entry_mode=PosEntryMode.CNP,
+                **{"3ds_status": ThreeDSStatus.N.value},   # push credit, no challenge
+                ip_address=fake.ipv4_public(),
+                ip_country=payee.country,
+                device_id=device,
+                stolen_resource=cons.stolen_resource.value,
+                timestamp=cursor,
+            ))
+    return out
+
+
+def synth_attack_7_burst_cashout(
+    env: PaymentEnvironment, rng: random.Random, fake: Faker, spec: AttackSpec, n: int
+) -> list[PaymentMessage]:
+    """T-17 SYNCHRONISED BURST. Breaks the INDEPENDENCE assumption rather than
+    any threshold.
+
+    Many accounts, each with its own device and IP, fire inside one tight
+    window (seconds apart across the pool). No per-account counter moves: each
+    account transacts once or twice. The signature is cross-entity temporal
+    clustering, which a per-row classifier structurally cannot represent -- and
+    that architectural point is why this family is reported separately."""
+    cons = spec.constraints
+    lo, hi = cons.amount_band
+    out: list[PaymentMessage] = []
+    cursor = _ATTACK_BASE
+    while len(out) < n:
+        # One coordinated wave: a shared merchant pool, a shared instant.
+        merchants = [_merchant_for(env, rng, cons.target_verticals, online=False) for _ in range(rng.randint(2, 3))]
+        wave = min(rng.randint(12, 22), n - len(out))
+        members = rng.sample(sorted(env.customers.keys()), min(wave, len(env.customers)))
+        cursor += timedelta(hours=rng.randint(6, 30))     # waves are far apart
+        wave_start = cursor
+        for cid in members:
+            customer = env.customers[cid]
+            # Distinct infrastructure per member: nothing is shared but TIME.
+            device = _new_device(rng)
+            # Sub-minute coordination: the whole wave lands in one window.
+            ts = wave_start + timedelta(seconds=rng.randint(0, 90))
+            merchant = rng.choice(merchants)
+            out.append(PaymentMessage(
+                transaction_id=f"{rng.getrandbits(64):016X}",
+                customer_id=cid,
+                merchant_id=merchant.merchant_id,
+                mcc=merchant.mcc,
+                amount=round(rng.uniform(lo, hi), 2),
+                pos_entry_mode=PosEntryMode.CONTACTLESS,
+                **{"3ds_status": ThreeDSStatus.N.value},   # card-present physics
+                ip_address=fake.ipv4_public(),
+                ip_country=merchant.country,
+                device_id=device,
+                stolen_resource=cons.stolen_resource.value,
+                timestamp=ts,
+            ))
+        cursor = wave_start + timedelta(seconds=120)
+    return out
+
+
+def synth_attack_8_threshold_structuring(
+    env: PaymentEnvironment, rng: random.Random, fake: Faker, spec: AttackSpec, n: int
+) -> list[PaymentMessage]:
+    """T-09 LEARNED THRESHOLD STRUCTURING. A model-layer attack: the target is
+    the defender's decision boundary, not the payment rail.
+
+    The agent has estimated the review line empirically, so amounts cluster in a
+    tight band just under a NON-round discovered value. That is the inversion
+    worth noting: legitimate human spending is full of round numbers, and classic
+    hand-guessed structuring clusters AT round numbers. Learned structuring
+    avoids them, so the residue is an abnormally low round-number frequency plus
+    abnormally low amount variance."""
+    cons = spec.constraints
+    lo, hi = cons.amount_band
+    out: list[PaymentMessage] = []
+    cursor = _ATTACK_BASE
+    while len(out) < n:
+        # The empirically-discovered ceiling: deliberately not a round number.
+        ceiling = round(rng.uniform(lo + (hi - lo) * 0.55, hi), 2)
+        band_width = (hi - lo) * rng.uniform(0.04, 0.09)   # tight by design
+        customer = env.customers[f"CUST_{rng.randrange(len(env.customers)):04d}"]
+        device = _new_device(rng)
+        ip = fake.ipv4_public()
+        for _ in range(min(rng.randint(3, 6), n - len(out))):
+            cursor += timedelta(seconds=rng.randint(300, 2400))  # patient, not bursty
+            merchant = _merchant_for(env, rng, cons.target_verticals, online=True)
+            amount = ceiling - rng.uniform(0.0, band_width)
+            # Actively avoid round numbers: nudge off any multiple of 10.
+            if abs(amount - round(amount / 10.0) * 10.0) < 0.5:
+                amount -= rng.uniform(1.7, 4.3)
+            amount = min(max(amount, lo), hi)
+            out.append(PaymentMessage(
+                transaction_id=f"{rng.getrandbits(64):016X}",
+                customer_id=customer.customer_id,
+                merchant_id=merchant.merchant_id,
+                mcc=merchant.mcc,
+                amount=round(amount, 2),
+                pos_entry_mode=PosEntryMode.ECOM,
+                # Aims for the frictionless / attempted exemption band.
+                **{"3ds_status": ThreeDSStatus.A.value},
+                ip_address=ip,
+                ip_country=merchant.country,
+                device_id=device,
+                stolen_resource=cons.stolen_resource.value,
+                timestamp=cursor,
+            ))
+    return out
+
+
 _SYNTHESIZERS = {
     "ATTACK_1_MFA_RESET_VOICE_CLONE": synth_attack_1_voice_clone,
     "ATTACK_2_SYNTHETIC_MULE_RING": synth_attack_2_mule_ring,
     "ATTACK_3_PROMPT_INJECTED_MERCHANT": synth_attack_3_compromised_merchant,
     "ATTACK_4_CNP_HIGH_VELOCITY": synth_attack_4_card_testing,
+    "ATTACK_5_APP_SCAM_PERSONALISED": synth_attack_5_app_scam,
+    "ATTACK_6_VPA_RENTAL_MULE": synth_attack_6_vpa_mule,
+    "ATTACK_7_SYNCHRONISED_BURST_CASHOUT": synth_attack_7_burst_cashout,
+    "ATTACK_8_LEARNED_THRESHOLD_STRUCTURING": synth_attack_8_threshold_structuring,
 }
 
 

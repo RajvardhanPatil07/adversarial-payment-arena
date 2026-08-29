@@ -1,0 +1,54 @@
+# ATTACK 7 — Synchronised Burst Cash-Out  [T-17]
+# Taxon: coordinated timing attack against detection-window assumptions.
+#
+# Almost every velocity control in production assumes accounts are INDEPENDENT:
+# it counts events per card, per device, per merchant, inside a rolling window.
+# A coordinated burst breaks the independence assumption rather than the
+# threshold. Thirty accounts each firing two transactions inside the same
+# ninety-second window will not trip a per-account velocity rule -- but the
+# aggregate is a single coordinated event.
+#
+# What GenAI changed: coordination at this precision used to require an operator
+# manually driving a panel. An agent can now schedule hundreds of accounts to
+# fire inside one detection window, adapt the window if declines appear, and
+# re-synchronise on the next attempt.
+#
+# This is the attack that most directly stresses the ARCHITECTURE rather than
+# the model: the correct defence is a cross-entity aggregation window, not a
+# better per-row classifier.
+
+spec_id: ATTACK_7_SYNCHRONISED_BURST_CASHOUT
+attack_name: "Synchronised Burst Cash-Out"
+taxon: coordinated_velocity
+
+description: >
+  Many independently-provisioned accounts cash out simultaneously inside one
+  detection window. Each account stays below every per-account velocity and
+  amount threshold; the coordination is only visible as tight timestamp
+  clustering across accounts that share no obvious attribute. By the time a
+  per-account counter would react, the wave has completed.
+
+preconditions: >
+  A provisioned pool of accounts or cloned credentials, a scheduler capable of
+  sub-minute coordination across the pool, and liquidation capacity able to
+  absorb the whole wave at once.
+
+economic_model:
+  acquisition_cost_usd: 160        # pooled credential + scheduling infrastructure
+  expected_payoff_usd: 6800        # one synchronised wave
+  breakeven_txns: 5
+
+constraints:
+  stolen_resource: cloned_card
+  pos_entry_modes: [CONTACTLESS]   # physical tap, fastest irreversible rail
+  preferred_three_ds: [N]          # card-present: no 3DS by definition
+  target_verticals: [electronics]
+  min_amount_usd: 240              # must clear the pooled acquisition floor
+  max_amount_usd: 1100
+
+evasion_notes: >
+  Defeats per-entity velocity counters by distributing across entities instead
+  of concentrating within one. Detection requires a CROSS-ENTITY temporal
+  aggregate: transactions-per-window across the whole portfolio, or graph
+  co-occurrence within a burst window. Reported as a distinct family because a
+  per-row classifier cannot represent it, no matter how well trained.
