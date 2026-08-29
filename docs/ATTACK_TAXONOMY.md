@@ -37,7 +37,7 @@ codes and rewrites its own amount-and-MCC policy between attempts is not.
 | ID | Scenario | What GenAI changed | Fields moved | Signal it defeats |
 |---|---|---|---|---|
 | T-08 | **Adaptive card-testing swarm** **[CODE]** | The agent reads decline reason codes and rewrites amount, MCC and cadence policy between attempts | small `amount`, `pos_entry_mode` = ECOM, `three_ds_status` = N, high velocity | fixed velocity rules |
-| T-09 | **Amount structuring below review thresholds** **[SPEC]** | Learned, per-issuer estimation of the review threshold rather than a guessed round number | `amount` clustered just under limits, low `amount_round_frac` | static amount thresholds |
+| T-09 | **Amount structuring below review thresholds** **[CODE]** | Learned, per-issuer estimation of the review threshold rather than a guessed round number | `amount` clustered just under limits, low `amount_round_frac` | static amount thresholds |
 | T-10 | **MCC laundering** **[SPEC]** | Category selection optimised against the issuer's own observed decline surface | `mcc` shifted to low-risk bands, mismatched `ip_country` | MCC risk weighting |
 | T-11 | **Geo-velocity spoof with plausible travel** **[SPEC]** | Generated itineraries that make impossible travel look like a real trip | `ip_country` sequence, `hour_sin`/`hour_cos` shift | impossible-travel rules |
 
@@ -45,12 +45,12 @@ codes and rewrites its own amount-and-MCC policy between attempts is not.
 
 | ID | Scenario | What GenAI changed | Fields moved | Signal it defeats |
 |---|---|---|---|---|
-| T-12 | **AI-personalised APP scam (authorised push payment)** **[SPEC]** | Scam narratives personalised from scraped public data; the victim authorises the payment themselves | genuine `customer_id`, genuine `device_id`, novel beneficiary | every control premised on the cardholder being the victim of a *stolen* credential |
+| T-12 | **AI-personalised APP scam (authorised push payment)** **[CODE]** | Scam narratives personalised from scraped public data; the victim authorises the payment themselves | genuine `customer_id`, genuine `device_id`, novel beneficiary | every control premised on the cardholder being the victim of a *stolen* credential |
 | T-13 | **Digital-arrest / impersonation coercion** **[SPEC]** | Synthetic authority voices and documents sustain multi-hour coercion | sequence of escalating `amount` from one legitimate account | single-transaction risk scoring |
-| T-14 | **VPA-rental mule networks** **[SPEC]** | Automated recruitment and rotation of rented payment addresses | fan-in topology, short-lived `customer_id` clusters | per-account monitoring without graph context |
+| T-14 | **VPA-rental mule networks** **[CODE]** | Automated recruitment and rotation of rented payment addresses | fan-in topology, short-lived `customer_id` clusters | per-account monitoring without graph context |
 | T-15 | **Fan-out dispersal and layered multi-hop** **[SPEC]** | Route planning that keeps every hop individually unremarkable | fan-out degree, rapid hop timing | thresholds applied per transaction |
 | T-16 | **QR and collect-request redirection** **[SPEC]** | Generated payee identities and QR overlays that survive visual inspection | `merchant_id` mismatch against context | payee-name verification by eye |
-| T-17 | **Synchronised burst cash-out** **[SPEC]** | Coordinated timing across many mules within one detection window | tight timestamp clustering across unrelated `customer_id`s | independence assumptions between accounts |
+| T-17 | **Synchronised burst cash-out** **[CODE]** | Coordinated timing across many mules within one detection window | tight timestamp clustering across unrelated `customer_id`s | independence assumptions between accounts |
 
 ## Layer 5 - Merchant, agentic commerce and model-layer attacks
 
@@ -82,15 +82,41 @@ A closed loop without a fidelity gate is an attack surface, not a feature.
 | | Count |
 |---|---|
 | Scenarios mapped | 22 |
-| Executable specs today **[CODE]** | 4 |
+| Executable specs today **[CODE]** | 8 |
 | Layers covered | 5 |
 | India-specific real-time-rail scenarios | 6 (T-12 to T-17) |
 
-**Stated honestly:** four of twenty-two are executable. Claiming twenty-two
+**Stated honestly:** eight of twenty-two are executable. Claiming twenty-two
 *implemented* attacks would be the kind of number this repository is built to
 argue against. The taxonomy's value is that each unimplemented row already
 names its fields and its target signal, so each is an afternoon of work rather
 than a research question.
+
+Executable does not mean "generates rows". Each of the eight is measured, and
+each was admitted only after passing the Plausibility Gate's economic,
+metadata-coherence and rail-feasibility checks -- so a family cannot be counted
+by writing a YAML file that produces physically impossible traffic. ATTACK_6
+initially failed that bar: it claimed a `synthetic_identity` ($200 acquisition
+floor) while drawing amounts from $180, and the gate rejected the low draws as
+economically irrational. The fix was not to widen the band but to correct the
+threat model -- a rented VPA is a *real*, KYC-clean account borrowed for a
+rotation window, not a fabricated identity, which is exactly why it is cheap
+($45) and why small mule legs are rational. That constraint is now enforced at
+load time by a schema validator, with the misconfiguration pinned as a
+regression test in `tests/test_attack_specs.py`.
+
+Per-family detection recall, leave-one-family-out zero-day generalisation, and
+which defense layer fires for each family are reported in
+`artifacts/family_coverage.json` (`make coverage`). The four newest families
+were chosen for a specific reason: each defeats a *different* control, so
+coverage breadth is not eight variations of velocity abuse.
+
+| Family | Defeats |
+|---|---|
+| T-12 AI-personalised APP scam | every control premised on a *stolen* credential -- the victim's own device, own account, and a passed 3DS challenge |
+| T-14 VPA-rental mule (fan-in) | per-account monitoring: no single node exceeds a threshold; only beneficiary convergence is visible |
+| T-17 synchronised burst cash-out | the independence assumption between accounts -- nothing is shared but time |
+| T-09 learned threshold structuring | static amount thresholds, including the round-number heuristics that catch naive structuring |
 
 Adding one is mechanical: write the YAML against `schemas/attack.AttackSpec`,
 add a synthesizer function to `data/corpus_builder._SYNTHESIZERS`, then rerun

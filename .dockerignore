@@ -1,0 +1,41 @@
+# Keep the build context small and the image reproducible.
+#
+# Note what is NOT ignored: artifacts/ and docs/ are copied into the image on
+# purpose. The Evidence page reads the artifact JSON, so an image without them
+# would serve 404s exactly where the reproducible numbers should appear.
+
+# Dependency trees -- both stages install from lockfiles instead.
+node_modules
+frontend/node_modules
+frontend/.next
+frontend/out
+backend/.venv
+.venv
+**/__pycache__
+**/*.pyc
+**/.pytest_cache
+**/.mypy_cache
+**/.ruff_cache
+
+# Local environment and secrets. The container receives configuration through
+# platform env vars (render.yaml / fly.toml), never a baked-in file.
+.env
+.env.*
+!.env.example
+frontend/.env.local
+
+# VCS and editor noise
+.git
+.gitignore
+.github
+.vscode
+.idea
+*.swp
+.DS_Store
+
+# Logs and scratch
+*.log
+supervisord.log
+supervisord.pid
+supervisor.sock
+webserver*.log

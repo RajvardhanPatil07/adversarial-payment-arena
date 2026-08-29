@@ -1,14 +1,14 @@
 {
   "provenance": {
     "schema_version": "1.0.0",
-    "generated_at": "2026-08-29T14:31:28.708282+00:00",
-    "git_sha": "dba323f",
-    "python": "3.12.13",
-    "platform": "macOS-26.6.2-arm64-arm-64bit",
+    "generated_at": "2026-08-29T18:13:16.880112+00:00",
+    "git_sha": "86d2561",
+    "python": "3.13.14",
+    "platform": "Linux-6.1.155-x86_64-with-glibc2.41",
     "seeds": [],
-    "command": "python backend/experiments/run_transfer_ablation.py"
+    "command": "python backend/experiments/run_closed_loop.py"
   },
-  "claim_count": 5,
+  "claim_count": 11,
   "claims": [
     {
       "claim": "Generator fidelity determines whether red-teaming helps or hurts real-fraud recall.",
@@ -44,6 +44,48 @@
       "field": "at_production_prevalence.insult_share_of_total_cost",
       "derivation": "Insult cost per false positive = lost margin + support contact + churn probability * CLV.",
       "boundary": "INR rates are stated order-of-magnitude assumptions and are overridable."
+    },
+    {
+      "claim": "An ungated closed loop raises recall on its own synthetic attacks while LOWERING recall on held-out real fraud.",
+      "artifact": "artifacts/closed_loop.json",
+      "field": "headline.low_fidelity_generator",
+      "derivation": "V0 vs final-generation recall on two disjoint yardsticks at an FPR pinned to 1% on a disjoint legitimate validation split.",
+      "boundary": "Simulated ring fraud; three seeds; fixed attack budget per generation."
+    },
+    {
+      "claim": "A label-free fidelity gate protects real-fraud recall by rejecting low-fidelity escape batches before retraining.",
+      "artifact": "artifacts/closed_loop.json",
+      "field": "headline.low_fidelity_generator.recall_protected_by_gate",
+      "derivation": "Gated arm delta-real-recall minus ungated arm delta-real-recall, identical attacker, budget and detector.",
+      "boundary": "Gate thresholds fixed in advance (C2ST <= 0.90, rank-dependence <= 1.50), never tuned per seed."
+    },
+    {
+      "claim": "The gate needs no fraud labels and is computable before any retraining occurs.",
+      "artifact": "artifacts/closed_loop.json",
+      "field": "gate",
+      "derivation": "C2ST AUC and Spearman rank-correlation Frobenius distance between the escape batch and the real fraud rows already in training.",
+      "boundary": "Requires >= 20 escapes to measure; smaller batches are refused by default."
+    },
+    {
+      "claim": "An ungated closed loop raises recall on its own synthetic attacks while LOWERING recall on held-out real fraud.",
+      "artifact": "artifacts/closed_loop.json",
+      "field": "headline.low_fidelity_generator",
+      "derivation": "V0 vs final-generation recall on two disjoint yardsticks at an FPR pinned to 1% on a disjoint legitimate validation split.",
+      "boundary": "Simulated ring fraud; three seeds; fixed attack budget per generation."
+    },
+    {
+      "claim": "A label-free fidelity gate protects real-fraud recall by rejecting low-fidelity escape batches before retraining.",
+      "artifact": "artifacts/closed_loop.json",
+      "field": "headline.low_fidelity_generator.recall_protected_by_gate",
+      "derivation": "Gated arm delta-real-recall minus ungated arm delta-real-recall, identical attacker, budget and detector.",
+      "boundary": "Gate thresholds fixed in advance (C2ST <= 0.90, rank-dependence <= 1.50), never tuned per seed."
+    },
+    {
+      "claim": "The gate needs no fraud labels and is computable before any retraining occurs.",
+      "artifact": "artifacts/closed_loop.json",
+      "field": "gate",
+      "derivation": "C2ST AUC and Spearman rank-correlation Frobenius distance between the escape batch and the real fraud rows already in training.",
+      "boundary": "Requires >= 20 escapes to measure; smaller batches are refused by default."
     }
   ]
 }

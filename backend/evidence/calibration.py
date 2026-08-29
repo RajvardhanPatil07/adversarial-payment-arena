@@ -117,15 +117,23 @@ def stratified_split_by_key(
 def pin_threshold_at_fpr(legit_scores: Sequence[float], target_fpr: float) -> float:
     """Smallest threshold whose false-positive rate on `legit_scores` does not
     exceed `target_fpr`. Scores are 'higher is more suspicious'.
+
+    TIE HANDLING: a plain quantile is wrong whenever the score distribution has
+    a large tie block (tree ensembles put most legitimate rows at exactly 0.0).
+    The quantile lands inside that block, and since the rule is `score >= tau`,
+    the whole block alerts -- a "1% FPR" that realises near 100%. Scanning the
+    distinct score values instead makes the realised rate honour the budget.
     """
     scores = np.sort(np.asarray(legit_scores, dtype=float))
     if scores.size == 0:
         raise ValueError("cannot calibrate on an empty legitimate sample")
     if not 0.0 < target_fpr < 1.0:
         raise ValueError("target_fpr must be in (0, 1)")
-    # Quantile at (1 - target_fpr) is the threshold that flags exactly the top
-    # target_fpr proportion of legitimate traffic.
-    return float(np.quantile(scores, 1.0 - target_fpr, method="higher"))
+    candidates = np.unique(scores)
+    for tau in candidates:
+        if float(np.mean(scores >= tau)) <= target_fpr:
+            return float(tau)
+    return float(np.nextafter(candidates[-1], np.inf))
 
 
 def fpr_at_threshold(legit_scores: Sequence[float], threshold: float) -> float:

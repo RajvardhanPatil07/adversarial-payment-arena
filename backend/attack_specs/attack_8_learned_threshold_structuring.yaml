@@ -1,0 +1,57 @@
+# ATTACK 8 — Learned Threshold Structuring  [T-09]
+# Taxon: adversarial probing of the defender's own decision boundary.
+#
+# Structuring is ancient: keep each transaction under the review threshold.
+# What GenAI changed is that the threshold no longer has to be GUESSED. An agent
+# that can observe accept/decline outcomes can estimate the boundary empirically
+# -- per issuer, per MCC, per rail -- and then place every transaction just
+# inside the accept region.
+#
+# The signature is counter-intuitive and worth stating precisely: classic
+# structuring clusters at ROUND numbers (4,900 under a 5,000 limit) because a
+# human guessed. LEARNED structuring clusters just under a NON-round, empirically
+# discovered value, and the amounts have unusually LOW round-number frequency --
+# the opposite of legitimate human spending, which is full of round numbers.
+#
+# This is a model-layer attack: the target is not the payment rail but the
+# defender's decision function. It is the closest family in the taxonomy to a
+# classic adversarial-example attack, adapted to a business threshold.
+
+spec_id: ATTACK_8_LEARNED_THRESHOLD_STRUCTURING
+attack_name: "Learned Threshold Structuring"
+taxon: adversarial_probing
+
+description: >
+  The agent probes the authorisation surface to estimate where review and
+  step-up thresholds actually sit, then places transactions in a tight band just
+  inside the accept region. Amounts avoid round numbers, so the band sits in a
+  part of the amount distribution that legitimate traffic occupies only sparsely.
+  Each transaction is individually approvable; the campaign is defined by the
+  suspiciously tight, suspiciously non-round clustering.
+
+preconditions: >
+  Enough attempt volume to observe accept/decline feedback, a stolen credential
+  that survives multiple attempts, and patience -- the campaign trades speed for
+  a higher per-transaction approval rate.
+
+economic_model:
+  acquisition_cost_usd: 30         # fullz bundle plus probing attempts
+  expected_payoff_usd: 1900        # sustained extraction below the review line
+  breakeven_txns: 3
+
+constraints:
+  stolen_resource: fullz
+  pos_entry_modes: [ECOM]
+  preferred_three_ds: [A]          # aims for the frictionless / attempted band
+  target_verticals: [ecommerce, electronics]
+  min_amount_usd: 120
+  max_amount_usd: 780
+
+evasion_notes: >
+  Defeats static amount thresholds and any control whose boundary is fixed and
+  discoverable. The detectable residue is distributional, not per-row: abnormally
+  low amount-variance inside a narrow band, and an amount_round_frac far below
+  the legitimate baseline. This is also the family that most directly motivates
+  the fidelity gate -- an attack shaped against the CURRENT boundary is, by
+  construction, unrepresentative of real fraud, so folding it into training
+  without a gate teaches the detector the probe rather than the crime.

@@ -103,10 +103,8 @@ export class ArenaSocket {
   }
 }
 
-export function backendHttpUrl(): string {
-  return process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:8000";
-}
-
-export function backendWsUrl(): string {
-  return process.env.NEXT_PUBLIC_BACKEND_WS_URL ?? "ws://localhost:8000/ws";
-}
+// URL resolution lives in one place (see lib/backend.ts): three call sites had
+// each grown their own env-var convention, and the socket hardcoded `ws://`,
+// which an https page blocks as mixed content. Re-exported here so existing
+// importers of `@/lib/ws` keep compiling.
+export { backendHttpUrl, backendWsUrl, backendUrl } from "@/lib/backend";

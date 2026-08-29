@@ -15,9 +15,14 @@ from pathlib import Path
 from typing import Optional
 
 import yaml
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-from schemas.payment import PosEntryMode, StolenResourceType, ThreeDSStatus
+from schemas.payment import (
+    RESOURCE_COST_TABLE_USD,
+    PosEntryMode,
+    StolenResourceType,
+    ThreeDSStatus,
+)
 
 
 class EconomicModel(BaseModel):
@@ -54,6 +59,35 @@ class OperationalConstraints(BaseModel):
     @property
     def amount_band(self) -> tuple[float, float]:
         return self.min_amount_usd, self.max_amount_usd
+
+    @model_validator(mode="after")
+    def _band_must_clear_gate_floor(self) -> "OperationalConstraints":
+        """Reject specs the Plausibility Gate would reject at generation time.
+
+        The gate declines any payload whose amount falls below the street cost
+        of the claimed resource (`check_economic_viability`). A spec whose
+        min_amount_usd sits under that floor is therefore not merely optimistic
+        -- it is unsatisfiable for part of its own band, and the corpus builder
+        will crash *probabilistically*, only when a draw happens to land low.
+        Catching it here converts a flaky run into a deterministic load error
+        that names the exact numbers involved.
+        """
+        if self.max_amount_usd < self.min_amount_usd:
+            raise ValueError(
+                f"max_amount_usd ({self.max_amount_usd}) < min_amount_usd ({self.min_amount_usd})"
+            )
+        if self.stolen_resource is None:
+            return self
+        floor = RESOURCE_COST_TABLE_USD[self.stolen_resource]
+        if self.min_amount_usd < floor:
+            raise ValueError(
+                f"min_amount_usd ({self.min_amount_usd}) is below the Plausibility "
+                f"Gate's economic floor for {self.stolen_resource.value} "
+                f"(${floor:.2f}). Raise min_amount_usd to >= {floor:.2f}, or claim "
+                f"a cheaper acquisition vector -- generated payloads under the "
+                f"floor are rejected as economic_infeasible."
+            )
+        return self
 
 
 class AttackSpec(BaseModel):

@@ -14,10 +14,11 @@
 
 import { useEffect, useState } from "react";
 
-const API_BASE =
-  process.env.NEXT_PUBLIC_API_BASE_URL ??
-  process.env.NEXT_PUBLIC_API_URL ??
-  "http://localhost:8000";
+import { backendHttpUrl } from "@/lib/backend";
+
+// Resolved through lib/backend.ts so this page cannot drift onto a different
+// env var than the WebSocket dashboard (previously it read two of its own).
+const API_BASE = backendHttpUrl();
 
 type Interval = { mean: number; lo: number; hi: number; n?: number };
 

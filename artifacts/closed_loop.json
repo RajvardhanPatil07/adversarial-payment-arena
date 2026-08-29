@@ -1,0 +1,1976 @@
+{
+  "provenance": {
+    "schema_version": "1.0.0",
+    "generated_at": "2026-08-29T18:13:16.872675+00:00",
+    "git_sha": "86d2561",
+    "python": "3.13.14",
+    "platform": "Linux-6.1.155-x86_64-with-glibc2.41",
+    "seeds": [
+      11,
+      23,
+      37
+    ],
+    "command": "python backend/experiments/run_closed_loop.py"
+  },
+  "experiment": "gated_vs_ungated_closed_loop",
+  "question": "Does folding red-team escapes back into training improve detection of REAL fraud, and does a label-free fidelity gate change the answer?",
+  "protocol": {
+    "seeds": [
+      11,
+      23,
+      37
+    ],
+    "generations": 3,
+    "attack_budget_per_generation": 400,
+    "target_fpr": 0.01,
+    "threshold_source": "legitimate validation split, disjoint from every evaluation split, re-pinned every generation",
+    "n_legit": 6000,
+    "n_real_fraud": 400,
+    "real_fraud_visible_to_attacker": 90,
+    "real_fraud_held_out": 310,
+    "attacker": "adaptive -- refits on the escapes from the previous generation",
+    "detector": "random forest, 60 trees, behavioural feature set, identical across arms",
+    "production_prevalence": 0.013
+  },
+  "gate": {
+    "c2st_auc_max": 0.9,
+    "dependence_frobenius_max": 1.5,
+    "fixed_in_advance": true,
+    "labels_required": "none beyond the real fraud already in the training set",
+    "computable_before_retraining": true,
+    "why": "An issuer must be able to reject a red-team generator that would degrade a live detector WITHOUT first degrading one. Both gate metrics are label-free and computable on the escape batch alone."
+  },
+  "headline": {
+    "arms": [
+      {
+        "arm": "UNGATED_low_fidelity",
+        "gated": false,
+        "generator": "marginal",
+        "delta_real_recall": -0.151613,
+        "delta_real_recall_ci": [
+          -0.296774,
+          0.0
+        ],
+        "delta_synthetic_recall": 0.85,
+        "batches_rejected_by_gate": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "arm": "GATED_low_fidelity",
+        "gated": true,
+        "generator": "marginal",
+        "delta_real_recall": -0.003226,
+        "delta_real_recall_ci": [
+          -0.009678,
+          0.0
+        ],
+        "delta_synthetic_recall": 0.1475,
+        "batches_rejected_by_gate": [
+          3,
+          3,
+          3
+        ]
+      },
+      {
+        "arm": "UNGATED_high_fidelity",
+        "gated": false,
+        "generator": "joint",
+        "delta_real_recall": -0.003226,
+        "delta_real_recall_ci": [
+          -0.009678,
+          0.0
+        ],
+        "delta_synthetic_recall": 0.005833,
+        "batches_rejected_by_gate": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "arm": "GATED_high_fidelity",
+        "gated": true,
+        "generator": "joint",
+        "delta_real_recall": -0.003226,
+        "delta_real_recall_ci": [
+          -0.009678,
+          0.0
+        ],
+        "delta_synthetic_recall": -0.0875,
+        "batches_rejected_by_gate": [
+          0,
+          2,
+          0
+        ]
+      }
+    ],
+    "low_fidelity_generator": {
+      "ungated_delta_real_recall": -0.151613,
+      "gated_delta_real_recall": -0.003226,
+      "recall_protected_by_gate": 0.148387,
+      "ungated_delta_synthetic_recall": 0.85
+    },
+    "high_fidelity_generator": {
+      "ungated_delta_real_recall": -0.003226,
+      "gated_delta_real_recall": -0.003226,
+      "recall_protected_by_gate": 0.0
+    },
+    "reading": "The vanity metric and the real metric move in OPPOSITE directions in the ungated low-fidelity arm: recall on the generator's own attacks rises while recall on held-out real fraud falls. That is the scissor. The gate removes it by refusing the escape batches that cause it, using only a label-free fidelity measurement computable before retraining."
+  },
+  "aggregated": {
+    "UNGATED_low_fidelity": {
+      "gated": false,
+      "generator": "marginal",
+      "by_generation": {
+        "V0": {
+          "recall_on_real_fraud": {
+            "mean": 0.950538,
+            "lo": 0.851613,
+            "hi": 1.0,
+            "n": 3
+          },
+          "recall_on_synthetic_attacks": {
+            "mean": 0.15,
+            "lo": 0.0775,
+            "hi": 0.1975,
+            "n": 3
+          },
+          "realised_fpr": {
+            "mean": 0.010359,
+            "lo": 0.0075,
+            "hi": 0.013536,
+            "n": 3
+          },
+          "roc_auc_real": {
+            "mean": 0.975011,
+            "lo": 0.925034,
+            "hi": 1.0,
+            "n": 3
+          }
+        },
+        "V1": {
+          "recall_on_real_fraud": {
+            "mean": 0.68172,
+            "lo": 0.141935,
+            "hi": 1.0,
+            "n": 3
+          },
+          "recall_on_synthetic_attacks": {
+            "mean": 1.0,
+            "lo": 1.0,
+            "hi": 1.0,
+            "n": 3
+          },
+          "realised_fpr": {
+            "mean": 0.008098,
+            "lo": 0.005858,
+            "hi": 0.011667,
+            "n": 3
+          },
+          "roc_auc_real": {
+            "mean": 0.985928,
+            "lo": 0.961262,
+            "hi": 0.999879,
+            "n": 3
+          }
+        },
+        "V2": {
+          "recall_on_real_fraud": {
+            "mean": 0.641936,
+            "lo": 0.219355,
+            "hi": 1.0,
+            "n": 3
+          },
+          "recall_on_synthetic_attacks": {
+            "mean": 1.0,
+            "lo": 1.0,
+            "hi": 1.0,
+            "n": 3
+          },
+          "realised_fpr": {
+            "mean": 0.00837,
+            "lo": 0.005076,
+            "hi": 0.011667,
+            "n": 3
+          },
+          "roc_auc_real": {
+            "mean": 0.985012,
+            "lo": 0.959136,
+            "hi": 0.999952,
+            "n": 3
+          }
+        },
+        "V3": {
+          "recall_on_real_fraud": {
+            "mean": 0.798925,
+            "lo": 0.693548,
+            "hi": 1.0,
+            "n": 3
+          },
+          "recall_on_synthetic_attacks": {
+            "mean": 1.0,
+            "lo": 1.0,
+            "hi": 1.0,
+            "n": 3
+          },
+          "realised_fpr": {
+            "mean": 0.008656,
+            "lo": 0.006768,
+            "hi": 0.010833,
+            "n": 3
+          },
+          "roc_auc_real": {
+            "mean": 0.98427,
+            "lo": 0.959229,
+            "hi": 0.999884,
+            "n": 3
+          }
+        }
+      },
+      "delta_real_recall": {
+        "mean": -0.151613,
+        "lo": -0.296774,
+        "hi": 0.0,
+        "n": 3
+      },
+      "delta_synthetic_recall": {
+        "mean": 0.85,
+        "lo": 0.8025,
+        "hi": 0.9225,
+        "n": 3
+      },
+      "delta_fpr": {
+        "mean": -0.001703,
+        "lo": -0.006768,
+        "hi": 0.003333,
+        "n": 3
+      },
+      "batches_rejected_by_gate": [
+        0,
+        0,
+        0
+      ],
+      "synthetic_rows_admitted": [
+        330,
+        321,
+        369
+      ],
+      "seed_level_delta_real_recall": [
+        -0.296774,
+        0.0,
+        -0.158065
+      ]
+    },
+    "GATED_low_fidelity": {
+      "gated": true,
+      "generator": "marginal",
+      "by_generation": {
+        "V0": {
+          "recall_on_real_fraud": {
+            "mean": 0.950538,
+            "lo": 0.851613,
+            "hi": 1.0,
+            "n": 3
+          },
+          "recall_on_synthetic_attacks": {
+            "mean": 0.15,
+            "lo": 0.0775,
+            "hi": 0.1975,
+            "n": 3
+          },
+          "realised_fpr": {
+            "mean": 0.010359,
+            "lo": 0.0075,
+            "hi": 0.013536,
+            "n": 3
+          },
+          "roc_auc_real": {
+            "mean": 0.975011,
+            "lo": 0.925034,
+            "hi": 1.0,
+            "n": 3
+          }
+        },
+        "V1": {
+          "recall_on_real_fraud": {
+            "mean": 0.946237,
+            "lo": 0.83871,
+            "hi": 1.0,
+            "n": 3
+          },
+          "recall_on_synthetic_attacks": {
+            "mean": 0.074167,
+            "lo": 0.04,
+            "hi": 0.135,
+            "n": 3
+          },
+          "realised_fpr": {
+            "mean": 0.006701,
+            "lo": 0.005076,
+            "hi": 0.008333,
+            "n": 3
+          },
+          "roc_auc_real": {
+            "mean": 0.972443,
+            "lo": 0.91733,
+            "hi": 1.0,
+            "n": 3
+          }
+        },
+        "V2": {
+          "recall_on_real_fraud": {
+            "mean": 0.946237,
+            "lo": 0.83871,
+            "hi": 1.0,
+            "n": 3
+          },
+          "recall_on_synthetic_attacks": {
+            "mean": 0.308333,
+            "lo": 0.02,
+            "hi": 0.6675,
+            "n": 3
+          },
+          "realised_fpr": {
+            "mean": 0.012029,
+            "lo": 0.005858,
+            "hi": 0.015228,
+            "n": 3
+          },
+          "roc_auc_real": {
+            "mean": 0.977605,
+            "lo": 0.932815,
+            "hi": 1.0,
+            "n": 3
+          }
+        },
+        "V3": {
+          "recall_on_real_fraud": {
+            "mean": 0.947312,
+            "lo": 0.841935,
+            "hi": 1.0,
+            "n": 3
+          },
+          "recall_on_synthetic_attacks": {
+            "mean": 0.2975,
+            "lo": 0.01,
+            "hi": 0.55,
+            "n": 3
+          },
+          "realised_fpr": {
+            "mean": 0.008655,
+            "lo": 0.005922,
+            "hi": 0.010042,
+            "n": 3
+          },
+          "roc_auc_real": {
+            "mean": 0.973897,
+            "lo": 0.921691,
+            "hi": 1.0,
+            "n": 3
+          }
+        }
+      },
+      "delta_real_recall": {
+        "mean": -0.003226,
+        "lo": -0.009678,
+        "hi": 0.0,
+        "n": 3
+      },
+      "delta_synthetic_recall": {
+        "mean": 0.1475,
+        "lo": -0.165,
+        "hi": 0.3525,
+        "n": 3
+      },
+      "delta_fpr": {
+        "mean": -0.001705,
+        "lo": -0.007614,
+        "hi": 0.0025,
+        "n": 3
+      },
+      "batches_rejected_by_gate": [
+        3,
+        3,
+        3
+      ],
+      "synthetic_rows_admitted": [
+        0,
+        0,
+        0
+      ],
+      "seed_level_delta_real_recall": [
+        0.0,
+        0.0,
+        -0.009678
+      ]
+    },
+    "UNGATED_high_fidelity": {
+      "gated": false,
+      "generator": "joint",
+      "by_generation": {
+        "V0": {
+          "recall_on_real_fraud": {
+            "mean": 0.950538,
+            "lo": 0.851613,
+            "hi": 1.0,
+            "n": 3
+          },
+          "recall_on_synthetic_attacks": {
+            "mean": 0.989167,
+            "lo": 0.98,
+            "hi": 1.0,
+            "n": 3
+          },
+          "realised_fpr": {
+            "mean": 0.010359,
+            "lo": 0.0075,
+            "hi": 0.013536,
+            "n": 3
+          },
+          "roc_auc_real": {
+            "mean": 0.975011,
+            "lo": 0.925034,
+            "hi": 1.0,
+            "n": 3
+          }
+        },
+        "V1": {
+          "recall_on_real_fraud": {
+            "mean": 0.946237,
+            "lo": 0.83871,
+            "hi": 1.0,
+            "n": 3
+          },
+          "recall_on_synthetic_attacks": {
+            "mean": 0.904167,
+            "lo": 0.7125,
+            "hi": 1.0,
+            "n": 3
+          },
+          "realised_fpr": {
+            "mean": 0.006701,
+            "lo": 0.005076,
+            "hi": 0.008333,
+            "n": 3
+          },
+          "roc_auc_real": {
+            "mean": 0.972443,
+            "lo": 0.91733,
+            "hi": 1.0,
+            "n": 3
+          }
+        },
+        "V2": {
+          "recall_on_real_fraud": {
+            "mean": 0.946237,
+            "lo": 0.83871,
+            "hi": 1.0,
+            "n": 3
+          },
+          "recall_on_synthetic_attacks": {
+            "mean": 0.995,
+            "lo": 0.985,
+            "hi": 1.0,
+            "n": 3
+          },
+          "realised_fpr": {
+            "mean": 0.008418,
+            "lo": 0.004167,
+            "hi": 0.015228,
+            "n": 3
+          },
+          "roc_auc_real": {
+            "mean": 0.977605,
+            "lo": 0.932815,
+            "hi": 1.0,
+            "n": 3
+          }
+        },
+        "V3": {
+          "recall_on_real_fraud": {
+            "mean": 0.947312,
+            "lo": 0.841935,
+            "hi": 1.0,
+            "n": 3
+          },
+          "recall_on_synthetic_attacks": {
+            "mean": 0.995,
+            "lo": 0.985,
+            "hi": 1.0,
+            "n": 3
+          },
+          "realised_fpr": {
+            "mean": 0.007821,
+            "lo": 0.005922,
+            "hi": 0.010042,
+            "n": 3
+          },
+          "roc_auc_real": {
+            "mean": 0.973897,
+            "lo": 0.921691,
+            "hi": 1.0,
+            "n": 3
+          }
+        }
+      },
+      "delta_real_recall": {
+        "mean": -0.003226,
+        "lo": -0.009678,
+        "hi": 0.0,
+        "n": 3
+      },
+      "delta_synthetic_recall": {
+        "mean": 0.005833,
+        "lo": 0.0,
+        "hi": 0.0125,
+        "n": 3
+      },
+      "delta_fpr": {
+        "mean": -0.002538,
+        "lo": -0.007614,
+        "hi": 0.0,
+        "n": 3
+      },
+      "batches_rejected_by_gate": [
+        0,
+        0,
+        0
+      ],
+      "synthetic_rows_admitted": [
+        0,
+        115,
+        0
+      ],
+      "seed_level_delta_real_recall": [
+        0.0,
+        0.0,
+        -0.009678
+      ]
+    },
+    "GATED_high_fidelity": {
+      "gated": true,
+      "generator": "joint",
+      "by_generation": {
+        "V0": {
+          "recall_on_real_fraud": {
+            "mean": 0.950538,
+            "lo": 0.851613,
+            "hi": 1.0,
+            "n": 3
+          },
+          "recall_on_synthetic_attacks": {
+            "mean": 0.989167,
+            "lo": 0.98,
+            "hi": 1.0,
+            "n": 3
+          },
+          "realised_fpr": {
+            "mean": 0.010359,
+            "lo": 0.0075,
+            "hi": 0.013536,
+            "n": 3
+          },
+          "roc_auc_real": {
+            "mean": 0.975011,
+            "lo": 0.925034,
+            "hi": 1.0,
+            "n": 3
+          }
+        },
+        "V1": {
+          "recall_on_real_fraud": {
+            "mean": 0.946237,
+            "lo": 0.83871,
+            "hi": 1.0,
+            "n": 3
+          },
+          "recall_on_synthetic_attacks": {
+            "mean": 0.904167,
+            "lo": 0.7125,
+            "hi": 1.0,
+            "n": 3
+          },
+          "realised_fpr": {
+            "mean": 0.006701,
+            "lo": 0.005076,
+            "hi": 0.008333,
+            "n": 3
+          },
+          "roc_auc_real": {
+            "mean": 0.972443,
+            "lo": 0.91733,
+            "hi": 1.0,
+            "n": 3
+          }
+        },
+        "V2": {
+          "recall_on_real_fraud": {
+            "mean": 0.946237,
+            "lo": 0.83871,
+            "hi": 1.0,
+            "n": 3
+          },
+          "recall_on_synthetic_attacks": {
+            "mean": 0.960833,
+            "lo": 0.8975,
+            "hi": 1.0,
+            "n": 3
+          },
+          "realised_fpr": {
+            "mean": 0.012029,
+            "lo": 0.005858,
+            "hi": 0.015228,
+            "n": 3
+          },
+          "roc_auc_real": {
+            "mean": 0.977605,
+            "lo": 0.932815,
+            "hi": 1.0,
+            "n": 3
+          }
+        },
+        "V3": {
+          "recall_on_real_fraud": {
+            "mean": 0.947312,
+            "lo": 0.841935,
+            "hi": 1.0,
+            "n": 3
+          },
+          "recall_on_synthetic_attacks": {
+            "mean": 0.901667,
+            "lo": 0.72,
+            "hi": 1.0,
+            "n": 3
+          },
+          "realised_fpr": {
+            "mean": 0.008655,
+            "lo": 0.005922,
+            "hi": 0.010042,
+            "n": 3
+          },
+          "roc_auc_real": {
+            "mean": 0.973897,
+            "lo": 0.921691,
+            "hi": 1.0,
+            "n": 3
+          }
+        }
+      },
+      "delta_real_recall": {
+        "mean": -0.003226,
+        "lo": -0.009678,
+        "hi": 0.0,
+        "n": 3
+      },
+      "delta_synthetic_recall": {
+        "mean": -0.0875,
+        "lo": -0.2675,
+        "hi": 0.005,
+        "n": 3
+      },
+      "delta_fpr": {
+        "mean": -0.001705,
+        "lo": -0.007614,
+        "hi": 0.0025,
+        "n": 3
+      },
+      "batches_rejected_by_gate": [
+        0,
+        2,
+        0
+      ],
+      "synthetic_rows_admitted": [
+        0,
+        0,
+        0
+      ],
+      "seed_level_delta_real_recall": [
+        0.0,
+        0.0,
+        -0.009678
+      ]
+    }
+  },
+  "per_seed": [
+    {
+      "seed": 11,
+      "splits": {
+        "legit_train": 3544,
+        "legit_validation": 1181,
+        "legit_test": 1182,
+        "real_fraud_train": 90,
+        "real_fraud_holdout": 310,
+        "attack_budget_per_generation": 400,
+        "generations": 3
+      },
+      "arms": [
+        {
+          "arm": "UNGATED_low_fidelity",
+          "gated": false,
+          "generator": "marginal",
+          "generations": [
+            {
+              "generation": "V0",
+              "train_rows": 3634,
+              "train_fraud_rows": 90,
+              "synthetic_rows_admitted_cumulative": 0,
+              "n_escaped": 330,
+              "threshold": 0.03305586,
+              "threshold_source": "legitimate validation split, disjoint from every test split",
+              "realised_fpr": 0.013536,
+              "recall_on_real_fraud": 1.0,
+              "recall_on_synthetic_attacks": 0.175,
+              "escape_rate_synthetic": 0.825,
+              "roc_auc_real": 1.0,
+              "precision_at_production_prevalence": 0.493164,
+              "gate": {
+                "admitted": true,
+                "reason": "no gate in this arm"
+              },
+              "hardening": {
+                "action": "retrained on ALL escapes (ungated)",
+                "rows_added": 330
+              }
+            },
+            {
+              "generation": "V1",
+              "train_rows": 3964,
+              "train_fraud_rows": 420,
+              "synthetic_rows_admitted_cumulative": 330,
+              "n_escaped": 0,
+              "threshold": 0.79188876,
+              "threshold_source": "legitimate validation split, disjoint from every test split",
+              "realised_fpr": 0.006768,
+              "recall_on_real_fraud": 0.903226,
+              "recall_on_synthetic_attacks": 1.0,
+              "escape_rate_synthetic": 0.0,
+              "roc_auc_real": 0.996643,
+              "precision_at_production_prevalence": 0.637382,
+              "hardening": {
+                "action": "no hardening",
+                "reason": "too few escapes to retrain on"
+              }
+            },
+            {
+              "generation": "V2",
+              "train_rows": 3964,
+              "train_fraud_rows": 420,
+              "synthetic_rows_admitted_cumulative": 330,
+              "n_escaped": 0,
+              "threshold": 0.88240099,
+              "threshold_source": "legitimate validation split, disjoint from every test split",
+              "realised_fpr": 0.005076,
+              "recall_on_real_fraud": 0.706452,
+              "recall_on_synthetic_attacks": 1.0,
+              "escape_rate_synthetic": 0.0,
+              "roc_auc_real": 0.995947,
+              "precision_at_production_prevalence": 0.647024,
+              "hardening": {
+                "action": "no hardening",
+                "reason": "too few escapes to retrain on"
+              }
+            },
+            {
+              "generation": "V3",
+              "train_rows": 3964,
+              "train_fraud_rows": 420,
+              "synthetic_rows_admitted_cumulative": 330,
+              "n_escaped": 0,
+              "threshold": 0.81023697,
+              "threshold_source": "legitimate validation split, disjoint from every test split",
+              "realised_fpr": 0.006768,
+              "recall_on_real_fraud": 0.703226,
+              "recall_on_synthetic_attacks": 1.0,
+              "escape_rate_synthetic": 0.0,
+              "roc_auc_real": 0.993696,
+              "precision_at_production_prevalence": 0.577794
+            }
+          ],
+          "summary": {
+            "delta_real_recall": -0.296774,
+            "delta_synthetic_recall": 0.825,
+            "delta_fpr": -0.006768,
+            "v0_real_recall": 1.0,
+            "final_real_recall": 0.703226,
+            "v0_synthetic_recall": 0.175,
+            "final_synthetic_recall": 1.0,
+            "synthetic_rows_admitted": 330,
+            "batches_rejected_by_gate": 0
+          }
+        },
+        {
+          "arm": "GATED_low_fidelity",
+          "gated": true,
+          "generator": "marginal",
+          "generations": [
+            {
+              "generation": "V0",
+              "train_rows": 3634,
+              "train_fraud_rows": 90,
+              "synthetic_rows_admitted_cumulative": 0,
+              "n_escaped": 330,
+              "threshold": 0.03305586,
+              "threshold_source": "legitimate validation split, disjoint from every test split",
+              "realised_fpr": 0.013536,
+              "recall_on_real_fraud": 1.0,
+              "recall_on_synthetic_attacks": 0.175,
+              "escape_rate_synthetic": 0.825,
+              "roc_auc_real": 1.0,
+              "precision_at_production_prevalence": 0.493164,
+              "gate": {
+                "admitted": false,
+                "c2st_auc": 1.0,
+                "c2st_gate": 0.9,
+                "c2st_pass": false,
+                "dependence_distance": 5.122228,
+                "dependence_gate": 1.5,
+                "dependence_pass": false,
+                "reason": "REJECTED: c2st=1.0000 (max 0.9), dependence=5.1222 (max 1.5)",
+                "n_escapes": 330
+              },
+              "hardening": {
+                "action": "escape batch REJECTED by fidelity gate",
+                "rows_added": 0,
+                "reason": "REJECTED: c2st=1.0000 (max 0.9), dependence=5.1222 (max 1.5)"
+              }
+            },
+            {
+              "generation": "V1",
+              "train_rows": 3634,
+              "train_fraud_rows": 90,
+              "synthetic_rows_admitted_cumulative": 0,
+              "n_escaped": 384,
+              "threshold": 0.0317262,
+              "threshold_source": "legitimate validation split, disjoint from every test split",
+              "realised_fpr": 0.005076,
+              "recall_on_real_fraud": 1.0,
+              "recall_on_synthetic_attacks": 0.04,
+              "escape_rate_synthetic": 0.96,
+              "roc_auc_real": 1.0,
+              "precision_at_production_prevalence": 0.721815,
+              "gate": {
+                "admitted": false,
+                "c2st_auc": 1.0,
+                "c2st_gate": 0.9,
+                "c2st_pass": false,
+                "dependence_distance": 5.116414,
+                "dependence_gate": 1.5,
+                "dependence_pass": false,
+                "reason": "REJECTED: c2st=1.0000 (max 0.9), dependence=5.1164 (max 1.5)",
+                "n_escapes": 384
+              },
+              "hardening": {
+                "action": "escape batch REJECTED by fidelity gate",
+                "rows_added": 0,
+                "reason": "REJECTED: c2st=1.0000 (max 0.9), dependence=5.1164 (max 1.5)"
+              }
+            },
+            {
+              "generation": "V2",
+              "train_rows": 3634,
+              "train_fraud_rows": 90,
+              "synthetic_rows_admitted_cumulative": 0,
+              "n_escaped": 392,
+              "threshold": 0.01656152,
+              "threshold_source": "legitimate validation split, disjoint from every test split",
+              "realised_fpr": 0.015228,
+              "recall_on_real_fraud": 1.0,
+              "recall_on_synthetic_attacks": 0.02,
+              "escape_rate_synthetic": 0.98,
+              "roc_auc_real": 1.0,
+              "precision_at_production_prevalence": 0.463781,
+              "gate": {
+                "admitted": false,
+                "c2st_auc": 1.0,
+                "c2st_gate": 0.9,
+                "c2st_pass": false,
+                "dependence_distance": 5.114519,
+                "dependence_gate": 1.5,
+                "dependence_pass": false,
+                "reason": "REJECTED: c2st=1.0000 (max 0.9), dependence=5.1145 (max 1.5)",
+                "n_escapes": 392
+              },
+              "hardening": {
+                "action": "escape batch REJECTED by fidelity gate",
+                "rows_added": 0,
+                "reason": "REJECTED: c2st=1.0000 (max 0.9), dependence=5.1145 (max 1.5)"
+              }
+            },
+            {
+              "generation": "V3",
+              "train_rows": 3634,
+              "train_fraud_rows": 90,
+              "synthetic_rows_admitted_cumulative": 0,
+              "n_escaped": 397,
+              "threshold": 0.03191617,
+              "threshold_source": "legitimate validation split, disjoint from every test split",
+              "realised_fpr": 0.005922,
+              "recall_on_real_fraud": 1.0,
+              "recall_on_synthetic_attacks": 0.01,
+              "escape_rate_synthetic": 0.99,
+              "roc_auc_real": 1.0,
+              "precision_at_production_prevalence": 0.689832
+            }
+          ],
+          "summary": {
+            "delta_real_recall": 0.0,
+            "delta_synthetic_recall": -0.165,
+            "delta_fpr": -0.007614,
+            "v0_real_recall": 1.0,
+            "final_real_recall": 1.0,
+            "v0_synthetic_recall": 0.175,
+            "final_synthetic_recall": 0.01,
+            "synthetic_rows_admitted": 0,
+            "batches_rejected_by_gate": 3
+          }
+        },
+        {
+          "arm": "UNGATED_high_fidelity",
+          "gated": false,
+          "generator": "joint",
+          "generations": [
+            {
+              "generation": "V0",
+              "train_rows": 3634,
+              "train_fraud_rows": 90,
+              "synthetic_rows_admitted_cumulative": 0,
+              "n_escaped": 0,
+              "threshold": 0.03305586,
+              "threshold_source": "legitimate validation split, disjoint from every test split",
+              "realised_fpr": 0.013536,
+              "recall_on_real_fraud": 1.0,
+              "recall_on_synthetic_attacks": 1.0,
+              "escape_rate_synthetic": 0.0,
+              "roc_auc_real": 1.0,
+              "precision_at_production_prevalence": 0.493164,
+              "hardening": {
+                "action": "no hardening",
+                "reason": "too few escapes to retrain on"
+              }
+            },
+            {
+              "generation": "V1",
+              "train_rows": 3634,
+              "train_fraud_rows": 90,
+              "synthetic_rows_admitted_cumulative": 0,
+              "n_escaped": 0,
+              "threshold": 0.0317262,
+              "threshold_source": "legitimate validation split, disjoint from every test split",
+              "realised_fpr": 0.005076,
+              "recall_on_real_fraud": 1.0,
+              "recall_on_synthetic_attacks": 1.0,
+              "escape_rate_synthetic": 0.0,
+              "roc_auc_real": 1.0,
+              "precision_at_production_prevalence": 0.721815,
+              "hardening": {
+                "action": "no hardening",
+                "reason": "too few escapes to retrain on"
+              }
+            },
+            {
+              "generation": "V2",
+              "train_rows": 3634,
+              "train_fraud_rows": 90,
+              "synthetic_rows_admitted_cumulative": 0,
+              "n_escaped": 0,
+              "threshold": 0.01656152,
+              "threshold_source": "legitimate validation split, disjoint from every test split",
+              "realised_fpr": 0.015228,
+              "recall_on_real_fraud": 1.0,
+              "recall_on_synthetic_attacks": 1.0,
+              "escape_rate_synthetic": 0.0,
+              "roc_auc_real": 1.0,
+              "precision_at_production_prevalence": 0.463781,
+              "hardening": {
+                "action": "no hardening",
+                "reason": "too few escapes to retrain on"
+              }
+            },
+            {
+              "generation": "V3",
+              "train_rows": 3634,
+              "train_fraud_rows": 90,
+              "synthetic_rows_admitted_cumulative": 0,
+              "n_escaped": 0,
+              "threshold": 0.03191617,
+              "threshold_source": "legitimate validation split, disjoint from every test split",
+              "realised_fpr": 0.005922,
+              "recall_on_real_fraud": 1.0,
+              "recall_on_synthetic_attacks": 1.0,
+              "escape_rate_synthetic": 0.0,
+              "roc_auc_real": 1.0,
+              "precision_at_production_prevalence": 0.689832
+            }
+          ],
+          "summary": {
+            "delta_real_recall": 0.0,
+            "delta_synthetic_recall": 0.0,
+            "delta_fpr": -0.007614,
+            "v0_real_recall": 1.0,
+            "final_real_recall": 1.0,
+            "v0_synthetic_recall": 1.0,
+            "final_synthetic_recall": 1.0,
+            "synthetic_rows_admitted": 0,
+            "batches_rejected_by_gate": 0
+          }
+        },
+        {
+          "arm": "GATED_high_fidelity",
+          "gated": true,
+          "generator": "joint",
+          "generations": [
+            {
+              "generation": "V0",
+              "train_rows": 3634,
+              "train_fraud_rows": 90,
+              "synthetic_rows_admitted_cumulative": 0,
+              "n_escaped": 0,
+              "threshold": 0.03305586,
+              "threshold_source": "legitimate validation split, disjoint from every test split",
+              "realised_fpr": 0.013536,
+              "recall_on_real_fraud": 1.0,
+              "recall_on_synthetic_attacks": 1.0,
+              "escape_rate_synthetic": 0.0,
+              "roc_auc_real": 1.0,
+              "precision_at_production_prevalence": 0.493164,
+              "hardening": {
+                "action": "no hardening",
+                "reason": "too few escapes to retrain on"
+              }
+            },
+            {
+              "generation": "V1",
+              "train_rows": 3634,
+              "train_fraud_rows": 90,
+              "synthetic_rows_admitted_cumulative": 0,
+              "n_escaped": 0,
+              "threshold": 0.0317262,
+              "threshold_source": "legitimate validation split, disjoint from every test split",
+              "realised_fpr": 0.005076,
+              "recall_on_real_fraud": 1.0,
+              "recall_on_synthetic_attacks": 1.0,
+              "escape_rate_synthetic": 0.0,
+              "roc_auc_real": 1.0,
+              "precision_at_production_prevalence": 0.721815,
+              "hardening": {
+                "action": "no hardening",
+                "reason": "too few escapes to retrain on"
+              }
+            },
+            {
+              "generation": "V2",
+              "train_rows": 3634,
+              "train_fraud_rows": 90,
+              "synthetic_rows_admitted_cumulative": 0,
+              "n_escaped": 0,
+              "threshold": 0.01656152,
+              "threshold_source": "legitimate validation split, disjoint from every test split",
+              "realised_fpr": 0.015228,
+              "recall_on_real_fraud": 1.0,
+              "recall_on_synthetic_attacks": 1.0,
+              "escape_rate_synthetic": 0.0,
+              "roc_auc_real": 1.0,
+              "precision_at_production_prevalence": 0.463781,
+              "hardening": {
+                "action": "no hardening",
+                "reason": "too few escapes to retrain on"
+              }
+            },
+            {
+              "generation": "V3",
+              "train_rows": 3634,
+              "train_fraud_rows": 90,
+              "synthetic_rows_admitted_cumulative": 0,
+              "n_escaped": 0,
+              "threshold": 0.03191617,
+              "threshold_source": "legitimate validation split, disjoint from every test split",
+              "realised_fpr": 0.005922,
+              "recall_on_real_fraud": 1.0,
+              "recall_on_synthetic_attacks": 1.0,
+              "escape_rate_synthetic": 0.0,
+              "roc_auc_real": 1.0,
+              "precision_at_production_prevalence": 0.689832
+            }
+          ],
+          "summary": {
+            "delta_real_recall": 0.0,
+            "delta_synthetic_recall": 0.0,
+            "delta_fpr": -0.007614,
+            "v0_real_recall": 1.0,
+            "final_real_recall": 1.0,
+            "v0_synthetic_recall": 1.0,
+            "final_synthetic_recall": 1.0,
+            "synthetic_rows_admitted": 0,
+            "batches_rejected_by_gate": 0
+          }
+        }
+      ]
+    },
+    {
+      "seed": 23,
+      "splits": {
+        "legit_train": 3600,
+        "legit_validation": 1200,
+        "legit_test": 1200,
+        "real_fraud_train": 90,
+        "real_fraud_holdout": 310,
+        "attack_budget_per_generation": 400,
+        "generations": 3
+      },
+      "arms": [
+        {
+          "arm": "UNGATED_low_fidelity",
+          "gated": false,
+          "generator": "marginal",
+          "generations": [
+            {
+              "generation": "V0",
+              "train_rows": 3690,
+              "train_fraud_rows": 90,
+              "synthetic_rows_admitted_cumulative": 0,
+              "n_escaped": 321,
+              "threshold": 0.01612903,
+              "threshold_source": "legitimate validation split, disjoint from every test split",
+              "realised_fpr": 0.0075,
+              "recall_on_real_fraud": 1.0,
+              "recall_on_synthetic_attacks": 0.1975,
+              "escape_rate_synthetic": 0.8025,
+              "roc_auc_real": 1.0,
+              "precision_at_production_prevalence": 0.637177,
+              "gate": {
+                "admitted": true,
+                "reason": "no gate in this arm"
+              },
+              "hardening": {
+                "action": "retrained on ALL escapes (ungated)",
+                "rows_added": 321
+              }
+            },
+            {
+              "generation": "V1",
+              "train_rows": 4011,
+              "train_fraud_rows": 411,
+              "synthetic_rows_admitted_cumulative": 321,
+              "n_escaped": 0,
+              "threshold": 0.44761013,
+              "threshold_source": "legitimate validation split, disjoint from every test split",
+              "realised_fpr": 0.011667,
+              "recall_on_real_fraud": 1.0,
+              "recall_on_synthetic_attacks": 1.0,
+              "escape_rate_synthetic": 0.0,
+              "roc_auc_real": 0.999879,
+              "precision_at_production_prevalence": 0.530288,
+              "hardening": {
+                "action": "no hardening",
+                "reason": "too few escapes to retrain on"
+              }
+            },
+            {
+              "generation": "V2",
+              "train_rows": 4011,
+              "train_fraud_rows": 411,
+              "synthetic_rows_admitted_cumulative": 321,
+              "n_escaped": 0,
+              "threshold": 0.39032265,
+              "threshold_source": "legitimate validation split, disjoint from every test split",
+              "realised_fpr": 0.011667,
+              "recall_on_real_fraud": 1.0,
+              "recall_on_synthetic_attacks": 1.0,
+              "escape_rate_synthetic": 0.0,
+              "roc_auc_real": 0.999952,
+              "precision_at_production_prevalence": 0.530288,
+              "hardening": {
+                "action": "no hardening",
+                "reason": "too few escapes to retrain on"
+              }
+            },
+            {
+              "generation": "V3",
+              "train_rows": 4011,
+              "train_fraud_rows": 411,
+              "synthetic_rows_admitted_cumulative": 321,
+              "n_escaped": 0,
+              "threshold": 0.43602781,
+              "threshold_source": "legitimate validation split, disjoint from every test split",
+              "realised_fpr": 0.010833,
+              "recall_on_real_fraud": 1.0,
+              "recall_on_synthetic_attacks": 1.0,
+              "escape_rate_synthetic": 0.0,
+              "roc_auc_real": 0.999884,
+              "precision_at_production_prevalence": 0.548697
+            }
+          ],
+          "summary": {
+            "delta_real_recall": 0.0,
+            "delta_synthetic_recall": 0.8025,
+            "delta_fpr": 0.003333,
+            "v0_real_recall": 1.0,
+            "final_real_recall": 1.0,
+            "v0_synthetic_recall": 0.1975,
+            "final_synthetic_recall": 1.0,
+            "synthetic_rows_admitted": 321,
+            "batches_rejected_by_gate": 0
+          }
+        },
+        {
+          "arm": "GATED_low_fidelity",
+          "gated": true,
+          "generator": "marginal",
+          "generations": [
+            {
+              "generation": "V0",
+              "train_rows": 3690,
+              "train_fraud_rows": 90,
+              "synthetic_rows_admitted_cumulative": 0,
+              "n_escaped": 321,
+              "threshold": 0.01612903,
+              "threshold_source": "legitimate validation split, disjoint from every test split",
+              "realised_fpr": 0.0075,
+              "recall_on_real_fraud": 1.0,
+              "recall_on_synthetic_attacks": 0.1975,
+              "escape_rate_synthetic": 0.8025,
+              "roc_auc_real": 1.0,
+              "precision_at_production_prevalence": 0.637177,
+              "gate": {
+                "admitted": false,
+                "c2st_auc": 1.0,
+                "c2st_gate": 0.9,
+                "c2st_pass": false,
+                "dependence_distance": 4.454655,
+                "dependence_gate": 1.5,
+                "dependence_pass": false,
+                "reason": "REJECTED: c2st=1.0000 (max 0.9), dependence=4.4547 (max 1.5)",
+                "n_escapes": 321
+              },
+              "hardening": {
+                "action": "escape batch REJECTED by fidelity gate",
+                "rows_added": 0,
+                "reason": "REJECTED: c2st=1.0000 (max 0.9), dependence=4.4547 (max 1.5)"
+              }
+            },
+            {
+              "generation": "V1",
+              "train_rows": 3690,
+              "train_fraud_rows": 90,
+              "synthetic_rows_admitted_cumulative": 0,
+              "n_escaped": 346,
+              "threshold": 0.0290404,
+              "threshold_source": "legitimate validation split, disjoint from every test split",
+              "realised_fpr": 0.008333,
+              "recall_on_real_fraud": 1.0,
+              "recall_on_synthetic_attacks": 0.135,
+              "escape_rate_synthetic": 0.865,
+              "roc_auc_real": 1.0,
+              "precision_at_production_prevalence": 0.612485,
+              "gate": {
+                "admitted": false,
+                "c2st_auc": 1.0,
+                "c2st_gate": 0.9,
+                "c2st_pass": false,
+                "dependence_distance": 4.390328,
+                "dependence_gate": 1.5,
+                "dependence_pass": false,
+                "reason": "REJECTED: c2st=1.0000 (max 0.9), dependence=4.3903 (max 1.5)",
+                "n_escapes": 346
+              },
+              "hardening": {
+                "action": "escape batch REJECTED by fidelity gate",
+                "rows_added": 0,
+                "reason": "REJECTED: c2st=1.0000 (max 0.9), dependence=4.3903 (max 1.5)"
+              }
+            },
+            {
+              "generation": "V2",
+              "train_rows": 3690,
+              "train_fraud_rows": 90,
+              "synthetic_rows_admitted_cumulative": 0,
+              "n_escaped": 142,
+              "threshold": 0.02996633,
+              "threshold_source": "legitimate validation split, disjoint from every test split",
+              "realised_fpr": 0.015,
+              "recall_on_real_fraud": 1.0,
+              "recall_on_synthetic_attacks": 0.6675,
+              "escape_rate_synthetic": 0.3325,
+              "roc_auc_real": 1.0,
+              "precision_at_production_prevalence": 0.467542,
+              "gate": {
+                "admitted": false,
+                "c2st_auc": 1.0,
+                "c2st_gate": 0.9,
+                "c2st_pass": false,
+                "dependence_distance": 4.491356,
+                "dependence_gate": 1.5,
+                "dependence_pass": false,
+                "reason": "REJECTED: c2st=1.0000 (max 0.9), dependence=4.4914 (max 1.5)",
+                "n_escapes": 142
+              },
+              "hardening": {
+                "action": "escape batch REJECTED by fidelity gate",
+                "rows_added": 0,
+                "reason": "REJECTED: c2st=1.0000 (max 0.9), dependence=4.4914 (max 1.5)"
+              }
+            },
+            {
+              "generation": "V3",
+              "train_rows": 3690,
+              "train_fraud_rows": 90,
+              "synthetic_rows_admitted_cumulative": 0,
+              "n_escaped": 180,
+              "threshold": 0.03087907,
+              "threshold_source": "legitimate validation split, disjoint from every test split",
+              "realised_fpr": 0.01,
+              "recall_on_real_fraud": 1.0,
+              "recall_on_synthetic_attacks": 0.55,
+              "escape_rate_synthetic": 0.45,
+              "roc_auc_real": 1.0,
+              "precision_at_production_prevalence": 0.56843
+            }
+          ],
+          "summary": {
+            "delta_real_recall": 0.0,
+            "delta_synthetic_recall": 0.3525,
+            "delta_fpr": 0.0025,
+            "v0_real_recall": 1.0,
+            "final_real_recall": 1.0,
+            "v0_synthetic_recall": 0.1975,
+            "final_synthetic_recall": 0.55,
+            "synthetic_rows_admitted": 0,
+            "batches_rejected_by_gate": 3
+          }
+        },
+        {
+          "arm": "UNGATED_high_fidelity",
+          "gated": false,
+          "generator": "joint",
+          "generations": [
+            {
+              "generation": "V0",
+              "train_rows": 3690,
+              "train_fraud_rows": 90,
+              "synthetic_rows_admitted_cumulative": 0,
+              "n_escaped": 5,
+              "threshold": 0.01612903,
+              "threshold_source": "legitimate validation split, disjoint from every test split",
+              "realised_fpr": 0.0075,
+              "recall_on_real_fraud": 1.0,
+              "recall_on_synthetic_attacks": 0.9875,
+              "escape_rate_synthetic": 0.0125,
+              "roc_auc_real": 1.0,
+              "precision_at_production_prevalence": 0.637177,
+              "hardening": {
+                "action": "no hardening",
+                "reason": "too few escapes to retrain on"
+              }
+            },
+            {
+              "generation": "V1",
+              "train_rows": 3690,
+              "train_fraud_rows": 90,
+              "synthetic_rows_admitted_cumulative": 0,
+              "n_escaped": 115,
+              "threshold": 0.0290404,
+              "threshold_source": "legitimate validation split, disjoint from every test split",
+              "realised_fpr": 0.008333,
+              "recall_on_real_fraud": 1.0,
+              "recall_on_synthetic_attacks": 0.7125,
+              "escape_rate_synthetic": 0.2875,
+              "roc_auc_real": 1.0,
+              "precision_at_production_prevalence": 0.612485,
+              "gate": {
+                "admitted": true,
+                "reason": "no gate in this arm"
+              },
+              "hardening": {
+                "action": "retrained on ALL escapes (ungated)",
+                "rows_added": 115
+              }
+            },
+            {
+              "generation": "V2",
+              "train_rows": 3805,
+              "train_fraud_rows": 205,
+              "synthetic_rows_admitted_cumulative": 115,
+              "n_escaped": 0,
+              "threshold": 0.04892903,
+              "threshold_source": "legitimate validation split, disjoint from every test split",
+              "realised_fpr": 0.004167,
+              "recall_on_real_fraud": 1.0,
+              "recall_on_synthetic_attacks": 1.0,
+              "escape_rate_synthetic": 0.0,
+              "roc_auc_real": 1.0,
+              "precision_at_production_prevalence": 0.759679,
+              "hardening": {
+                "action": "no hardening",
+                "reason": "too few escapes to retrain on"
+              }
+            },
+            {
+              "generation": "V3",
+              "train_rows": 3805,
+              "train_fraud_rows": 205,
+              "synthetic_rows_admitted_cumulative": 115,
+              "n_escaped": 0,
+              "threshold": 0.04095961,
+              "threshold_source": "legitimate validation split, disjoint from every test split",
+              "realised_fpr": 0.0075,
+              "recall_on_real_fraud": 1.0,
+              "recall_on_synthetic_attacks": 1.0,
+              "escape_rate_synthetic": 0.0,
+              "roc_auc_real": 1.0,
+              "precision_at_production_prevalence": 0.637177
+            }
+          ],
+          "summary": {
+            "delta_real_recall": 0.0,
+            "delta_synthetic_recall": 0.0125,
+            "delta_fpr": 0.0,
+            "v0_real_recall": 1.0,
+            "final_real_recall": 1.0,
+            "v0_synthetic_recall": 0.9875,
+            "final_synthetic_recall": 1.0,
+            "synthetic_rows_admitted": 115,
+            "batches_rejected_by_gate": 0
+          }
+        },
+        {
+          "arm": "GATED_high_fidelity",
+          "gated": true,
+          "generator": "joint",
+          "generations": [
+            {
+              "generation": "V0",
+              "train_rows": 3690,
+              "train_fraud_rows": 90,
+              "synthetic_rows_admitted_cumulative": 0,
+              "n_escaped": 5,
+              "threshold": 0.01612903,
+              "threshold_source": "legitimate validation split, disjoint from every test split",
+              "realised_fpr": 0.0075,
+              "recall_on_real_fraud": 1.0,
+              "recall_on_synthetic_attacks": 0.9875,
+              "escape_rate_synthetic": 0.0125,
+              "roc_auc_real": 1.0,
+              "precision_at_production_prevalence": 0.637177,
+              "hardening": {
+                "action": "no hardening",
+                "reason": "too few escapes to retrain on"
+              }
+            },
+            {
+              "generation": "V1",
+              "train_rows": 3690,
+              "train_fraud_rows": 90,
+              "synthetic_rows_admitted_cumulative": 0,
+              "n_escaped": 115,
+              "threshold": 0.0290404,
+              "threshold_source": "legitimate validation split, disjoint from every test split",
+              "realised_fpr": 0.008333,
+              "recall_on_real_fraud": 1.0,
+              "recall_on_synthetic_attacks": 0.7125,
+              "escape_rate_synthetic": 0.2875,
+              "roc_auc_real": 1.0,
+              "precision_at_production_prevalence": 0.612485,
+              "gate": {
+                "admitted": false,
+                "c2st_auc": 1.0,
+                "c2st_gate": 0.9,
+                "c2st_pass": false,
+                "dependence_distance": 3.802571,
+                "dependence_gate": 1.5,
+                "dependence_pass": false,
+                "reason": "REJECTED: c2st=1.0000 (max 0.9), dependence=3.8026 (max 1.5)",
+                "n_escapes": 115
+              },
+              "hardening": {
+                "action": "escape batch REJECTED by fidelity gate",
+                "rows_added": 0,
+                "reason": "REJECTED: c2st=1.0000 (max 0.9), dependence=3.8026 (max 1.5)"
+              }
+            },
+            {
+              "generation": "V2",
+              "train_rows": 3690,
+              "train_fraud_rows": 90,
+              "synthetic_rows_admitted_cumulative": 0,
+              "n_escaped": 41,
+              "threshold": 0.02996633,
+              "threshold_source": "legitimate validation split, disjoint from every test split",
+              "realised_fpr": 0.015,
+              "recall_on_real_fraud": 1.0,
+              "recall_on_synthetic_attacks": 0.8975,
+              "escape_rate_synthetic": 0.1025,
+              "roc_auc_real": 1.0,
+              "precision_at_production_prevalence": 0.467542,
+              "gate": {
+                "admitted": false,
+                "c2st_auc": 1.0,
+                "c2st_gate": 0.9,
+                "c2st_pass": false,
+                "dependence_distance": 4.243216,
+                "dependence_gate": 1.5,
+                "dependence_pass": false,
+                "reason": "REJECTED: c2st=1.0000 (max 0.9), dependence=4.2432 (max 1.5)",
+                "n_escapes": 41
+              },
+              "hardening": {
+                "action": "escape batch REJECTED by fidelity gate",
+                "rows_added": 0,
+                "reason": "REJECTED: c2st=1.0000 (max 0.9), dependence=4.2432 (max 1.5)"
+              }
+            },
+            {
+              "generation": "V3",
+              "train_rows": 3690,
+              "train_fraud_rows": 90,
+              "synthetic_rows_admitted_cumulative": 0,
+              "n_escaped": 112,
+              "threshold": 0.03087907,
+              "threshold_source": "legitimate validation split, disjoint from every test split",
+              "realised_fpr": 0.01,
+              "recall_on_real_fraud": 1.0,
+              "recall_on_synthetic_attacks": 0.72,
+              "escape_rate_synthetic": 0.28,
+              "roc_auc_real": 1.0,
+              "precision_at_production_prevalence": 0.56843
+            }
+          ],
+          "summary": {
+            "delta_real_recall": 0.0,
+            "delta_synthetic_recall": -0.2675,
+            "delta_fpr": 0.0025,
+            "v0_real_recall": 1.0,
+            "final_real_recall": 1.0,
+            "v0_synthetic_recall": 0.9875,
+            "final_synthetic_recall": 0.72,
+            "synthetic_rows_admitted": 0,
+            "batches_rejected_by_gate": 2
+          }
+        }
+      ]
+    },
+    {
+      "seed": 37,
+      "splits": {
+        "legit_train": 3584,
+        "legit_validation": 1195,
+        "legit_test": 1195,
+        "real_fraud_train": 90,
+        "real_fraud_holdout": 310,
+        "attack_budget_per_generation": 400,
+        "generations": 3
+      },
+      "arms": [
+        {
+          "arm": "UNGATED_low_fidelity",
+          "gated": false,
+          "generator": "marginal",
+          "generations": [
+            {
+              "generation": "V0",
+              "train_rows": 3674,
+              "train_fraud_rows": 90,
+              "synthetic_rows_admitted_cumulative": 0,
+              "n_escaped": 369,
+              "threshold": 0.01480747,
+              "threshold_source": "legitimate validation split, disjoint from every test split",
+              "realised_fpr": 0.010042,
+              "recall_on_real_fraud": 0.851613,
+              "recall_on_synthetic_attacks": 0.0775,
+              "escape_rate_synthetic": 0.9225,
+              "roc_auc_real": 0.925034,
+              "precision_at_production_prevalence": 0.527635,
+              "gate": {
+                "admitted": true,
+                "reason": "no gate in this arm"
+              },
+              "hardening": {
+                "action": "retrained on ALL escapes (ungated)",
+                "rows_added": 369
+              }
+            },
+            {
+              "generation": "V1",
+              "train_rows": 4043,
+              "train_fraud_rows": 459,
+              "synthetic_rows_admitted_cumulative": 369,
+              "n_escaped": 0,
+              "threshold": 0.82915466,
+              "threshold_source": "legitimate validation split, disjoint from every test split",
+              "realised_fpr": 0.005858,
+              "recall_on_real_fraud": 0.141935,
+              "recall_on_synthetic_attacks": 1.0,
+              "escape_rate_synthetic": 0.0,
+              "roc_auc_real": 0.961262,
+              "precision_at_production_prevalence": 0.241933,
+              "hardening": {
+                "action": "no hardening",
+                "reason": "too few escapes to retrain on"
+              }
+            },
+            {
+              "generation": "V2",
+              "train_rows": 4043,
+              "train_fraud_rows": 459,
+              "synthetic_rows_admitted_cumulative": 369,
+              "n_escaped": 0,
+              "threshold": 0.77108051,
+              "threshold_source": "legitimate validation split, disjoint from every test split",
+              "realised_fpr": 0.008368,
+              "recall_on_real_fraud": 0.219355,
+              "recall_on_synthetic_attacks": 1.0,
+              "escape_rate_synthetic": 0.0,
+              "roc_auc_real": 0.959136,
+              "precision_at_production_prevalence": 0.256647,
+              "hardening": {
+                "action": "no hardening",
+                "reason": "too few escapes to retrain on"
+              }
+            },
+            {
+              "generation": "V3",
+              "train_rows": 4043,
+              "train_fraud_rows": 459,
+              "synthetic_rows_admitted_cumulative": 369,
+              "n_escaped": 0,
+              "threshold": 0.69598587,
+              "threshold_source": "legitimate validation split, disjoint from every test split",
+              "realised_fpr": 0.008368,
+              "recall_on_real_fraud": 0.693548,
+              "recall_on_synthetic_attacks": 1.0,
+              "escape_rate_synthetic": 0.0,
+              "roc_auc_real": 0.959229,
+              "precision_at_production_prevalence": 0.521901
+            }
+          ],
+          "summary": {
+            "delta_real_recall": -0.158065,
+            "delta_synthetic_recall": 0.9225,
+            "delta_fpr": -0.001674,
+            "v0_real_recall": 0.851613,
+            "final_real_recall": 0.693548,
+            "v0_synthetic_recall": 0.0775,
+            "final_synthetic_recall": 1.0,
+            "synthetic_rows_admitted": 369,
+            "batches_rejected_by_gate": 0
+          }
+        },
+        {
+          "arm": "GATED_low_fidelity",
+          "gated": true,
+          "generator": "marginal",
+          "generations": [
+            {
+              "generation": "V0",
+              "train_rows": 3674,
+              "train_fraud_rows": 90,
+              "synthetic_rows_admitted_cumulative": 0,
+              "n_escaped": 369,
+              "threshold": 0.01480747,
+              "threshold_source": "legitimate validation split, disjoint from every test split",
+              "realised_fpr": 0.010042,
+              "recall_on_real_fraud": 0.851613,
+              "recall_on_synthetic_attacks": 0.0775,
+              "escape_rate_synthetic": 0.9225,
+              "roc_auc_real": 0.925034,
+              "precision_at_production_prevalence": 0.527635,
+              "gate": {
+                "admitted": false,
+                "c2st_auc": 1.0,
+                "c2st_gate": 0.9,
+                "c2st_pass": false,
+                "dependence_distance": 4.957334,
+                "dependence_gate": 1.5,
+                "dependence_pass": false,
+                "reason": "REJECTED: c2st=1.0000 (max 0.9), dependence=4.9573 (max 1.5)",
+                "n_escapes": 369
+              },
+              "hardening": {
+                "action": "escape batch REJECTED by fidelity gate",
+                "rows_added": 0,
+                "reason": "REJECTED: c2st=1.0000 (max 0.9), dependence=4.9573 (max 1.5)"
+              }
+            },
+            {
+              "generation": "V1",
+              "train_rows": 3674,
+              "train_fraud_rows": 90,
+              "synthetic_rows_admitted_cumulative": 0,
+              "n_escaped": 381,
+              "threshold": 0.01586964,
+              "threshold_source": "legitimate validation split, disjoint from every test split",
+              "realised_fpr": 0.006695,
+              "recall_on_real_fraud": 0.83871,
+              "recall_on_synthetic_attacks": 0.0475,
+              "escape_rate_synthetic": 0.9525,
+              "roc_auc_real": 0.91733,
+              "precision_at_production_prevalence": 0.622659,
+              "gate": {
+                "admitted": false,
+                "c2st_auc": 1.0,
+                "c2st_gate": 0.9,
+                "c2st_pass": false,
+                "dependence_distance": 4.956614,
+                "dependence_gate": 1.5,
+                "dependence_pass": false,
+                "reason": "REJECTED: c2st=1.0000 (max 0.9), dependence=4.9566 (max 1.5)",
+                "n_escapes": 381
+              },
+              "hardening": {
+                "action": "escape batch REJECTED by fidelity gate",
+                "rows_added": 0,
+                "reason": "REJECTED: c2st=1.0000 (max 0.9), dependence=4.9566 (max 1.5)"
+              }
+            },
+            {
+              "generation": "V2",
+              "train_rows": 3674,
+              "train_fraud_rows": 90,
+              "synthetic_rows_admitted_cumulative": 0,
+              "n_escaped": 305,
+              "threshold": 0.01625839,
+              "threshold_source": "legitimate validation split, disjoint from every test split",
+              "realised_fpr": 0.005858,
+              "recall_on_real_fraud": 0.83871,
+              "recall_on_synthetic_attacks": 0.2375,
+              "escape_rate_synthetic": 0.7625,
+              "roc_auc_real": 0.932815,
+              "precision_at_production_prevalence": 0.653482,
+              "gate": {
+                "admitted": false,
+                "c2st_auc": 1.0,
+                "c2st_gate": 0.9,
+                "c2st_pass": false,
+                "dependence_distance": 4.967241,
+                "dependence_gate": 1.5,
+                "dependence_pass": false,
+                "reason": "REJECTED: c2st=1.0000 (max 0.9), dependence=4.9672 (max 1.5)",
+                "n_escapes": 305
+              },
+              "hardening": {
+                "action": "escape batch REJECTED by fidelity gate",
+                "rows_added": 0,
+                "reason": "REJECTED: c2st=1.0000 (max 0.9), dependence=4.9672 (max 1.5)"
+              }
+            },
+            {
+              "generation": "V3",
+              "train_rows": 3674,
+              "train_fraud_rows": 90,
+              "synthetic_rows_admitted_cumulative": 0,
+              "n_escaped": 267,
+              "threshold": 0.01417497,
+              "threshold_source": "legitimate validation split, disjoint from every test split",
+              "realised_fpr": 0.010042,
+              "recall_on_real_fraud": 0.841935,
+              "recall_on_synthetic_attacks": 0.3325,
+              "escape_rate_synthetic": 0.6675,
+              "roc_auc_real": 0.921691,
+              "precision_at_production_prevalence": 0.524785
+            }
+          ],
+          "summary": {
+            "delta_real_recall": -0.009678,
+            "delta_synthetic_recall": 0.255,
+            "delta_fpr": 0.0,
+            "v0_real_recall": 0.851613,
+            "final_real_recall": 0.841935,
+            "v0_synthetic_recall": 0.0775,
+            "final_synthetic_recall": 0.3325,
+            "synthetic_rows_admitted": 0,
+            "batches_rejected_by_gate": 3
+          }
+        },
+        {
+          "arm": "UNGATED_high_fidelity",
+          "gated": false,
+          "generator": "joint",
+          "generations": [
+            {
+              "generation": "V0",
+              "train_rows": 3674,
+              "train_fraud_rows": 90,
+              "synthetic_rows_admitted_cumulative": 0,
+              "n_escaped": 8,
+              "threshold": 0.01480747,
+              "threshold_source": "legitimate validation split, disjoint from every test split",
+              "realised_fpr": 0.010042,
+              "recall_on_real_fraud": 0.851613,
+              "recall_on_synthetic_attacks": 0.98,
+              "escape_rate_synthetic": 0.02,
+              "roc_auc_real": 0.925034,
+              "precision_at_production_prevalence": 0.527635,
+              "hardening": {
+                "action": "no hardening",
+                "reason": "too few escapes to retrain on"
+              }
+            },
+            {
+              "generation": "V1",
+              "train_rows": 3674,
+              "train_fraud_rows": 90,
+              "synthetic_rows_admitted_cumulative": 0,
+              "n_escaped": 0,
+              "threshold": 0.01586964,
+              "threshold_source": "legitimate validation split, disjoint from every test split",
+              "realised_fpr": 0.006695,
+              "recall_on_real_fraud": 0.83871,
+              "recall_on_synthetic_attacks": 1.0,
+              "escape_rate_synthetic": 0.0,
+              "roc_auc_real": 0.91733,
+              "precision_at_production_prevalence": 0.622659,
+              "hardening": {
+                "action": "no hardening",
+                "reason": "too few escapes to retrain on"
+              }
+            },
+            {
+              "generation": "V2",
+              "train_rows": 3674,
+              "train_fraud_rows": 90,
+              "synthetic_rows_admitted_cumulative": 0,
+              "n_escaped": 6,
+              "threshold": 0.01625839,
+              "threshold_source": "legitimate validation split, disjoint from every test split",
+              "realised_fpr": 0.005858,
+              "recall_on_real_fraud": 0.83871,
+              "recall_on_synthetic_attacks": 0.985,
+              "escape_rate_synthetic": 0.015,
+              "roc_auc_real": 0.932815,
+              "precision_at_production_prevalence": 0.653482,
+              "hardening": {
+                "action": "no hardening",
+                "reason": "too few escapes to retrain on"
+              }
+            },
+            {
+              "generation": "V3",
+              "train_rows": 3674,
+              "train_fraud_rows": 90,
+              "synthetic_rows_admitted_cumulative": 0,
+              "n_escaped": 6,
+              "threshold": 0.01417497,
+              "threshold_source": "legitimate validation split, disjoint from every test split",
+              "realised_fpr": 0.010042,
+              "recall_on_real_fraud": 0.841935,
+              "recall_on_synthetic_attacks": 0.985,
+              "escape_rate_synthetic": 0.015,
+              "roc_auc_real": 0.921691,
+              "precision_at_production_prevalence": 0.524785
+            }
+          ],
+          "summary": {
+            "delta_real_recall": -0.009678,
+            "delta_synthetic_recall": 0.005,
+            "delta_fpr": 0.0,
+            "v0_real_recall": 0.851613,
+            "final_real_recall": 0.841935,
+            "v0_synthetic_recall": 0.98,
+            "final_synthetic_recall": 0.985,
+            "synthetic_rows_admitted": 0,
+            "batches_rejected_by_gate": 0
+          }
+        },
+        {
+          "arm": "GATED_high_fidelity",
+          "gated": true,
+          "generator": "joint",
+          "generations": [
+            {
+              "generation": "V0",
+              "train_rows": 3674,
+              "train_fraud_rows": 90,
+              "synthetic_rows_admitted_cumulative": 0,
+              "n_escaped": 8,
+              "threshold": 0.01480747,
+              "threshold_source": "legitimate validation split, disjoint from every test split",
+              "realised_fpr": 0.010042,
+              "recall_on_real_fraud": 0.851613,
+              "recall_on_synthetic_attacks": 0.98,
+              "escape_rate_synthetic": 0.02,
+              "roc_auc_real": 0.925034,
+              "precision_at_production_prevalence": 0.527635,
+              "hardening": {
+                "action": "no hardening",
+                "reason": "too few escapes to retrain on"
+              }
+            },
+            {
+              "generation": "V1",
+              "train_rows": 3674,
+              "train_fraud_rows": 90,
+              "synthetic_rows_admitted_cumulative": 0,
+              "n_escaped": 0,
+              "threshold": 0.01586964,
+              "threshold_source": "legitimate validation split, disjoint from every test split",
+              "realised_fpr": 0.006695,
+              "recall_on_real_fraud": 0.83871,
+              "recall_on_synthetic_attacks": 1.0,
+              "escape_rate_synthetic": 0.0,
+              "roc_auc_real": 0.91733,
+              "precision_at_production_prevalence": 0.622659,
+              "hardening": {
+                "action": "no hardening",
+                "reason": "too few escapes to retrain on"
+              }
+            },
+            {
+              "generation": "V2",
+              "train_rows": 3674,
+              "train_fraud_rows": 90,
+              "synthetic_rows_admitted_cumulative": 0,
+              "n_escaped": 6,
+              "threshold": 0.01625839,
+              "threshold_source": "legitimate validation split, disjoint from every test split",
+              "realised_fpr": 0.005858,
+              "recall_on_real_fraud": 0.83871,
+              "recall_on_synthetic_attacks": 0.985,
+              "escape_rate_synthetic": 0.015,
+              "roc_auc_real": 0.932815,
+              "precision_at_production_prevalence": 0.653482,
+              "hardening": {
+                "action": "no hardening",
+                "reason": "too few escapes to retrain on"
+              }
+            },
+            {
+              "generation": "V3",
+              "train_rows": 3674,
+              "train_fraud_rows": 90,
+              "synthetic_rows_admitted_cumulative": 0,
+              "n_escaped": 6,
+              "threshold": 0.01417497,
+              "threshold_source": "legitimate validation split, disjoint from every test split",
+              "realised_fpr": 0.010042,
+              "recall_on_real_fraud": 0.841935,
+              "recall_on_synthetic_attacks": 0.985,
+              "escape_rate_synthetic": 0.015,
+              "roc_auc_real": 0.921691,
+              "precision_at_production_prevalence": 0.524785
+            }
+          ],
+          "summary": {
+            "delta_real_recall": -0.009678,
+            "delta_synthetic_recall": 0.005,
+            "delta_fpr": 0.0,
+            "v0_real_recall": 0.851613,
+            "final_real_recall": 0.841935,
+            "v0_synthetic_recall": 0.98,
+            "final_synthetic_recall": 0.985,
+            "synthetic_rows_admitted": 0,
+            "batches_rejected_by_gate": 0
+          }
+        }
+      ]
+    }
+  ],
+  "boundaries": [
+    "Real fraud means the arena simulator's topology-aware ring fraud, not issuer production data.",
+    "The claim is about the RELATIONSHIP between gating and transfer, not an absolute recall figure for live traffic.",
+    "Attack budget per generation is fixed and identical across arms, so no arm wins by volume.",
+    "The gate thresholds are fixed in advance and never tuned per seed.",
+    "Three seeds; every number is a seed-level mean with a nonparametric bootstrap CI."
+  ]
+}

@@ -1,0 +1,58 @@
+# ATTACK 6 — VPA-Rental Mule Network (Fan-In Aggregation)  [T-14]
+# Taxon: money mule infrastructure on real-time rails.
+#
+# The economics of mule recruitment changed. Renting a payment address for a
+# week -- from a student, a gig worker, someone who believes they are doing
+# harmless "commission work" -- is cheap, and GenAI automates the recruitment
+# conversation, the rotation schedule and the payout accounting. The operator
+# never touches an account they own.
+#
+# The topology is the tell. Each individual account looks unremarkable: a few
+# inbound credits, a couple of outbound transfers, small balances. What is NOT
+# unremarkable is the FAN-IN: many unrelated senders converging on a small pool
+# of freshly-created payment addresses that then disperse within minutes.
+#
+# India relevance: VPA (virtual payment address) rental and rotation is the
+# standard cash-out layer for UPI-era scam proceeds, including the proceeds of
+# ATTACK_5. This spec is deliberately the downstream half of that attack.
+
+spec_id: ATTACK_6_VPA_RENTAL_MULE
+attack_name: "VPA-Rental Mule Network (Fan-In)"
+taxon: mule_network
+
+description: >
+  A rented pool of payment addresses receives converging credits from many
+  unrelated senders, then disperses outward in rapid multi-hop transfers before
+  any single account trips a per-account threshold. Accounts are short-lived and
+  rotated on a schedule, so account age and per-account velocity both stay
+  inside normal bands. The structure is only visible in the graph.
+
+preconditions: >
+  A recruited pool of rented payment addresses with rotation scheduling, an
+  automated recruitment funnel to keep the pool stocked, and a dispersal plan
+  routing outbound hops through further layers.
+
+economic_model:
+  acquisition_cost_usd: 45         # weekly rental + recruitment cost per address
+  expected_payoff_usd: 3100        # laundered throughput per rotation window
+  breakeven_txns: 4
+
+constraints:
+  # A rented VPA is a REAL, KYC-clean account borrowed for a rotation window --
+  # not a fabricated identity. Labelling it synthetic_identity would claim a
+  # $200 ID-kit purchase that never happened and contradict the $45 rental cost
+  # declared above; the Plausibility Gate's economic floor would then reject the
+  # small-value legs that are the entire point of this family.
+  stolen_resource: rented_account
+  pos_entry_modes: [CNP]           # account-to-account credit transfer
+  preferred_three_ds: [N]          # push credit, no cardholder challenge
+  target_verticals: [ecommerce]
+  min_amount_usd: 50               # must clear the $45 rental floor
+  max_amount_usd: 1400
+
+evasion_notes: >
+  Defeats every per-account monitoring rule by construction: no single node in
+  the ring exceeds a threshold. Requires graph context -- fan-in degree,
+  beneficiary reuse across unrelated senders, and hop latency -- which is why
+  the EntityGraph layer exists and why it is scored as an independent
+  unsupervised signal rather than a feature of the supervised model.
