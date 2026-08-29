@@ -1,8 +1,8 @@
 {
   "provenance": {
     "schema_version": "1.0.0",
-    "generated_at": "2026-08-29T14:16:41.203500+00:00",
-    "git_sha": "87c0ec6",
+    "generated_at": "2026-08-29T14:31:28.676807+00:00",
+    "git_sha": "dba323f",
     "python": "3.12.13",
     "platform": "macOS-26.6.2-arm64-arm-64bit",
     "seeds": [
@@ -30,17 +30,17 @@
   },
   "at_production_prevalence": {
     "counts": {
-      "tp": 12827,
-      "fp": 12041,
-      "fn": 173,
-      "tn": 974959
+      "tp": 12913,
+      "fp": 10298,
+      "fn": 87,
+      "tn": 976702
     },
-    "fraud_prevented_inr": 237299500.0,
-    "fraud_lost_inr": 3408100.0,
-    "insult_cost_inr": 5117425.0,
-    "review_cost_inr": 2362460.0,
-    "net_benefit_inr": 226411515.0,
-    "insult_share_of_total_cost": 0.47,
+    "fraud_prevented_inr": 238890500.0,
+    "fraud_lost_inr": 1713900.0,
+    "insult_cost_inr": 4376650.0,
+    "review_cost_inr": 2205045.0,
+    "net_benefit_inr": 230594905.0,
+    "insult_share_of_total_cost": 0.5276,
     "assumptions": {
       "avg_fraud_amount_inr": 18500.0,
       "recovery_rate_on_declined_fraud": 1.0,
@@ -58,8 +58,8 @@
       }
     },
     "operating_point": {
-      "recall": 0.9867,
-      "fpr": 0.0122,
+      "recall": 0.9933333333333333,
+      "fpr": 0.010433333333333334,
       "prevalence": 0.013,
       "volume": 1000000
     }
@@ -67,17 +67,17 @@
   "arms_priced": {
     "A0_baseline": {
       "counts": {
-        "tp": 12942,
-        "fp": 13390,
-        "fn": 58,
-        "tn": 973610
+        "tp": 12986,
+        "fp": 14476,
+        "fn": 14,
+        "tn": 972524
       },
-      "fraud_prevented_inr": 239427000.0,
-      "fraud_lost_inr": 1142600.0,
-      "insult_cost_inr": 5690750.0,
-      "review_cost_inr": 2501540.0,
-      "net_benefit_inr": 230092110.0,
-      "insult_share_of_total_cost": 0.6096,
+      "fraud_prevented_inr": 240241000.0,
+      "fraud_lost_inr": 275800.0,
+      "insult_cost_inr": 6152300.0,
+      "review_cost_inr": 2608890.0,
+      "net_benefit_inr": 231204010.0,
+      "insult_share_of_total_cost": 0.6808,
       "assumptions": {
         "avg_fraud_amount_inr": 18500.0,
         "recovery_rate_on_declined_fraud": 1.0,
@@ -95,25 +95,25 @@
         }
       },
       "operating_point": {
-        "recall": 0.9955666666666666,
-        "fpr": 0.013566666666666666,
+        "recall": 0.9989,
+        "fpr": 0.014666666666666666,
         "prevalence": 0.013,
         "volume": 1000000
       }
     },
     "A1_independent_marginal": {
       "counts": {
-        "tp": 12769,
-        "fp": 11416,
-        "fn": 231,
-        "tn": 975584
+        "tp": 12798,
+        "fp": 11647,
+        "fn": 202,
+        "tn": 975353
       },
-      "fraud_prevented_inr": 236226500.0,
-      "fraud_lost_inr": 4550700.0,
-      "insult_cost_inr": 4851800.0,
-      "review_cost_inr": 2297575.0,
-      "net_benefit_inr": 224526425.0,
-      "insult_share_of_total_cost": 0.4147,
+      "fraud_prevented_inr": 236763000.0,
+      "fraud_lost_inr": 3979400.0,
+      "insult_cost_inr": 4949975.0,
+      "review_cost_inr": 2322275.0,
+      "net_benefit_inr": 225511350.0,
+      "insult_share_of_total_cost": 0.4399,
       "assumptions": {
         "avg_fraud_amount_inr": 18500.0,
         "recovery_rate_on_declined_fraud": 1.0,
@@ -131,25 +131,25 @@
         }
       },
       "operating_point": {
-        "recall": 0.9822000000000001,
-        "fpr": 0.011566666666666668,
+        "recall": 0.9844333333333334,
+        "fpr": 0.0118,
         "prevalence": 0.013,
         "volume": 1000000
       }
     },
     "A2_gaussian_copula": {
       "counts": {
-        "tp": 12827,
-        "fp": 12041,
-        "fn": 173,
-        "tn": 974959
+        "tp": 12913,
+        "fp": 10298,
+        "fn": 87,
+        "tn": 976702
       },
-      "fraud_prevented_inr": 237299500.0,
-      "fraud_lost_inr": 3408100.0,
-      "insult_cost_inr": 5117425.0,
-      "review_cost_inr": 2362460.0,
-      "net_benefit_inr": 226411515.0,
-      "insult_share_of_total_cost": 0.47,
+      "fraud_prevented_inr": 238890500.0,
+      "fraud_lost_inr": 1713900.0,
+      "insult_cost_inr": 4376650.0,
+      "review_cost_inr": 2205045.0,
+      "net_benefit_inr": 230594905.0,
+      "insult_share_of_total_cost": 0.5276,
       "assumptions": {
         "avg_fraud_amount_inr": 18500.0,
         "recovery_rate_on_declined_fraud": 1.0,
@@ -167,8 +167,8 @@
         }
       },
       "operating_point": {
-        "recall": 0.9867,
-        "fpr": 0.0122,
+        "recall": 0.9933333333333333,
+        "fpr": 0.010433333333333334,
         "prevalence": 0.013,
         "volume": 1000000
       }

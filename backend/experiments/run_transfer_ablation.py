@@ -92,7 +92,9 @@ TRAIN_COUNTS = {
     "ATTACK_3_PROMPT_INJECTED_MERCHANT": 130,
 }
 REAL_FRAUD_TRAIN_N = 90          # deliberately scarce: labelled fraud always is
-SYNTH_BUDGET = 750               # fixed augmentation budget, matched across arms
+SYNTH_BUDGET = 120               # augmentation budget, matched across arms; kept
+                                 # near the real-fraud count so synthetic rows
+                                 # augment rather than swamp the 90 real ones
 TARGET_FPR = 0.01
 PRODUCTION_PREVALENCE = 0.013    # ~1.3%, a realistic authorisation base rate
 LAB_PREVALENCE_NOTE = "laboratory corpora run fraud prevalence orders of magnitude above production"
@@ -454,11 +456,11 @@ def main() -> dict:
     (
         ClaimLedger()
         .add(
-            claim="Generator fidelity determines whether red-teaming helps or hurts real-fraud recall.",
+            claim="Generator fidelity orders how much red-teaming DEGRADES real-fraud recall: the higher-fidelity generator costs about a third as much recall, in every seed.",
             artifact="transfer_ledger",
             field="aggregated.arms.*.delta_recall_vs_baseline",
             derivation="Recall on held-out real fraud per arm minus the A0 baseline, at an FPR pinned to 1% on a disjoint legitimate validation split.",
-            boundary="Three seeds; synthetic environment fraud; fixed augmentation budget.",
+            boundary="Both deltas are NEGATIVE: the A0 baseline is already at a ceiling (~0.999 recall), so the SIGN of transfer is not testable on this corpus -- only the ordering of harm. Three seeds; synthetic environment fraud; fixed augmentation budget.",
         )
         .add(
             claim="The independent-marginal generator is trivially distinguishable from real fraud.",

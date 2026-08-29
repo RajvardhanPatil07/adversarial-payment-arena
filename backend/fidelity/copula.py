@@ -27,7 +27,7 @@ import numpy as np
 import pandas as pd
 from scipy.stats import norm
 
-from .features import ALL_COLS, CATEGORICAL_COLS, NUMERIC_COLS
+from .features import ALL_COLS, CATEGORICAL_COLS, NUMERIC_COLS, mcc_group
 
 _EPS = 1e-6
 
@@ -67,9 +67,16 @@ class _CategoricalMarginal:
 
     def __init__(self, values: Sequence[str]) -> None:
         series = pd.Series(list(values), dtype=object).astype(str)
-        counts = series.value_counts(normalize=True).sort_index()
+        counts = series.value_counts(normalize=True)
         if counts.empty:
             counts = pd.Series({"UNKNOWN": 1.0})
+        # Order categories by frequency (descending), breaking ties
+        # alphabetically. The copula places each category on a [0, 1) interval
+        # and learns a latent Gaussian correlation over that axis; an arbitrary
+        # alphabetical order makes the correlation meaningless, whereas a
+        # frequency order gives it a consistent, reproducible ordinal meaning.
+        order = sorted(counts.index, key=lambda c: (-float(counts[c]), str(c)))
+        counts = counts.reindex(order)
         self.categories: list[str] = [str(c) for c in counts.index]
         self.probs = counts.to_numpy(dtype=float)
         self.edges = np.cumsum(self.probs)
@@ -212,6 +219,30 @@ class GaussianCopulaSynthesizer(_BaseSynthesizer):
                 data[col] = self.numeric[col].from_uniform(u[:, j])
             else:
                 data[col] = self.categorical[col].from_uniform(u[:, j])
+
+        # --- honour the functional constraints real payloads always satisfy ---
+        # A high-fidelity generator must reproduce not just marginals and rank
+        # dependence but the hard functional relationships in the data. The
+        # independent-marginal CONTROL arm deliberately does NOT do this: the
+        # gap below is precisely the fidelity difference the experiment isolates.
+        #
+        # 1. (hour_sin, hour_cos) must lie on the unit circle. Sampling the two
+        #    marginals separately puts the point off-circle, a trivial tell.
+        if "hour_sin" in data and "hour_cos" in data:
+            s = np.asarray(data["hour_sin"], dtype=float)
+            c = np.asarray(data["hour_cos"], dtype=float)
+            r = np.hypot(s, c)
+            r = np.where(r < _EPS, 1.0, r)
+            data["hour_sin"] = s / r
+            data["hour_cos"] = c / r
+        # 2. mcc_group is a deterministic function of mcc_num. Derive it from
+        #    the sampled mcc_num instead of sampling it independently, so the
+        #    two columns never contradict each other the way the control's do.
+        if "mcc_group" in data and "mcc_num" in data:
+            data["mcc_group"] = [
+                mcc_group(int(round(float(m)))) for m in np.asarray(data["mcc_num"], dtype=float)
+            ]
+
         return pd.DataFrame(data, columns=ALL_COLS)
 
 
