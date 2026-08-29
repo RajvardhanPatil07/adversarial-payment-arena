@@ -1,0 +1,58 @@
+# Fly.io deployment -- alternative to render.yaml, same single-container design.
+#
+# Kept alongside the Render blueprint deliberately: a hackathon demo should not
+# have a single point of failure on someone else's free tier. Either platform
+# builds the same Dockerfile and yields the same one-URL prototype.
+#
+# Deploy:
+#   fly launch --no-deploy --copy-config     # reuses this file
+#   fly deploy
+#   fly open                                 # -> https://<app>.fly.dev
+#
+# Fly's advantage for a judged demo: auto_stop_machines with min_machines_running
+# keeps one instance warm, avoiding the cold-start delay a sleeping free-tier
+# service would show at exactly the wrong moment.
+
+app = "adversarial-payment-arena"
+primary_region = "bom"        # Mumbai -- lowest latency for GFF 2026 judging
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  SERVE_STATIC_DIR = "/app/frontend_dist"
+  PYTHONUNBUFFERED = "1"
+  PORT = "8000"
+
+[http_service]
+  internal_port = 8000
+  force_https = true          # wss:// is then automatic for the arena socket
+
+  # Keep one machine alive. The lifespan hook loads two models on boot, so a
+  # cold start is visible; a warm instance answers the first click instantly.
+  auto_stop_machines = false
+  auto_start_machines = true
+  min_machines_running = 1
+
+  [http_service.concurrency]
+    type = "connections"
+    # WebSocket connections are long-lived, so the soft limit is about held
+    # sockets rather than request throughput.
+    soft_limit = 40
+    hard_limit = 60
+
+# Readiness, not liveness: uvicorn binds the port before the models finish
+# loading, so a TCP check would report healthy while inference would fail.
+[[http_service.checks]]
+  interval = "30s"
+  timeout = "5s"
+  grace_period = "90s"
+  method = "GET"
+  path = "/api/health"
+
+[[vm]]
+  # The Isolation Forest plus XGBoost plus the entity graph need real headroom;
+  # 256MB triggers an OOM kill under campaign load.
+  memory = "1gb"
+  cpu_kind = "shared"
+  cpus = 1

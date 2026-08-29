@@ -33,6 +33,11 @@ KNOWN_ARTIFACTS = {
     "prevalence_metrics": "The same operating point reported across plausible fraud base rates.",
     "economics": "INR business impact including the insult cost of false positives.",
     "claim_ledger": "Every public claim mapped to artifact, field, derivation and boundary.",
+    "closed_loop": "HEADLINE: gated vs ungated retraining loops. Shows the fidelity scissor -- "
+                   "an ungated loop climbs on its own synthetic attacks while falling on real fraud.",
+    "family_coverage": "Per-family detection recall, leave-one-family-out zero-day generalisation, "
+                       "and which defense layer fires for each attack family.",
+    "latency": "Measured inline decision latency percentiles against the 100ms authorisation budget.",
 }
 
 REPRODUCE_COMMANDS = {
@@ -43,6 +48,9 @@ REPRODUCE_COMMANDS = {
     "economics": "python backend/experiments/run_transfer_ablation.py",
     "metrics": "python backend/experiments/run_transfer_ablation.py",
     "claim_ledger": "python backend/experiments/run_transfer_ablation.py",
+    "closed_loop": "python backend/experiments/run_closed_loop.py",
+    "family_coverage": "python backend/experiments/run_family_coverage.py",
+    "latency": "python backend/experiments/run_latency.py",
     "all": "make reproduce",
 }
 
@@ -132,6 +140,49 @@ async def summary() -> dict:
 async def claims() -> dict:
     """The claim ledger: claim, supporting artifact field, derivation, boundary."""
     return _load("claim_ledger")
+
+
+@router.get("/closed-loop")
+async def closed_loop() -> dict:
+    """The scissor: an ungated loop's own scoreboard rises while real recall falls.
+
+    The returned shape is deliberately flat enough to render without any
+    client-side arithmetic, so the UI cannot display a number that differs from
+    the artifact on disk.
+    """
+    doc = _load("closed_loop")
+    head = doc.get("headline", {})
+    low = head.get("low_fidelity_generator", {})
+    return {
+        "provenance": doc.get("provenance", {}),
+        "question": doc.get("question"),
+        "protocol": doc.get("protocol", {}),
+        "gate": doc.get("gate", {}),
+        "arms": head.get("arms", []),
+        "low_fidelity_generator": low,
+        "high_fidelity_generator": head.get("high_fidelity_generator", {}),
+        "reading": head.get("reading"),
+        "boundaries": doc.get("boundaries", []),
+        # The one sentence a judge should leave with.
+        "scissor": {
+            "synthetic_recall_gain_ungated": low.get("ungated_delta_synthetic_recall"),
+            "real_recall_loss_ungated": low.get("ungated_delta_real_recall"),
+            "real_recall_loss_gated": low.get("gated_delta_real_recall"),
+            "recall_protected_by_gate": low.get("recall_protected_by_gate"),
+        },
+    }
+
+
+@router.get("/coverage")
+async def coverage() -> dict:
+    """Per-family recall, leave-one-family-out zero-day, and layer attribution."""
+    return _load("family_coverage")
+
+
+@router.get("/latency")
+async def latency() -> dict:
+    """Measured inline decision latency against the authorisation budget."""
+    return _load("latency")
 
 
 @router.get("/artifact/{name}")

@@ -74,6 +74,12 @@ class StolenResourceType(str, Enum):
     FULLZ = "fullz"                                # name+SSN+card DOB bundle (~$30)
     STOLEN_DEVICE = "stolen_device"                # physical device w/ session (~$300)
     COMPROMISED_MERCHANT = "compromised_merchant"  # injected/pwned merchant endpoint (~$500)
+    # A *real* account, KYC-clean, rented for a rotation window from a recruited
+    # holder (student, gig worker, "commission work" victim). This is NOT a
+    # synthetic identity: nothing was fabricated and no ID kit was purchased,
+    # which is exactly why it is cheap and why the economic floor is low. It is
+    # the standard cash-out layer on real-time rails (UPI VPA rental).
+    RENTED_ACCOUNT = "rented_account"              # rented KYC-clean payee (~$45/window)
 
 
 # Estimated street cost (USD) of acquiring each stolen resource. Used by the
@@ -87,6 +93,7 @@ RESOURCE_COST_TABLE_USD: dict[StolenResourceType, float] = {
     StolenResourceType.FULLZ: 30.00,
     StolenResourceType.STOLEN_DEVICE: 300.00,
     StolenResourceType.COMPROMISED_MERCHANT: 500.00,
+    StolenResourceType.RENTED_ACCOUNT: 45.00,
 }
 
 

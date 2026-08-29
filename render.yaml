@@ -1,0 +1,52 @@
+# Render blueprint -- one Docker service serving UI + REST + WebSocket.
+#
+# Render is chosen over Vercel for the whole application because the arena is a
+# WebSocket app: Vercel's serverless functions cannot hold a long-lived socket,
+# so the backend needs a persistent process regardless. Running the exported UI
+# from the same process removes the cross-origin surface entirely (see
+# Dockerfile for the full reasoning).
+#
+# Deploy:
+#   1. Push this repo to GitHub.
+#   2. Render dashboard -> New -> Blueprint -> select the repo.
+#   3. Render reads this file, builds the Dockerfile, and returns a URL like
+#      https://adversarial-payment-arena.onrender.com
+#
+# The free tier sleeps after ~15 minutes of inactivity and takes ~50s to wake.
+# For a judged demo, open the URL once a few minutes beforehand so the models
+# are already loaded when the panel is watching.
+
+services:
+  - type: web
+    name: adversarial-payment-arena
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    plan: free
+    region: singapore          # closest region to the GFF judging panel (India)
+
+    # Render's own health gate. Points at the readiness endpoint rather than the
+    # port, because uvicorn accepts connections before the lifespan hook has
+    # finished loading the XGBoost and Isolation Forest models -- a port check
+    # would mark the service live while the defense stack could not yet score.
+    healthCheckPath: /api/health
+
+    envVars:
+      # Serving the exported bundle from the API process. Must match the path
+      # the Dockerfile copies the build output to.
+      - key: SERVE_STATIC_DIR
+        value: /app/frontend_dist
+
+      # Single-origin deployment, so no cross-origin allowance is needed. Left
+      # explicit and empty to document that this is a decision, not an omission.
+      - key: ALLOWED_ORIGINS
+        value: ""
+
+      - key: PYTHONUNBUFFERED
+        value: "1"
+
+      # The red-team LLM agent. Absent, AttackerAgent falls back to its
+      # deterministic offline generator -- the demo stays fully functional and
+      # reproducible, which is why this is not marked required.
+      - key: OPENROUTER_API_KEY
+        sync: false

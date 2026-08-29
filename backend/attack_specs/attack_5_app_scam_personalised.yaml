@@ -1,0 +1,56 @@
+# ATTACK 5 — AI-Personalised APP Scam (Authorised Push Payment)  [T-12]
+# Taxon: social engineering / authorised-victim fraud on real-time rails.
+#
+# Why this is the hardest attack in the taxonomy: EVERY credential is genuine.
+# The real cardholder, on their real device, from their real IP, authorises the
+# payment themselves. There is no stolen card, no anomalous device, no failed
+# 3DS. Every control premised on the cardholder being the victim of a *stolen
+# credential* is structurally blind to it.
+#
+# What GenAI changed: the scam narrative is now generated per-victim from
+# scraped public data (employer, recent life events, family names, transaction
+# context inferred from social posts). Pre-GenAI, mass scam scripts were generic
+# and converted at a low rate. A per-victim script converts far better and costs
+# effectively nothing to produce at scale.
+#
+# India relevance: APP / authorised-push-payment fraud is the dominant loss
+# vector on real-time rails (UPI-era instant, irrevocable credit transfer).
+# Once the push settles, there is no chargeback rail to claw it back.
+
+spec_id: ATTACK_5_APP_SCAM_PERSONALISED
+attack_name: "AI-Personalised APP Scam (Authorised Push)"
+taxon: social_engineering
+
+description: >
+  A generative agent builds a per-victim pretext from public data, then walks
+  the genuine account holder through authorising a push payment to a novel
+  beneficiary. Credentials, device and IP are all legitimate; the victim is the
+  one moving the money. The only signals left are behavioural: a first-time
+  payee, an amount far outside the customer's own history, and a session whose
+  timing follows an inbound contact rather than a shopping journey.
+
+preconditions: >
+  Scraped public profile data for the target (employer, family, recent events),
+  a conversational agent to sustain the pretext, a spoofed caller identity, and
+  a mule beneficiary account ready to receive and immediately disperse.
+
+economic_model:
+  acquisition_cost_usd: 12         # scraping + agent inference cost per target
+  expected_payoff_usd: 2400        # single authorised push, no chargeback rail
+  breakeven_txns: 1
+
+constraints:
+  stolen_resource: phished_credentials
+  pos_entry_modes: [CNP]           # push payment, manually initiated by victim
+  preferred_three_ds: [Y]          # the victim PASSES the challenge willingly
+  target_verticals: [ecommerce]
+  min_amount_usd: 400              # scams target meaningful sums, not micro
+  max_amount_usd: 3200
+
+evasion_notes: >
+  Defeats device binding, 3DS step-up and credential-theft heuristics because
+  none of them are violated. Detection must come from beneficiary novelty,
+  deviation from the customer's OWN amount distribution, and session context.
+  A hard decline is the wrong action here: the correct control is a cooling-off
+  window plus a payee-confirmation interstitial, which is why the action policy
+  experiment prices STEP_UP and COOLING_OFF separately from DECLINE.

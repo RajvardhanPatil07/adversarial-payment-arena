@@ -10,7 +10,7 @@ BACKEND := backend
 ARTIFACTS := artifacts
 
 .DEFAULT_GOAL := help
-.PHONY: help install reproduce calibration fidelity transfer zero-day artifacts clean-artifacts models serve ui test check
+.PHONY: help install reproduce calibration fidelity transfer zero-day artifacts clean-artifacts models serve ui test check closed-loop coverage latency
 
 help: ## Show available targets
 	@echo "Adversarial Payment Arena -- make targets"
@@ -23,7 +23,7 @@ install: ## Install backend dependencies
 models: ## Train + serialize the defense models (xgb + iForest) into backend/models/
 	$(PY) $(BACKEND)/data/corpus_builder.py
 
-reproduce: calibration fidelity transfer ## Regenerate the complete evidence set
+reproduce: calibration fidelity transfer closed-loop coverage latency ## Regenerate the complete evidence set
 	@echo ""
 	@echo "evidence set regenerated:"
 	@ls -1 $(ARTIFACTS)/*.json 2>/dev/null || echo "  (none -- a stage failed)"
@@ -36,6 +36,15 @@ fidelity: ## Five fidelity measures per attack generator
 
 transfer: ## HEADLINE: three-arm fidelity-vs-transfer ablation
 	$(PY) $(BACKEND)/experiments/run_transfer_ablation.py
+
+closed-loop: ## HEADLINE: gated vs ungated closed loop (the fidelity scissor)
+	$(PY) $(BACKEND)/experiments/run_closed_loop.py
+
+coverage: ## Per-family recall + leave-one-family-out zero-day + layer attribution
+	$(PY) $(BACKEND)/experiments/run_family_coverage.py
+
+latency: ## Measured inline decision latency percentiles (p50/p95/p99)
+	$(PY) $(BACKEND)/experiments/run_latency.py
 
 zero-day: ## Existing zero-day holdout experiment
 	$(PY) $(BACKEND)/experiments/zero_day_holdout.py

@@ -15,14 +15,37 @@ import numpy as np
 
 
 def pin_threshold_at_fpr(legit_validation_scores: Sequence[float], target_fpr: float) -> float:
-    """Smallest threshold whose alert rate on legitimate validation data is <= target."""
+    """Smallest threshold whose alert rate on legitimate validation data is <= target.
+
+    TIE HANDLING (this is not a detail -- it is the difference between a 1% and a
+    100% false-positive rate). A bagged tree ensemble trained on a heavily
+    imbalanced corpus assigns EXACTLY 0.0 to the large majority of legitimate
+    rows. A plain quantile then lands on that tie block: `np.quantile(s, 0.99)`
+    returns 0.0, and because the decision rule is `score >= tau`, every single
+    legitimate row alerts. The realised FPR becomes ~100% while the code looks
+    like it pinned 1%.
+
+    So the threshold is chosen over the DISTINCT score values, taking the
+    smallest whose realised validation alert rate is within budget. If even the
+    largest observed score exceeds the budget (all scores tied), we step just
+    above it with `nextafter`, which yields an empty alert set rather than a
+    silently saturated one -- a conservative, visible failure instead of an
+    invisible one.
+    """
     s = np.asarray(legit_validation_scores, dtype=float).ravel()
     s = s[np.isfinite(s)]
     if s.size == 0:
         raise ValueError("no validation scores supplied")
     if not (0.0 < target_fpr < 1.0):
         raise ValueError("target_fpr must be strictly between 0 and 1")
-    return float(np.quantile(s, 1.0 - target_fpr, method="higher"))
+
+    candidates = np.unique(s)  # ascending, deduplicated: tie blocks collapse
+    # Alert rate is monotone non-increasing in tau, so scan upward and stop at
+    # the first candidate that fits the budget.
+    for tau in candidates:
+        if float(np.mean(s >= tau)) <= target_fpr:
+            return float(tau)
+    return float(np.nextafter(candidates[-1], np.inf))
 
 
 def rate_at_or_above(scores: Sequence[float], threshold: float) -> float:

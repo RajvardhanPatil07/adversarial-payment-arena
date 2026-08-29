@@ -367,3 +367,44 @@ async def ws_endpoint(ws: WebSocket):
                 await ws.send_json({"type": "cost_update", **stack.cost_summary()})
     except WebSocketDisconnect:
         return
+
+
+# --------------------------------------------------------------------------- #
+# Static UI (deployment only)
+# --------------------------------------------------------------------------- #
+#
+# When SERVE_STATIC_DIR points at an exported Next.js bundle, serve it from this
+# same app. That makes the deployed prototype single-origin: the UI, the REST
+# endpoints and the WebSocket all share a scheme and host, which removes the
+# CORS configuration surface and makes wss:// automatic on an https:// page.
+#
+# ORDERING MATTERS. This mount is registered last, after every /api route and
+# the /ws endpoint, because a mount at "/" is a catch-all: registered earlier it
+# would shadow the API. Starlette matches routes in registration order, so
+# "last" is load-bearing, not stylistic.
+#
+# When the variable is unset (local development, tests, CI) nothing is mounted
+# and the app behaves exactly as before -- `next dev` serves the UI on :3000.
+
+def _mount_static_ui(application: FastAPI) -> None:
+    configured = os.getenv("SERVE_STATIC_DIR", "").strip()
+    if not configured:
+        return
+
+    dist = Path(configured)
+    if not dist.is_dir():
+        # Loud but non-fatal: the API is still fully usable, and a crash-loop
+        # here would take down the endpoints a judge can otherwise still reach.
+        print(f"[arena] SERVE_STATIC_DIR={configured!r} is not a directory -- UI not mounted")
+        return
+
+    from fastapi.staticfiles import StaticFiles
+
+    # html=True gives directory-index resolution (/evidence -> evidence/index.html)
+    # and serves 404.html for unknown paths, which matches the trailingSlash
+    # export layout produced by next.config.ts.
+    application.mount("/", StaticFiles(directory=str(dist), html=True), name="ui")
+    print(f"[arena] serving static UI from {dist}")
+
+
+_mount_static_ui(app)
