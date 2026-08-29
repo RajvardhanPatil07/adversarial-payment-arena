@@ -33,6 +33,11 @@ KNOWN_ARTIFACTS = {
     "prevalence_metrics": "The same operating point reported across plausible fraud base rates.",
     "economics": "INR business impact including the insult cost of false positives.",
     "claim_ledger": "Every public claim mapped to artifact, field, derivation and boundary.",
+    "closed_loop": "HEADLINE: gated vs ungated retraining loops. Shows the fidelity scissor -- "
+                   "an ungated loop climbs on its own synthetic attacks while falling on real fraud.",
+    "family_coverage": "Per-family detection recall, leave-one-family-out zero-day generalisation, "
+                       "and which defense layer fires for each attack family.",
+    "latency": "Measured inline decision latency percentiles against the 100ms authorisation budget.",
 }
 
 REPRODUCE_COMMANDS = {
@@ -43,6 +48,9 @@ REPRODUCE_COMMANDS = {
     "economics": "python backend/experiments/run_transfer_ablation.py",
     "metrics": "python backend/experiments/run_transfer_ablation.py",
     "claim_ledger": "python backend/experiments/run_transfer_ablation.py",
+    "closed_loop": "python backend/experiments/run_closed_loop.py",
+    "family_coverage": "python backend/experiments/run_family_coverage.py",
+    "latency": "python backend/experiments/run_latency.py",
     "all": "make reproduce",
 }
 
