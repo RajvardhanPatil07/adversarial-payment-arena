@@ -1,0 +1,625 @@
+{
+  "provenance": {
+    "schema_version": "1.0.0",
+    "generated_at": "2026-08-29T14:31:20.271573+00:00",
+    "git_sha": "dba323f",
+    "python": "3.12.13",
+    "platform": "macOS-26.6.2-arm64-arm-64bit",
+    "seeds": [
+      11,
+      23,
+      37
+    ],
+    "command": "python backend/experiments/run_fidelity.py"
+  },
+  "measures": [
+    "C2ST AUC (joint separability, 0.5 ideal)",
+    "mean JSD (marginal, 0 ideal)",
+    "mean TVD (categorical, 0 ideal)",
+    "correlation Frobenius difference (rank dependence, 0 ideal)",
+    "TSTR ratio (usefulness for training, 1 ideal)"
+  ],
+  "acceptance_gate": {
+    "metric": "gaussian_copula C2ST AUC",
+    "threshold": 0.8,
+    "observed": 0.9175,
+    "cleared": false,
+    "policy": "the observed value is published whether or not the gate is cleared"
+  },
+  "aggregated": {
+    "independent_marginal": {
+      "c2st_auc": {
+        "mean": 0.9766333333333334,
+        "lo": 0.9699,
+        "hi": 0.9821,
+        "n": 3,
+        "method": "nonparametric bootstrap, 2000 resamples"
+      },
+      "mean_jsd": {
+        "mean": 0.02812366666666667,
+        "lo": 0.023744,
+        "hi": 0.034977,
+        "n": 3,
+        "method": "nonparametric bootstrap, 2000 resamples"
+      },
+      "mean_tvd": {
+        "mean": 0.02814833333333333,
+        "lo": 0.021778000000000002,
+        "hi": 0.034,
+        "n": 3,
+        "method": "nonparametric bootstrap, 2000 resamples"
+      },
+      "correlation_frobenius_diff": {
+        "mean": 2.3919333333333337,
+        "lo": 2.1771,
+        "hi": 2.5225,
+        "n": 3,
+        "method": "nonparametric bootstrap, 2000 resamples"
+      },
+      "tstr_ratio": {
+        "mean": 0.9844,
+        "lo": 0.9765,
+        "hi": 0.9899999999999999,
+        "n": 3,
+        "method": "nonparametric bootstrap, 2000 resamples"
+      }
+    },
+    "gaussian_copula": {
+      "c2st_auc": {
+        "mean": 0.9174666666666665,
+        "lo": 0.9113000000000001,
+        "hi": 0.9234,
+        "n": 3,
+        "method": "nonparametric bootstrap, 2000 resamples"
+      },
+      "mean_jsd": {
+        "mean": 0.023926666666666666,
+        "lo": 0.020058,
+        "hi": 0.026819,
+        "n": 3,
+        "method": "nonparametric bootstrap, 2000 resamples"
+      },
+      "mean_tvd": {
+        "mean": 0.043777666666666666,
+        "lo": 0.034,
+        "hi": 0.05000000000000001,
+        "n": 3,
+        "method": "nonparametric bootstrap, 2000 resamples"
+      },
+      "correlation_frobenius_diff": {
+        "mean": 1.1490666666666665,
+        "lo": 1.0209,
+        "hi": 1.2367,
+        "n": 3,
+        "method": "nonparametric bootstrap, 2000 resamples"
+      },
+      "tstr_ratio": {
+        "mean": 0.9988666666666667,
+        "lo": 0.9966,
+        "hi": 1.0,
+        "n": 3,
+        "method": "nonparametric bootstrap, 2000 resamples"
+      }
+    }
+  },
+  "per_seed": [
+    {
+      "seed": 11,
+      "generators": {
+        "independent_marginal": {
+          "n_real": 300,
+          "n_synthetic": 750,
+          "c2st": {
+            "c2st_auc": 0.9821,
+            "per_fold": [
+              0.9823,
+              0.9784,
+              0.9856
+            ],
+            "target": 0.5,
+            "passes": false,
+            "interpretation": "0.50 = indistinguishable from real; 1.00 = trivially separable"
+          },
+          "marginals": {
+            "mean_jsd": 0.023744,
+            "mean_tvd": 0.034
+          },
+          "joint": {
+            "correlation_frobenius_diff": 2.1771,
+            "target": 0.0,
+            "matrix_dim": 8,
+            "interpretation": "0.0 = identical rank-dependence structure"
+          },
+          "per_column": {
+            "log_amount": {
+              "type": "numeric",
+              "jsd": 0.062484
+            },
+            "hour_sin": {
+              "type": "numeric",
+              "jsd": 0.047268
+            },
+            "hour_cos": {
+              "type": "numeric",
+              "jsd": 0.05721
+            },
+            "dow": {
+              "type": "numeric",
+              "jsd": 0.0
+            },
+            "mcc_num": {
+              "type": "numeric",
+              "jsd": 0.013887
+            },
+            "pos_entry_mode": {
+              "type": "categorical",
+              "jsd": 0.000407,
+              "tvd": 0.02
+            },
+            "three_ds_status": {
+              "type": "categorical",
+              "jsd": 0.001127,
+              "tvd": 0.030667
+            },
+            "mcc_group": {
+              "type": "categorical",
+              "jsd": 0.007566,
+              "tvd": 0.051333
+            }
+          },
+          "tstr": {
+            "target_fpr": 0.01,
+            "tstr_ratio": 0.99,
+            "detail": {
+              "train_on_real": {
+                "threshold": 0.146682,
+                "recall": 1.0,
+                "fpr": 0.016,
+                "roc_auc": 0.9997,
+                "pr_auc": 0.9987
+              },
+              "train_on_synthetic": {
+                "threshold": 0.377125,
+                "recall": 0.99,
+                "fpr": 0.0088,
+                "roc_auc": 0.999,
+                "pr_auc": 0.9956
+              }
+            },
+            "interpretation": "ratio 1.0 = synthetic data as useful as real data for training"
+          }
+        },
+        "gaussian_copula": {
+          "n_real": 300,
+          "n_synthetic": 750,
+          "c2st": {
+            "c2st_auc": 0.9234,
+            "per_fold": [
+              0.9115,
+              0.9206,
+              0.9379
+            ],
+            "target": 0.5,
+            "passes": false,
+            "interpretation": "0.50 = indistinguishable from real; 1.00 = trivially separable"
+          },
+          "marginals": {
+            "mean_jsd": 0.024903,
+            "mean_tvd": 0.05
+          },
+          "joint": {
+            "correlation_frobenius_diff": 1.1896,
+            "target": 0.0,
+            "matrix_dim": 8,
+            "interpretation": "0.0 = identical rank-dependence structure"
+          },
+          "per_column": {
+            "log_amount": {
+              "type": "numeric",
+              "jsd": 0.058689
+            },
+            "hour_sin": {
+              "type": "numeric",
+              "jsd": 0.040465
+            },
+            "hour_cos": {
+              "type": "numeric",
+              "jsd": 0.064041
+            },
+            "dow": {
+              "type": "numeric",
+              "jsd": 0.0
+            },
+            "mcc_num": {
+              "type": "numeric",
+              "jsd": 0.017967
+            },
+            "pos_entry_mode": {
+              "type": "categorical",
+              "jsd": 0.000535,
+              "tvd": 0.025333
+            },
+            "three_ds_status": {
+              "type": "categorical",
+              "jsd": 0.002873,
+              "tvd": 0.048
+            },
+            "mcc_group": {
+              "type": "categorical",
+              "jsd": 0.014658,
+              "tvd": 0.076667
+            }
+          },
+          "tstr": {
+            "target_fpr": 0.01,
+            "tstr_ratio": 1.0,
+            "detail": {
+              "train_on_real": {
+                "threshold": 0.146682,
+                "recall": 1.0,
+                "fpr": 0.016,
+                "roc_auc": 0.9997,
+                "pr_auc": 0.9987
+              },
+              "train_on_synthetic": {
+                "threshold": 0.267444,
+                "recall": 1.0,
+                "fpr": 0.0104,
+                "roc_auc": 0.9991,
+                "pr_auc": 0.996
+              }
+            },
+            "interpretation": "ratio 1.0 = synthetic data as useful as real data for training"
+          }
+        }
+      }
+    },
+    {
+      "seed": 23,
+      "generators": {
+        "independent_marginal": {
+          "n_real": 300,
+          "n_synthetic": 750,
+          "c2st": {
+            "c2st_auc": 0.9699,
+            "per_fold": [
+              0.9628,
+              0.9705,
+              0.9766
+            ],
+            "target": 0.5,
+            "passes": false,
+            "interpretation": "0.50 = indistinguishable from real; 1.00 = trivially separable"
+          },
+          "marginals": {
+            "mean_jsd": 0.02565,
+            "mean_tvd": 0.028667
+          },
+          "joint": {
+            "correlation_frobenius_diff": 2.5225,
+            "target": 0.0,
+            "matrix_dim": 8,
+            "interpretation": "0.0 = identical rank-dependence structure"
+          },
+          "per_column": {
+            "log_amount": {
+              "type": "numeric",
+              "jsd": 0.038969
+            },
+            "hour_sin": {
+              "type": "numeric",
+              "jsd": 0.068357
+            },
+            "hour_cos": {
+              "type": "numeric",
+              "jsd": 0.08468
+            },
+            "dow": {
+              "type": "numeric",
+              "jsd": 0.0
+            },
+            "mcc_num": {
+              "type": "numeric",
+              "jsd": 0.007313
+            },
+            "pos_entry_mode": {
+              "type": "categorical",
+              "jsd": 0.000429,
+              "tvd": 0.022667
+            },
+            "three_ds_status": {
+              "type": "categorical",
+              "jsd": 0.005452,
+              "tvd": 0.062667
+            },
+            "mcc_group": {
+              "type": "categorical",
+              "jsd": 1e-06,
+              "tvd": 0.000667
+            }
+          },
+          "tstr": {
+            "target_fpr": 0.01,
+            "tstr_ratio": 0.9867,
+            "detail": {
+              "train_on_real": {
+                "threshold": 0.151047,
+                "recall": 1.0,
+                "fpr": 0.0224,
+                "roc_auc": 0.9996,
+                "pr_auc": 0.9982
+              },
+              "train_on_synthetic": {
+                "threshold": 0.304982,
+                "recall": 0.9867,
+                "fpr": 0.0176,
+                "roc_auc": 0.998,
+                "pr_auc": 0.9906
+              }
+            },
+            "interpretation": "ratio 1.0 = synthetic data as useful as real data for training"
+          }
+        },
+        "gaussian_copula": {
+          "n_real": 300,
+          "n_synthetic": 750,
+          "c2st": {
+            "c2st_auc": 0.9113,
+            "per_fold": [
+              0.9099,
+              0.8799,
+              0.9442
+            ],
+            "target": 0.5,
+            "passes": false,
+            "interpretation": "0.50 = indistinguishable from real; 1.00 = trivially separable"
+          },
+          "marginals": {
+            "mean_jsd": 0.020058,
+            "mean_tvd": 0.034
+          },
+          "joint": {
+            "correlation_frobenius_diff": 1.2367,
+            "target": 0.0,
+            "matrix_dim": 8,
+            "interpretation": "0.0 = identical rank-dependence structure"
+          },
+          "per_column": {
+            "log_amount": {
+              "type": "numeric",
+              "jsd": 0.039595
+            },
+            "hour_sin": {
+              "type": "numeric",
+              "jsd": 0.033214
+            },
+            "hour_cos": {
+              "type": "numeric",
+              "jsd": 0.070495
+            },
+            "dow": {
+              "type": "numeric",
+              "jsd": 0.0
+            },
+            "mcc_num": {
+              "type": "numeric",
+              "jsd": 0.00528
+            },
+            "pos_entry_mode": {
+              "type": "categorical",
+              "jsd": 0.000101,
+              "tvd": 0.010667
+            },
+            "three_ds_status": {
+              "type": "categorical",
+              "jsd": 0.011712,
+              "tvd": 0.086667
+            },
+            "mcc_group": {
+              "type": "categorical",
+              "jsd": 6.9e-05,
+              "tvd": 0.004667
+            }
+          },
+          "tstr": {
+            "target_fpr": 0.01,
+            "tstr_ratio": 1.0,
+            "detail": {
+              "train_on_real": {
+                "threshold": 0.151047,
+                "recall": 1.0,
+                "fpr": 0.0224,
+                "roc_auc": 0.9996,
+                "pr_auc": 0.9982
+              },
+              "train_on_synthetic": {
+                "threshold": 0.317751,
+                "recall": 1.0,
+                "fpr": 0.0136,
+                "roc_auc": 0.9992,
+                "pr_auc": 0.9963
+              }
+            },
+            "interpretation": "ratio 1.0 = synthetic data as useful as real data for training"
+          }
+        }
+      }
+    },
+    {
+      "seed": 37,
+      "generators": {
+        "independent_marginal": {
+          "n_real": 300,
+          "n_synthetic": 750,
+          "c2st": {
+            "c2st_auc": 0.9779,
+            "per_fold": [
+              0.976,
+              0.9735,
+              0.9843
+            ],
+            "target": 0.5,
+            "passes": false,
+            "interpretation": "0.50 = indistinguishable from real; 1.00 = trivially separable"
+          },
+          "marginals": {
+            "mean_jsd": 0.034977,
+            "mean_tvd": 0.021778
+          },
+          "joint": {
+            "correlation_frobenius_diff": 2.4762,
+            "target": 0.0,
+            "matrix_dim": 8,
+            "interpretation": "0.0 = identical rank-dependence structure"
+          },
+          "per_column": {
+            "log_amount": {
+              "type": "numeric",
+              "jsd": 0.069267
+            },
+            "hour_sin": {
+              "type": "numeric",
+              "jsd": 0.092458
+            },
+            "hour_cos": {
+              "type": "numeric",
+              "jsd": 0.108878
+            },
+            "dow": {
+              "type": "numeric",
+              "jsd": 0.0
+            },
+            "mcc_num": {
+              "type": "numeric",
+              "jsd": 0.006689
+            },
+            "pos_entry_mode": {
+              "type": "categorical",
+              "jsd": 0.000316,
+              "tvd": 0.018667
+            },
+            "three_ds_status": {
+              "type": "categorical",
+              "jsd": 0.002059,
+              "tvd": 0.038667
+            },
+            "mcc_group": {
+              "type": "categorical",
+              "jsd": 0.000152,
+              "tvd": 0.008
+            }
+          },
+          "tstr": {
+            "target_fpr": 0.01,
+            "tstr_ratio": 0.9765,
+            "detail": {
+              "train_on_real": {
+                "threshold": 0.111853,
+                "recall": 0.9967,
+                "fpr": 0.0144,
+                "roc_auc": 0.9997,
+                "pr_auc": 0.9987
+              },
+              "train_on_synthetic": {
+                "threshold": 0.298929,
+                "recall": 0.9733,
+                "fpr": 0.008,
+                "roc_auc": 0.9992,
+                "pr_auc": 0.9967
+              }
+            },
+            "interpretation": "ratio 1.0 = synthetic data as useful as real data for training"
+          }
+        },
+        "gaussian_copula": {
+          "n_real": 300,
+          "n_synthetic": 750,
+          "c2st": {
+            "c2st_auc": 0.9177,
+            "per_fold": [
+              0.9274,
+              0.8892,
+              0.9366
+            ],
+            "target": 0.5,
+            "passes": false,
+            "interpretation": "0.50 = indistinguishable from real; 1.00 = trivially separable"
+          },
+          "marginals": {
+            "mean_jsd": 0.026819,
+            "mean_tvd": 0.047333
+          },
+          "joint": {
+            "correlation_frobenius_diff": 1.0209,
+            "target": 0.0,
+            "matrix_dim": 8,
+            "interpretation": "0.0 = identical rank-dependence structure"
+          },
+          "per_column": {
+            "log_amount": {
+              "type": "numeric",
+              "jsd": 0.06566
+            },
+            "hour_sin": {
+              "type": "numeric",
+              "jsd": 0.049319
+            },
+            "hour_cos": {
+              "type": "numeric",
+              "jsd": 0.08853
+            },
+            "dow": {
+              "type": "numeric",
+              "jsd": 0.0
+            },
+            "mcc_num": {
+              "type": "numeric",
+              "jsd": 0.001166
+            },
+            "pos_entry_mode": {
+              "type": "categorical",
+              "jsd": 0.000717,
+              "tvd": 0.029333
+            },
+            "three_ds_status": {
+              "type": "categorical",
+              "jsd": 0.009097,
+              "tvd": 0.107333
+            },
+            "mcc_group": {
+              "type": "categorical",
+              "jsd": 6.7e-05,
+              "tvd": 0.005333
+            }
+          },
+          "tstr": {
+            "target_fpr": 0.01,
+            "tstr_ratio": 0.9966,
+            "detail": {
+              "train_on_real": {
+                "threshold": 0.111853,
+                "recall": 0.9967,
+                "fpr": 0.0144,
+                "roc_auc": 0.9997,
+                "pr_auc": 0.9987
+              },
+              "train_on_synthetic": {
+                "threshold": 0.236251,
+                "recall": 0.9933,
+                "fpr": 0.0144,
+                "roc_auc": 0.9994,
+                "pr_auc": 0.9976
+              }
+            },
+            "interpretation": "ratio 1.0 = synthetic data as useful as real data for training"
+          }
+        }
+      }
+    }
+  ],
+  "boundaries": [
+    "Fidelity is measured against held-out arena fraud, not issuer production data.",
+    "A copula captures rank dependence, not higher-order interaction or sequence structure.",
+    "Passing marginal tests alone does not establish realism; that is the point of reporting all five."
+  ]
+}

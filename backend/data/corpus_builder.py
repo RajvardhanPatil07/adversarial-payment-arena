@@ -42,9 +42,12 @@ SPEC_FILES = {
     "ATTACK_4_CNP_HIGH_VELOCITY": SPECS_DIR / "attack_4_cnp_high_velocity.yaml",
 }
 
-# Attacks fire "recently"; legit history trails 90 days. A 12h base keeps
-# even the longest synthesized campaign strictly in the past.
-_ATTACK_BASE = datetime.now(timezone.utc) - timedelta(hours=12)
+# Attacks fire "recently"; legit history trails 90 days. A FIXED anchor (not
+# datetime.now) keeps the corpus bit-reproducible across processes at a given
+# seed: time-derived features (hour_sin/hour_cos/dow) must not drift with the
+# wall clock, or `make reproduce` produces different numbers every run. The
+# date is arbitrary but must stay in the past relative to any real run.
+_ATTACK_BASE = datetime(2026, 6, 1, 12, 0, 0, tzinfo=timezone.utc)
 
 
 # --------------------------------------------------------------------------- #

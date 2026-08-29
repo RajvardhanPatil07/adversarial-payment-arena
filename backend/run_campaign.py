@@ -8,9 +8,10 @@ Every event (agent thoughts, payloads, gate verdicts, defense decisions, cost
 updates, graph deltas) is printed to stdout as one JSON object per line —
 pipe it into jq, tee it to a file, or just watch the fight in the terminal.
 
-Uses OPENROUTER_API_KEY when present (stealth/ox-alpha); otherwise falls
-back to the deterministic offline fraudster. --fast zeroes the 2s rate-limit
-sleep (offline/testing only).
+Uses OPENROUTER_API_KEY when present (a free reasoning model by default,
+overridable via OPENROUTER_MODEL; stealth/ox-alpha when that slug is served);
+otherwise falls back to the deterministic offline fraudster. --fast zeroes the
+2s rate-limit sleep (offline/testing only).
 """
 
 from __future__ import annotations

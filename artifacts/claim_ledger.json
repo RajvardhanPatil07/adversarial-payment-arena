@@ -1,0 +1,49 @@
+{
+  "provenance": {
+    "schema_version": "1.0.0",
+    "generated_at": "2026-08-29T14:31:28.708282+00:00",
+    "git_sha": "dba323f",
+    "python": "3.12.13",
+    "platform": "macOS-26.6.2-arm64-arm-64bit",
+    "seeds": [],
+    "command": "python backend/experiments/run_transfer_ablation.py"
+  },
+  "claim_count": 5,
+  "claims": [
+    {
+      "claim": "Generator fidelity determines whether red-teaming helps or hurts real-fraud recall.",
+      "artifact": "artifacts/transfer_ledger.json",
+      "field": "aggregated.arms.*.delta_recall_vs_baseline",
+      "derivation": "Recall on held-out real fraud per arm minus the A0 baseline, at an FPR pinned to 1% on a disjoint legitimate validation split.",
+      "boundary": "Three seeds; synthetic environment fraud; fixed augmentation budget."
+    },
+    {
+      "claim": "The independent-marginal generator is trivially distinguishable from real fraud.",
+      "artifact": "artifacts/transfer_ledger.json",
+      "field": "aggregated.fidelity.A1_independent_marginal.c2st_auc",
+      "derivation": "Cross-validated ROC-AUC of a random forest separating real from synthetic rows.",
+      "boundary": "Measured against held-out real fraud, never the generator's fit slice."
+    },
+    {
+      "claim": "Operating thresholds are calibrated without leakage.",
+      "artifact": "artifacts/transfer_ledger.json",
+      "field": "per_seed[].arms.*.threshold_source",
+      "derivation": "Threshold pinned at 1% FPR on a legitimate validation split, then measured on a disjoint test split.",
+      "boundary": "Temporal split; non-stationarity beyond the corpus window is untested."
+    },
+    {
+      "claim": "Precision degrades sharply at production base rate.",
+      "artifact": "artifacts/prevalence_metrics.json",
+      "field": "sweep[].precision",
+      "derivation": "Bayes adjustment p*R / (p*R + (1-p)*FPR) applied to the measured operating point.",
+      "boundary": "Prevalence is a deployment assumption, not a measurement."
+    },
+    {
+      "claim": "False positives dominate the cost ledger at a 1% false-positive rate.",
+      "artifact": "artifacts/economics.json",
+      "field": "at_production_prevalence.insult_share_of_total_cost",
+      "derivation": "Insult cost per false positive = lost margin + support contact + churn probability * CLV.",
+      "boundary": "INR rates are stated order-of-magnitude assumptions and are overridable."
+    }
+  ]
+}

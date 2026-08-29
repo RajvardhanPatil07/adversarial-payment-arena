@@ -1,0 +1,769 @@
+{
+  "provenance": {
+    "schema_version": "1.0.0",
+    "generated_at": "2026-08-29T14:31:28.627474+00:00",
+    "git_sha": "dba323f",
+    "python": "3.12.13",
+    "platform": "macOS-26.6.2-arm64-arm-64bit",
+    "seeds": [
+      11,
+      23,
+      37
+    ],
+    "command": "python backend/experiments/run_transfer_ablation.py"
+  },
+  "design": {
+    "question": "does generator fidelity determine whether red-teaming helps real-world detection?",
+    "independent_variable": "attack generator only",
+    "held_constant": [
+      "real training rows",
+      "augmentation budget (120 rows)",
+      "detector family and hyperparameters",
+      "calibration split and target FPR (1.00%)",
+      "held-out real-fraud test set"
+    ],
+    "seeds": [
+      11,
+      23,
+      37
+    ],
+    "target_fpr": 0.01,
+    "production_prevalence": 0.013
+  },
+  "aggregated": {
+    "arms": {
+      "A0_baseline": {
+        "recall_on_real_fraud": {
+          "mean": 0.9989,
+          "lo": 0.9967,
+          "hi": 1.0,
+          "n": 3,
+          "method": "nonparametric bootstrap, 2000 resamples"
+        },
+        "fpr_on_real_legit": {
+          "mean": 0.014666666666666666,
+          "lo": 0.012000000000000002,
+          "hi": 0.0173,
+          "n": 3,
+          "method": "nonparametric bootstrap, 2000 resamples"
+        },
+        "roc_auc": {
+          "mean": 0.9997000000000001,
+          "lo": 0.9996,
+          "hi": 0.9998,
+          "n": 3,
+          "method": "nonparametric bootstrap, 2000 resamples"
+        },
+        "pr_auc": {
+          "mean": 0.9984333333333333,
+          "lo": 0.9978000000000001,
+          "hi": 0.9991,
+          "n": 3,
+          "method": "nonparametric bootstrap, 2000 resamples"
+        },
+        "precision_at_production_prevalence": {
+          "mean": 0.4758,
+          "lo": 0.431,
+          "hi": 0.5233,
+          "n": 3,
+          "method": "nonparametric bootstrap, 2000 resamples"
+        }
+      },
+      "A1_independent_marginal": {
+        "recall_on_real_fraud": {
+          "mean": 0.9844333333333334,
+          "lo": 0.9733,
+          "hi": 0.9933,
+          "n": 3,
+          "method": "nonparametric bootstrap, 2000 resamples"
+        },
+        "fpr_on_real_legit": {
+          "mean": 0.0118,
+          "lo": 0.0107,
+          "hi": 0.012699999999999998,
+          "n": 3,
+          "method": "nonparametric bootstrap, 2000 resamples"
+        },
+        "roc_auc": {
+          "mean": 0.9993666666666666,
+          "lo": 0.9991,
+          "hi": 0.9994999999999999,
+          "n": 3,
+          "method": "nonparametric bootstrap, 2000 resamples"
+        },
+        "pr_auc": {
+          "mean": 0.9967666666666667,
+          "lo": 0.9954,
+          "hi": 0.9977,
+          "n": 3,
+          "method": "nonparametric bootstrap, 2000 resamples"
+        },
+        "precision_at_production_prevalence": {
+          "mean": 0.5246,
+          "lo": 0.503,
+          "hi": 0.5492,
+          "n": 3,
+          "method": "nonparametric bootstrap, 2000 resamples"
+        },
+        "delta_recall_vs_baseline": {
+          "mean": -0.014466666666666664,
+          "lo": -0.0234,
+          "hi": -0.0067,
+          "n": 3,
+          "method": "nonparametric bootstrap, 2000 resamples"
+        }
+      },
+      "A2_gaussian_copula": {
+        "recall_on_real_fraud": {
+          "mean": 0.9933333333333333,
+          "lo": 0.9899999999999999,
+          "hi": 0.9967,
+          "n": 3,
+          "method": "nonparametric bootstrap, 2000 resamples"
+        },
+        "fpr_on_real_legit": {
+          "mean": 0.010433333333333334,
+          "lo": 0.008,
+          "hi": 0.0133,
+          "n": 3,
+          "method": "nonparametric bootstrap, 2000 resamples"
+        },
+        "roc_auc": {
+          "mean": 0.9995333333333333,
+          "lo": 0.9993,
+          "hi": 0.9997000000000001,
+          "n": 3,
+          "method": "nonparametric bootstrap, 2000 resamples"
+        },
+        "pr_auc": {
+          "mean": 0.9977,
+          "lo": 0.9962,
+          "hi": 0.9987,
+          "n": 3,
+          "method": "nonparametric bootstrap, 2000 resamples"
+        },
+        "precision_at_production_prevalence": {
+          "mean": 0.5609,
+          "lo": 0.4961,
+          "hi": 0.6206,
+          "n": 3,
+          "method": "nonparametric bootstrap, 2000 resamples"
+        },
+        "delta_recall_vs_baseline": {
+          "mean": -0.005566666666666667,
+          "lo": -0.0067,
+          "hi": -0.0032999999999999995,
+          "n": 3,
+          "method": "nonparametric bootstrap, 2000 resamples"
+        }
+      }
+    },
+    "fidelity": {
+      "A1_independent_marginal": {
+        "c2st_auc": {
+          "mean": 0.9705,
+          "lo": 0.969,
+          "hi": 0.9727,
+          "n": 3,
+          "method": "nonparametric bootstrap, 2000 resamples"
+        },
+        "mean_jsd": {
+          "mean": 0.037543,
+          "lo": 0.033196,
+          "hi": 0.042047,
+          "n": 3,
+          "method": "nonparametric bootstrap, 2000 resamples"
+        },
+        "mean_tvd": {
+          "mean": 0.053519000000000004,
+          "lo": 0.032778,
+          "hi": 0.074445,
+          "n": 3,
+          "method": "nonparametric bootstrap, 2000 resamples"
+        },
+        "correlation_frobenius_diff": {
+          "mean": 2.3238333333333334,
+          "lo": 2.2486,
+          "hi": 2.431,
+          "n": 3,
+          "method": "nonparametric bootstrap, 2000 resamples"
+        }
+      },
+      "A2_gaussian_copula": {
+        "c2st_auc": {
+          "mean": 0.8814333333333333,
+          "lo": 0.8803,
+          "hi": 0.8832,
+          "n": 3,
+          "method": "nonparametric bootstrap, 2000 resamples"
+        },
+        "mean_jsd": {
+          "mean": 0.038343999999999996,
+          "lo": 0.034572,
+          "hi": 0.040538,
+          "n": 3,
+          "method": "nonparametric bootstrap, 2000 resamples"
+        },
+        "mean_tvd": {
+          "mean": 0.062222,
+          "lo": 0.052222,
+          "hi": 0.081111,
+          "n": 3,
+          "method": "nonparametric bootstrap, 2000 resamples"
+        },
+        "correlation_frobenius_diff": {
+          "mean": 1.1622000000000001,
+          "lo": 1.1472,
+          "hi": 1.1916,
+          "n": 3,
+          "method": "nonparametric bootstrap, 2000 resamples"
+        }
+      }
+    }
+  },
+  "per_seed": [
+    {
+      "seed": 11,
+      "splits": {
+        "legit_train": 3000,
+        "legit_validation": 1500,
+        "legit_test": 1500,
+        "real_fraud_train": 90,
+        "real_fraud_test": 300,
+        "synthetic_budget_per_arm": 120
+      },
+      "arms": {
+        "A0_baseline": {
+          "threshold": 0.145227,
+          "threshold_source": "legitimate validation split, disjoint from test",
+          "recall_on_real_fraud": 1.0,
+          "fpr_on_real_legit": 0.0147,
+          "roc_auc": 0.9997,
+          "pr_auc": 0.9984,
+          "precision_at_lab_prevalence": 0.9317,
+          "precision_at_production_prevalence": 0.4731,
+          "train_rows": 3090,
+          "train_fraud_rows": 90
+        },
+        "A1_independent_marginal": {
+          "threshold": 0.254741,
+          "threshold_source": "legitimate validation split, disjoint from test",
+          "recall_on_real_fraud": 0.9867,
+          "fpr_on_real_legit": 0.0107,
+          "roc_auc": 0.9995,
+          "pr_auc": 0.9977,
+          "precision_at_lab_prevalence": 0.9487,
+          "precision_at_production_prevalence": 0.5492,
+          "train_rows": 3210,
+          "train_fraud_rows": 210,
+          "delta_recall_vs_baseline": -0.0133
+        },
+        "A2_gaussian_copula": {
+          "threshold": 0.262295,
+          "threshold_source": "legitimate validation split, disjoint from test",
+          "recall_on_real_fraud": 0.9933,
+          "fpr_on_real_legit": 0.008,
+          "roc_auc": 0.9996,
+          "pr_auc": 0.9982,
+          "precision_at_lab_prevalence": 0.9613,
+          "precision_at_production_prevalence": 0.6206,
+          "train_rows": 3210,
+          "train_fraud_rows": 210,
+          "delta_recall_vs_baseline": -0.0067
+        }
+      },
+      "fidelity": {
+        "A1_independent_marginal": {
+          "n_real": 300,
+          "n_synthetic": 120,
+          "c2st": {
+            "c2st_auc": 0.969,
+            "per_fold": [
+              0.9765,
+              0.944,
+              0.9865
+            ],
+            "target": 0.5,
+            "passes": false,
+            "interpretation": "0.50 = indistinguishable from real; 1.00 = trivially separable"
+          },
+          "marginals": {
+            "mean_jsd": 0.042047,
+            "mean_tvd": 0.074445
+          },
+          "joint": {
+            "correlation_frobenius_diff": 2.2486,
+            "target": 0.0,
+            "matrix_dim": 8,
+            "interpretation": "0.0 = identical rank-dependence structure"
+          },
+          "per_column": {
+            "log_amount": {
+              "type": "numeric",
+              "jsd": 0.071263
+            },
+            "hour_sin": {
+              "type": "numeric",
+              "jsd": 0.100597
+            },
+            "hour_cos": {
+              "type": "numeric",
+              "jsd": 0.098372
+            },
+            "dow": {
+              "type": "numeric",
+              "jsd": 0.0
+            },
+            "mcc_num": {
+              "type": "numeric",
+              "jsd": 0.024243
+            },
+            "pos_entry_mode": {
+              "type": "categorical",
+              "jsd": 0.00139,
+              "tvd": 0.041667
+            },
+            "three_ds_status": {
+              "type": "categorical",
+              "jsd": 0.01694,
+              "tvd": 0.091667
+            },
+            "mcc_group": {
+              "type": "categorical",
+              "jsd": 0.023567,
+              "tvd": 0.09
+            }
+          }
+        },
+        "A2_gaussian_copula": {
+          "n_real": 300,
+          "n_synthetic": 120,
+          "c2st": {
+            "c2st_auc": 0.8808,
+            "per_fold": [
+              0.835,
+              0.8915,
+              0.9157
+            ],
+            "target": 0.5,
+            "passes": false,
+            "interpretation": "0.50 = indistinguishable from real; 1.00 = trivially separable"
+          },
+          "marginals": {
+            "mean_jsd": 0.039922,
+            "mean_tvd": 0.081111
+          },
+          "joint": {
+            "correlation_frobenius_diff": 1.1478,
+            "target": 0.0,
+            "matrix_dim": 8,
+            "interpretation": "0.0 = identical rank-dependence structure"
+          },
+          "per_column": {
+            "log_amount": {
+              "type": "numeric",
+              "jsd": 0.072514
+            },
+            "hour_sin": {
+              "type": "numeric",
+              "jsd": 0.041985
+            },
+            "hour_cos": {
+              "type": "numeric",
+              "jsd": 0.101341
+            },
+            "dow": {
+              "type": "numeric",
+              "jsd": 0.0
+            },
+            "mcc_num": {
+              "type": "numeric",
+              "jsd": 0.059713
+            },
+            "pos_entry_mode": {
+              "type": "categorical",
+              "jsd": 0.004915,
+              "tvd": 0.075
+            },
+            "three_ds_status": {
+              "type": "categorical",
+              "jsd": 0.00164,
+              "tvd": 0.045
+            },
+            "mcc_group": {
+              "type": "categorical",
+              "jsd": 0.037267,
+              "tvd": 0.123333
+            }
+          }
+        }
+      }
+    },
+    {
+      "seed": 23,
+      "splits": {
+        "legit_train": 3000,
+        "legit_validation": 1500,
+        "legit_test": 1500,
+        "real_fraud_train": 90,
+        "real_fraud_test": 300,
+        "synthetic_budget_per_arm": 120
+      },
+      "arms": {
+        "A0_baseline": {
+          "threshold": 0.140301,
+          "threshold_source": "legitimate validation split, disjoint from test",
+          "recall_on_real_fraud": 0.9967,
+          "fpr_on_real_legit": 0.0173,
+          "roc_auc": 0.9996,
+          "pr_auc": 0.9978,
+          "precision_at_lab_prevalence": 0.92,
+          "precision_at_production_prevalence": 0.431,
+          "train_rows": 3090,
+          "train_fraud_rows": 90
+        },
+        "A1_independent_marginal": {
+          "threshold": 0.320702,
+          "threshold_source": "legitimate validation split, disjoint from test",
+          "recall_on_real_fraud": 0.9733,
+          "fpr_on_real_legit": 0.0127,
+          "roc_auc": 0.9991,
+          "pr_auc": 0.9954,
+          "precision_at_lab_prevalence": 0.9389,
+          "precision_at_production_prevalence": 0.503,
+          "train_rows": 3210,
+          "train_fraud_rows": 210,
+          "delta_recall_vs_baseline": -0.0234
+        },
+        "A2_gaussian_copula": {
+          "threshold": 0.269941,
+          "threshold_source": "legitimate validation split, disjoint from test",
+          "recall_on_real_fraud": 0.99,
+          "fpr_on_real_legit": 0.01,
+          "roc_auc": 0.9993,
+          "pr_auc": 0.9962,
+          "precision_at_lab_prevalence": 0.9519,
+          "precision_at_production_prevalence": 0.566,
+          "train_rows": 3210,
+          "train_fraud_rows": 210,
+          "delta_recall_vs_baseline": -0.0067
+        }
+      },
+      "fidelity": {
+        "A1_independent_marginal": {
+          "n_real": 300,
+          "n_synthetic": 120,
+          "c2st": {
+            "c2st_auc": 0.9698,
+            "per_fold": [
+              0.962,
+              0.9783,
+              0.9692
+            ],
+            "target": 0.5,
+            "passes": false,
+            "interpretation": "0.50 = indistinguishable from real; 1.00 = trivially separable"
+          },
+          "marginals": {
+            "mean_jsd": 0.033196,
+            "mean_tvd": 0.032778
+          },
+          "joint": {
+            "correlation_frobenius_diff": 2.2919,
+            "target": 0.0,
+            "matrix_dim": 8,
+            "interpretation": "0.0 = identical rank-dependence structure"
+          },
+          "per_column": {
+            "log_amount": {
+              "type": "numeric",
+              "jsd": 0.090293
+            },
+            "hour_sin": {
+              "type": "numeric",
+              "jsd": 0.063784
+            },
+            "hour_cos": {
+              "type": "numeric",
+              "jsd": 0.091497
+            },
+            "dow": {
+              "type": "numeric",
+              "jsd": 0.0
+            },
+            "mcc_num": {
+              "type": "numeric",
+              "jsd": 0.014991
+            },
+            "pos_entry_mode": {
+              "type": "categorical",
+              "jsd": 0.000962,
+              "tvd": 0.033333
+            },
+            "three_ds_status": {
+              "type": "categorical",
+              "jsd": 0.004043,
+              "tvd": 0.065
+            },
+            "mcc_group": {
+              "type": "categorical",
+              "jsd": 0.0,
+              "tvd": 0.0
+            }
+          }
+        },
+        "A2_gaussian_copula": {
+          "n_real": 300,
+          "n_synthetic": 120,
+          "c2st": {
+            "c2st_auc": 0.8803,
+            "per_fold": [
+              0.8407,
+              0.9143,
+              0.886
+            ],
+            "target": 0.5,
+            "passes": false,
+            "interpretation": "0.50 = indistinguishable from real; 1.00 = trivially separable"
+          },
+          "marginals": {
+            "mean_jsd": 0.040538,
+            "mean_tvd": 0.052222
+          },
+          "joint": {
+            "correlation_frobenius_diff": 1.1472,
+            "target": 0.0,
+            "matrix_dim": 8,
+            "interpretation": "0.0 = identical rank-dependence structure"
+          },
+          "per_column": {
+            "log_amount": {
+              "type": "numeric",
+              "jsd": 0.11033
+            },
+            "hour_sin": {
+              "type": "numeric",
+              "jsd": 0.064376
+            },
+            "hour_cos": {
+              "type": "numeric",
+              "jsd": 0.129613
+            },
+            "dow": {
+              "type": "numeric",
+              "jsd": 0.0
+            },
+            "mcc_num": {
+              "type": "numeric",
+              "jsd": 0.008279
+            },
+            "pos_entry_mode": {
+              "type": "categorical",
+              "jsd": 0.002046,
+              "tvd": 0.05
+            },
+            "three_ds_status": {
+              "type": "categorical",
+              "jsd": 0.004186,
+              "tvd": 0.056667
+            },
+            "mcc_group": {
+              "type": "categorical",
+              "jsd": 0.005478,
+              "tvd": 0.05
+            }
+          }
+        }
+      }
+    },
+    {
+      "seed": 37,
+      "splits": {
+        "legit_train": 3000,
+        "legit_validation": 1500,
+        "legit_test": 1500,
+        "real_fraud_train": 90,
+        "real_fraud_test": 300,
+        "synthetic_budget_per_arm": 120
+      },
+      "arms": {
+        "A0_baseline": {
+          "threshold": 0.132935,
+          "threshold_source": "legitimate validation split, disjoint from test",
+          "recall_on_real_fraud": 1.0,
+          "fpr_on_real_legit": 0.012,
+          "roc_auc": 0.9998,
+          "pr_auc": 0.9991,
+          "precision_at_lab_prevalence": 0.9434,
+          "precision_at_production_prevalence": 0.5233,
+          "train_rows": 3090,
+          "train_fraud_rows": 90
+        },
+        "A1_independent_marginal": {
+          "threshold": 0.193627,
+          "threshold_source": "legitimate validation split, disjoint from test",
+          "recall_on_real_fraud": 0.9933,
+          "fpr_on_real_legit": 0.012,
+          "roc_auc": 0.9995,
+          "pr_auc": 0.9972,
+          "precision_at_lab_prevalence": 0.943,
+          "precision_at_production_prevalence": 0.5216,
+          "train_rows": 3210,
+          "train_fraud_rows": 210,
+          "delta_recall_vs_baseline": -0.0067
+        },
+        "A2_gaussian_copula": {
+          "threshold": 0.185029,
+          "threshold_source": "legitimate validation split, disjoint from test",
+          "recall_on_real_fraud": 0.9967,
+          "fpr_on_real_legit": 0.0133,
+          "roc_auc": 0.9997,
+          "pr_auc": 0.9987,
+          "precision_at_lab_prevalence": 0.9373,
+          "precision_at_production_prevalence": 0.4961,
+          "train_rows": 3210,
+          "train_fraud_rows": 210,
+          "delta_recall_vs_baseline": -0.0033
+        }
+      },
+      "fidelity": {
+        "A1_independent_marginal": {
+          "n_real": 300,
+          "n_synthetic": 120,
+          "c2st": {
+            "c2st_auc": 0.9727,
+            "per_fold": [
+              0.956,
+              0.9838,
+              0.9782
+            ],
+            "target": 0.5,
+            "passes": false,
+            "interpretation": "0.50 = indistinguishable from real; 1.00 = trivially separable"
+          },
+          "marginals": {
+            "mean_jsd": 0.037386,
+            "mean_tvd": 0.053334
+          },
+          "joint": {
+            "correlation_frobenius_diff": 2.431,
+            "target": 0.0,
+            "matrix_dim": 8,
+            "interpretation": "0.0 = identical rank-dependence structure"
+          },
+          "per_column": {
+            "log_amount": {
+              "type": "numeric",
+              "jsd": 0.050147
+            },
+            "hour_sin": {
+              "type": "numeric",
+              "jsd": 0.130707
+            },
+            "hour_cos": {
+              "type": "numeric",
+              "jsd": 0.097041
+            },
+            "dow": {
+              "type": "numeric",
+              "jsd": 0.0
+            },
+            "mcc_num": {
+              "type": "numeric",
+              "jsd": 0.012149
+            },
+            "pos_entry_mode": {
+              "type": "categorical",
+              "jsd": 0.003823,
+              "tvd": 0.066667
+            },
+            "three_ds_status": {
+              "type": "categorical",
+              "jsd": 0.003595,
+              "tvd": 0.066667
+            },
+            "mcc_group": {
+              "type": "categorical",
+              "jsd": 0.001626,
+              "tvd": 0.026667
+            }
+          }
+        },
+        "A2_gaussian_copula": {
+          "n_real": 300,
+          "n_synthetic": 120,
+          "c2st": {
+            "c2st_auc": 0.8832,
+            "per_fold": [
+              0.8807,
+              0.9328,
+              0.836
+            ],
+            "target": 0.5,
+            "passes": false,
+            "interpretation": "0.50 = indistinguishable from real; 1.00 = trivially separable"
+          },
+          "marginals": {
+            "mean_jsd": 0.034572,
+            "mean_tvd": 0.053333
+          },
+          "joint": {
+            "correlation_frobenius_diff": 1.1916,
+            "target": 0.0,
+            "matrix_dim": 8,
+            "interpretation": "0.0 = identical rank-dependence structure"
+          },
+          "per_column": {
+            "log_amount": {
+              "type": "numeric",
+              "jsd": 0.090972
+            },
+            "hour_sin": {
+              "type": "numeric",
+              "jsd": 0.059364
+            },
+            "hour_cos": {
+              "type": "numeric",
+              "jsd": 0.094328
+            },
+            "dow": {
+              "type": "numeric",
+              "jsd": 0.0
+            },
+            "mcc_num": {
+              "type": "numeric",
+              "jsd": 0.016922
+            },
+            "pos_entry_mode": {
+              "type": "categorical",
+              "jsd": 0.001206,
+              "tvd": 0.033333
+            },
+            "three_ds_status": {
+              "type": "categorical",
+              "jsd": 0.011094,
+              "tvd": 0.091667
+            },
+            "mcc_group": {
+              "type": "categorical",
+              "jsd": 0.00269,
+              "tvd": 0.035
+            }
+          }
+        }
+      }
+    }
+  ],
+  "comparator_reference": {
+    "label": "published parametric red-team",
+    "c2st": 0.9801,
+    "delta_recall": -0.038
+  },
+  "boundaries": [
+    "Real fraud means the arena environment's topology-aware synthesizers, not issuer production data.",
+    "The claim is about the RELATIONSHIP between fidelity and transfer, not an absolute recall figure for live traffic.",
+    "Augmentation budget is fixed across arms so no generator wins by volume.",
+    "Fraud train/test is a random draw stratified on attack family, so C2ST measures the generator rather than calendar drift; only the legitimate threshold-calibration split is temporal.",
+    "laboratory corpora run fraud prevalence orders of magnitude above production"
+  ]
+}

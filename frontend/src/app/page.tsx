@@ -258,8 +258,14 @@ export default function ArenaPage() {
             XGBoost · iForest · NetworkX
           </Badge>
           <Badge variant="outline" className="border-red-900 font-mono text-[9.5px] text-red-400">
-            red team: stealth/ox-alpha
+            red team: LLM (OpenRouter)
           </Badge>
+          <a
+            href="/evidence"
+            className="font-mono text-[9.5px] text-emerald-400 underline underline-offset-2 transition-colors hover:text-emerald-300"
+          >
+            evidence &amp; claim ledger →
+          </a>
         </div>
       </header>
 

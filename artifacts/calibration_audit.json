@@ -1,0 +1,499 @@
+{
+  "provenance": {
+    "schema_version": "1.0.0",
+    "generated_at": "2026-08-29T14:31:11.255892+00:00",
+    "git_sha": "dba323f",
+    "python": "3.12.13",
+    "platform": "macOS-26.6.2-arm64-arm-64bit",
+    "seeds": [
+      11,
+      23,
+      37
+    ],
+    "command": "python backend/experiments/run_calibration_audit.py"
+  },
+  "protocol": {
+    "threshold_source": "legitimate validation split, temporally disjoint from test",
+    "why": "pinning a threshold on the rows used to report it converts a measurement into a fit",
+    "seeds": [
+      11,
+      23,
+      37
+    ],
+    "fpr_budgets": [
+      0.001,
+      0.005,
+      0.01,
+      0.02,
+      0.05
+    ],
+    "headline_fpr": 0.01,
+    "production_prevalence": 0.013
+  },
+  "aggregated": {
+    "fpr_budget_0.001": {
+      "target_fpr": 0.001,
+      "realised_test_fpr": {
+        "mean": 0.0011111111111111111,
+        "lo": 0.0006666666666666666,
+        "hi": 0.002,
+        "n": 3,
+        "method": "nonparametric bootstrap, 2000 resamples"
+      },
+      "recall_on_held_out_fraud": {
+        "mean": 0.0589,
+        "lo": 0.0267,
+        "hi": 0.1033,
+        "n": 3,
+        "method": "nonparametric bootstrap, 2000 resamples"
+      },
+      "calibration_gap_pct_points": {
+        "mean": -0.022333333333333334,
+        "lo": -0.067,
+        "hi": 0.067,
+        "n": 3,
+        "method": "nonparametric bootstrap, 2000 resamples"
+      },
+      "precision_at_production_prevalence": {
+        "mean": 0.43343333333333334,
+        "lo": 0.1494,
+        "hi": 0.6712000000000001,
+        "n": 3,
+        "method": "nonparametric bootstrap, 2000 resamples"
+      }
+    },
+    "fpr_budget_0.005": {
+      "target_fpr": 0.005,
+      "realised_test_fpr": {
+        "mean": 0.005999999999999999,
+        "lo": 0.004,
+        "hi": 0.008666666666666666,
+        "n": 3,
+        "method": "nonparametric bootstrap, 2000 resamples"
+      },
+      "recall_on_held_out_fraud": {
+        "mean": 0.5499999999999999,
+        "lo": 0.38999999999999996,
+        "hi": 0.69,
+        "n": 3,
+        "method": "nonparametric bootstrap, 2000 resamples"
+      },
+      "calibration_gap_pct_points": {
+        "mean": 0.06666666666666667,
+        "lo": -0.133,
+        "hi": 0.333,
+        "n": 3,
+        "method": "nonparametric bootstrap, 2000 resamples"
+      },
+      "precision_at_production_prevalence": {
+        "mean": 0.5522,
+        "lo": 0.4642,
+        "hi": 0.6302,
+        "n": 3,
+        "method": "nonparametric bootstrap, 2000 resamples"
+      }
+    },
+    "fpr_budget_0.01": {
+      "target_fpr": 0.01,
+      "realised_test_fpr": {
+        "mean": 0.012444444444444445,
+        "lo": 0.009333333333333334,
+        "hi": 0.014666666666666666,
+        "n": 3,
+        "method": "nonparametric bootstrap, 2000 resamples"
+      },
+      "recall_on_held_out_fraud": {
+        "mean": 0.8377666666666667,
+        "lo": 0.79,
+        "hi": 0.8633000000000001,
+        "n": 3,
+        "method": "nonparametric bootstrap, 2000 resamples"
+      },
+      "calibration_gap_pct_points": {
+        "mean": 0.24433333333333337,
+        "lo": -0.067,
+        "hi": 0.467,
+        "n": 3,
+        "method": "nonparametric bootstrap, 2000 resamples"
+      },
+      "precision_at_production_prevalence": {
+        "mean": 0.4744,
+        "lo": 0.4366999999999999,
+        "hi": 0.5272,
+        "n": 3,
+        "method": "nonparametric bootstrap, 2000 resamples"
+      }
+    },
+    "fpr_budget_0.02": {
+      "target_fpr": 0.02,
+      "realised_test_fpr": {
+        "mean": 0.024444444444444446,
+        "lo": 0.021333333333333333,
+        "hi": 0.029333333333333333,
+        "n": 3,
+        "method": "nonparametric bootstrap, 2000 resamples"
+      },
+      "recall_on_held_out_fraud": {
+        "mean": 0.8911333333333333,
+        "lo": 0.8667000000000001,
+        "hi": 0.9067,
+        "n": 3,
+        "method": "nonparametric bootstrap, 2000 resamples"
+      },
+      "calibration_gap_pct_points": {
+        "mean": 0.4443333333333334,
+        "lo": 0.133,
+        "hi": 0.9330000000000002,
+        "n": 3,
+        "method": "nonparametric bootstrap, 2000 resamples"
+      },
+      "precision_at_production_prevalence": {
+        "mean": 0.32713333333333333,
+        "lo": 0.2893,
+        "hi": 0.3572,
+        "n": 3,
+        "method": "nonparametric bootstrap, 2000 resamples"
+      }
+    },
+    "fpr_budget_0.05": {
+      "target_fpr": 0.05,
+      "realised_test_fpr": {
+        "mean": 0.049999999999999996,
+        "lo": 0.048666666666666664,
+        "hi": 0.050666666666666665,
+        "n": 3,
+        "method": "nonparametric bootstrap, 2000 resamples"
+      },
+      "recall_on_held_out_fraud": {
+        "mean": 0.9711333333333334,
+        "lo": 0.9467,
+        "hi": 0.9899999999999999,
+        "n": 3,
+        "method": "nonparametric bootstrap, 2000 resamples"
+      },
+      "calibration_gap_pct_points": {
+        "mean": 0.00033333333333333365,
+        "lo": -0.133,
+        "hi": 0.067,
+        "n": 3,
+        "method": "nonparametric bootstrap, 2000 resamples"
+      },
+      "precision_at_production_prevalence": {
+        "mean": 0.20373333333333332,
+        "lo": 0.2025,
+        "hi": 0.2047,
+        "n": 3,
+        "method": "nonparametric bootstrap, 2000 resamples"
+      }
+    }
+  },
+  "per_seed": [
+    {
+      "seed": 11,
+      "splits": {
+        "legit_train": 3000,
+        "legit_validation": 1500,
+        "legit_test": 1500,
+        "fraud_train": 90,
+        "fraud_test": 300
+      },
+      "operating_points": [
+        {
+          "threshold": 0.2511462487775727,
+          "target_fpr": 0.001,
+          "validation_fpr": 0.0013333333333333333,
+          "validation_rows": 1500,
+          "test_fpr": 0.0006666666666666666,
+          "test_rows": 1500,
+          "threshold_source": "validation split (disjoint from test)",
+          "recall_on_held_out_fraud": 0.1033,
+          "calibration_gap_pct_points": -0.067,
+          "precision_at_production_prevalence": 0.6712
+        },
+        {
+          "threshold": 0.11012188749426786,
+          "target_fpr": 0.005,
+          "validation_fpr": 0.005333333333333333,
+          "validation_rows": 1500,
+          "test_fpr": 0.005333333333333333,
+          "test_rows": 1500,
+          "threshold_source": "validation split (disjoint from test)",
+          "recall_on_held_out_fraud": 0.69,
+          "calibration_gap_pct_points": 0.0,
+          "precision_at_production_prevalence": 0.6302
+        },
+        {
+          "threshold": 0.059081432170600225,
+          "target_fpr": 0.01,
+          "validation_fpr": 0.01,
+          "validation_rows": 1500,
+          "test_fpr": 0.014666666666666666,
+          "test_rows": 1500,
+          "threshold_source": "validation split (disjoint from test)",
+          "recall_on_held_out_fraud": 0.8633,
+          "calibration_gap_pct_points": 0.467,
+          "precision_at_production_prevalence": 0.4367
+        },
+        {
+          "threshold": 0.03247723363327304,
+          "target_fpr": 0.02,
+          "validation_fpr": 0.02,
+          "validation_rows": 1500,
+          "test_fpr": 0.021333333333333333,
+          "test_rows": 1500,
+          "threshold_source": "validation split (disjoint from test)",
+          "recall_on_held_out_fraud": 0.9,
+          "calibration_gap_pct_points": 0.133,
+          "precision_at_production_prevalence": 0.3572
+        },
+        {
+          "threshold": 0.009859259671430178,
+          "target_fpr": 0.05,
+          "validation_fpr": 0.05,
+          "validation_rows": 1500,
+          "test_fpr": 0.050666666666666665,
+          "test_rows": 1500,
+          "threshold_source": "validation split (disjoint from test)",
+          "recall_on_held_out_fraud": 0.99,
+          "calibration_gap_pct_points": 0.067,
+          "precision_at_production_prevalence": 0.2047
+        }
+      ]
+    },
+    {
+      "seed": 23,
+      "splits": {
+        "legit_train": 3000,
+        "legit_validation": 1500,
+        "legit_test": 1500,
+        "fraud_train": 90,
+        "fraud_test": 300
+      },
+      "operating_points": [
+        {
+          "threshold": 0.25110785625094006,
+          "target_fpr": 0.001,
+          "validation_fpr": 0.0013333333333333333,
+          "validation_rows": 1500,
+          "test_fpr": 0.002,
+          "test_rows": 1500,
+          "threshold_source": "validation split (disjoint from test)",
+          "recall_on_held_out_fraud": 0.0267,
+          "calibration_gap_pct_points": 0.067,
+          "precision_at_production_prevalence": 0.1494
+        },
+        {
+          "threshold": 0.11151986062520583,
+          "target_fpr": 0.005,
+          "validation_fpr": 0.005333333333333333,
+          "validation_rows": 1500,
+          "test_fpr": 0.008666666666666666,
+          "test_rows": 1500,
+          "threshold_source": "validation split (disjoint from test)",
+          "recall_on_held_out_fraud": 0.57,
+          "calibration_gap_pct_points": 0.333,
+          "precision_at_production_prevalence": 0.4642
+        },
+        {
+          "threshold": 0.07217901789873996,
+          "target_fpr": 0.01,
+          "validation_fpr": 0.01,
+          "validation_rows": 1500,
+          "test_fpr": 0.013333333333333334,
+          "test_rows": 1500,
+          "threshold_source": "validation split (disjoint from test)",
+          "recall_on_held_out_fraud": 0.86,
+          "calibration_gap_pct_points": 0.333,
+          "precision_at_production_prevalence": 0.4593
+        },
+        {
+          "threshold": 0.03649638889993382,
+          "target_fpr": 0.02,
+          "validation_fpr": 0.02,
+          "validation_rows": 1500,
+          "test_fpr": 0.029333333333333333,
+          "test_rows": 1500,
+          "threshold_source": "validation split (disjoint from test)",
+          "recall_on_held_out_fraud": 0.9067,
+          "calibration_gap_pct_points": 0.933,
+          "precision_at_production_prevalence": 0.2893
+        },
+        {
+          "threshold": 0.0161456763485713,
+          "target_fpr": 0.05,
+          "validation_fpr": 0.05,
+          "validation_rows": 1500,
+          "test_fpr": 0.048666666666666664,
+          "test_rows": 1500,
+          "threshold_source": "validation split (disjoint from test)",
+          "recall_on_held_out_fraud": 0.9467,
+          "calibration_gap_pct_points": -0.133,
+          "precision_at_production_prevalence": 0.204
+        }
+      ]
+    },
+    {
+      "seed": 37,
+      "splits": {
+        "legit_train": 3000,
+        "legit_validation": 1500,
+        "legit_test": 1500,
+        "fraud_train": 90,
+        "fraud_test": 300
+      },
+      "operating_points": [
+        {
+          "threshold": 0.3209923024359551,
+          "target_fpr": 0.001,
+          "validation_fpr": 0.0013333333333333333,
+          "validation_rows": 1500,
+          "test_fpr": 0.0006666666666666666,
+          "test_rows": 1500,
+          "threshold_source": "validation split (disjoint from test)",
+          "recall_on_held_out_fraud": 0.0467,
+          "calibration_gap_pct_points": -0.067,
+          "precision_at_production_prevalence": 0.4797
+        },
+        {
+          "threshold": 0.14586297422287423,
+          "target_fpr": 0.005,
+          "validation_fpr": 0.005333333333333333,
+          "validation_rows": 1500,
+          "test_fpr": 0.004,
+          "test_rows": 1500,
+          "threshold_source": "validation split (disjoint from test)",
+          "recall_on_held_out_fraud": 0.39,
+          "calibration_gap_pct_points": -0.133,
+          "precision_at_production_prevalence": 0.5622
+        },
+        {
+          "threshold": 0.07575389690651185,
+          "target_fpr": 0.01,
+          "validation_fpr": 0.01,
+          "validation_rows": 1500,
+          "test_fpr": 0.009333333333333334,
+          "test_rows": 1500,
+          "threshold_source": "validation split (disjoint from test)",
+          "recall_on_held_out_fraud": 0.79,
+          "calibration_gap_pct_points": -0.067,
+          "precision_at_production_prevalence": 0.5272
+        },
+        {
+          "threshold": 0.03946752540375254,
+          "target_fpr": 0.02,
+          "validation_fpr": 0.02,
+          "validation_rows": 1500,
+          "test_fpr": 0.02266666666666667,
+          "test_rows": 1500,
+          "threshold_source": "validation split (disjoint from test)",
+          "recall_on_held_out_fraud": 0.8667,
+          "calibration_gap_pct_points": 0.267,
+          "precision_at_production_prevalence": 0.3349
+        },
+        {
+          "threshold": 0.009938940062770029,
+          "target_fpr": 0.05,
+          "validation_fpr": 0.05,
+          "validation_rows": 1500,
+          "test_fpr": 0.050666666666666665,
+          "test_rows": 1500,
+          "threshold_source": "validation split (disjoint from test)",
+          "recall_on_held_out_fraud": 0.9767,
+          "calibration_gap_pct_points": 0.067,
+          "precision_at_production_prevalence": 0.2025
+        }
+      ]
+    }
+  ],
+  "prevalence_and_cost_sweep": [
+    {
+      "prevalence": 0.5,
+      "precision": 0.985363,
+      "true_alerts_per_million": 418883.3,
+      "false_alerts_per_million": 6222.2,
+      "missed_frauds_per_million": 81116.7,
+      "net_benefit_inr_per_million": 6108301275.0,
+      "insult_cost_inr_per_million": 2644350.0
+    },
+    {
+      "prevalence": 0.1,
+      "precision": 0.882076,
+      "true_alerts_per_million": 83776.7,
+      "false_alerts_per_million": 11200.0,
+      "missed_frauds_per_million": 16223.3,
+      "net_benefit_inr_per_million": 1216498585.0,
+      "insult_cost_inr_per_million": 4760000.0
+    },
+    {
+      "prevalence": 0.05,
+      "precision": 0.77989,
+      "true_alerts_per_million": 41888.3,
+      "false_alerts_per_million": 11822.2,
+      "missed_frauds_per_million": 8111.7,
+      "net_benefit_inr_per_million": 604994800.0,
+      "insult_cost_inr_per_million": 5024350.0
+    },
+    {
+      "prevalence": 0.013,
+      "precision": 0.469972,
+      "true_alerts_per_million": 10891.0,
+      "false_alerts_per_million": 12282.7,
+      "missed_frauds_per_million": 2109.0,
+      "net_benefit_inr_per_million": 152514395.0,
+      "insult_cost_inr_per_million": 5220275.0
+    },
+    {
+      "prevalence": 0.005,
+      "precision": 0.25278,
+      "true_alerts_per_million": 4188.8,
+      "false_alerts_per_million": 12382.2,
+      "missed_frauds_per_million": 811.2,
+      "net_benefit_inr_per_million": 54683205.0,
+      "insult_cost_inr_per_million": 5262350.0
+    },
+    {
+      "prevalence": 0.001,
+      "precision": 0.063133,
+      "true_alerts_per_million": 837.8,
+      "false_alerts_per_million": 12432.0,
+      "missed_frauds_per_million": 162.2,
+      "net_benefit_inr_per_million": 5767350.0,
+      "insult_cost_inr_per_million": 5283600.0
+    }
+  ],
+  "headline": {
+    "recall_at_1pct_fpr": {
+      "mean": 0.8377666666666667,
+      "lo": 0.79,
+      "hi": 0.8633000000000001,
+      "n": 3,
+      "method": "nonparametric bootstrap, 2000 resamples"
+    },
+    "realised_fpr": {
+      "mean": 0.012444444444444445,
+      "lo": 0.009333333333333334,
+      "hi": 0.014666666666666666,
+      "n": 3,
+      "method": "nonparametric bootstrap, 2000 resamples"
+    },
+    "calibration_gap": {
+      "mean": 0.24433333333333337,
+      "lo": -0.067,
+      "hi": 0.467,
+      "n": 3,
+      "method": "nonparametric bootstrap, 2000 resamples"
+    },
+    "precision_at_production_prevalence": {
+      "mean": 0.4744,
+      "lo": 0.4366999999999999,
+      "hi": 0.5272,
+      "n": 3,
+      "method": "nonparametric bootstrap, 2000 resamples"
+    }
+  },
+  "boundaries": [
+    "The calibration gap measures threshold generalisation inside the corpus window only.",
+    "Prevalence is a deployment assumption; the sweep shows sensitivity rather than a single truth.",
+    "INR cost rates are stated assumptions and can be overridden in evidence.economics.CostModel."
+  ]
+}

@@ -133,13 +133,18 @@ def build_customer_profiles(count: int = 1000, seed: int = 42) -> dict[str, Cust
     Each customer binds 1-3 devices (the defense layer's graph will connect
     customers <-> devices <-> merchants; shared devices between two profiles
     would be a ring signal — we deliberately do NOT share them at seed time).
+
+    `created_at` is anchored to a FIXED date (not datetime.now) so a seeded
+    registry is identical across processes — the same reason corpus_builder
+    pins _ATTACK_BASE. It is metadata only (no feature reads it today), but
+    pinning it keeps the environment free of any wall-clock read.
     """
     fake = Faker("en_US")
     Faker.seed(seed)
     rng = random.Random(seed)
 
     profiles: dict[str, CustomerProfile] = {}
-    now = datetime.now(timezone.utc)
+    now = datetime(2026, 6, 2, 0, 0, 0, tzinfo=timezone.utc)  # fixed anchor; see docstring
     for i in range(count):
         cid = f"CUST_{i:04d}"
         n_devices = rng.choices([1, 2, 3], weights=[55, 33, 12])[0]

@@ -11,9 +11,13 @@ Design notes
   (live corpus, copula sample, rule sample) can be framed the same way.
 * Cyclical time is encoded as sin/cos so that 23:59 and 00:01 are neighbours
   rather than opposite extremes -- a joint-structure detail that independent
-  marginal samplers routinely destroy.
-* `amount_round_frac` captures the "round number" tell (fraudsters type 5000,
-  cardholders pay 4987.35). Cheap, but high-signal.
+  marginal samplers routinely destroy (they do not keep the pair on the unit
+  circle; the copula treatment arm renormalises it, the control does not).
+* Two columns were removed after measuring them on the corpus: `ip_country`
+  is constant "US" across all fraud (zero fidelity signal on the fraud-vs-
+  synthetic comparison, and an artificial "non-US => legit" tell for the
+  detector), and `amount_round_frac` is ~0 for both classes here. Both added
+  only noise to C2ST, so the frame excludes them.
 """
 
 from __future__ import annotations
@@ -30,13 +34,11 @@ NUMERIC_COLS: list[str] = [
     "hour_cos",
     "dow",
     "mcc_num",
-    "amount_round_frac",
 ]
 
 CATEGORICAL_COLS: list[str] = [
     "pos_entry_mode",
     "three_ds_status",
-    "ip_country",
     "mcc_group",
 ]
 
@@ -74,7 +76,6 @@ def payload_to_features(payload: Mapping[str, Any]) -> dict[str, Any]:
     amount = float(payload["amount"])
     mcc = int(payload["mcc"])
     hour = ts.hour + ts.minute / 60.0
-    fractional = round(amount - math.floor(amount), 2)
 
     three_ds = payload.get("3ds_status")
     if three_ds is None:
@@ -86,10 +87,8 @@ def payload_to_features(payload: Mapping[str, Any]) -> dict[str, Any]:
         "hour_cos": math.cos(2.0 * math.pi * hour / 24.0),
         "dow": float(ts.weekday()),
         "mcc_num": float(mcc),
-        "amount_round_frac": 1.0 if fractional == 0.0 else 0.0,
         "pos_entry_mode": str(payload["pos_entry_mode"]),
         "three_ds_status": str(three_ds),
-        "ip_country": str(payload["ip_country"]),
         "mcc_group": mcc_group(mcc),
     }
 

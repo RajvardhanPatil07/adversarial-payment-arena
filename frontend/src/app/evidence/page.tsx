@@ -328,8 +328,10 @@ export default function EvidencePage() {
                 </div>
                 <div style={styles.cardValue}>{pct(summary.insult_share_of_total_cost)}</div>
                 <div style={styles.cardNote}>
-                  At a 1% false-positive rate, wrongly declined legitimate payments dominate the
-                  ledger. Most fraud demos price only the fraud they stopped.
+                  At a 1% false-positive rate, wrongly declined legitimate payments are the
+                  single largest cost term — larger than the fraud losses that slip through.
+                  The asymmetric cost matrix is what keeps that term bounded. Most fraud demos
+                  price only the fraud they stopped.
                 </div>
               </div>
             </section>

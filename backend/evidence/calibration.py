@@ -69,6 +69,51 @@ def chronological_split(
     return list(items[:n_train]), list(items[n_train:n_train + n_val]), list(items[n_train + n_val:])
 
 
+def stratified_split_by_key(
+    rows: Sequence[dict],
+    train_n: int,
+    seed: int,
+    key: str = "attack_id",
+) -> tuple[list, list]:
+    """Split labelled rows into (train, test) by a RANDOM draw stratified on
+    `key`, so both slices share one distribution.
+
+    Why not a chronological split for fraud? Fraud is non-stationary, so a
+    time-ordered ``fraud[:n] / fraud[n:]`` split confounds the thing under test
+    (generator fidelity) with calendar drift: time-of-day, weekday, and the
+    mix of attack families all shift across the corpus window. A classifier
+    two-sample test then separates the fit slice from the eval slice on the
+    CALENDAR, driving C2ST toward 1.0 no matter how good the generator is.
+    Stratifying a random draw on the attack family removes that confound, so
+    fidelity metrics measure the generator rather than the clock.
+
+    (Thresholds are a different matter: their temporal `chronological_split`
+    stays, because calibrating an operating point on future traffic *would* be
+    leakage. Fidelity is a distributional comparison, not an operating point.)
+
+    With balanced families the allocation is exact — e.g. three families of 130
+    with ``train_n=90`` yields 30/30/30. Group iteration is sorted and draws use
+    a seeded generator, so the split is fully deterministic.
+    """
+    n = len(rows)
+    if not 0 < train_n < n:
+        raise ValueError(f"train_n must be in (0, {n}); got {train_n}")
+    rng = np.random.default_rng(seed)
+    groups: dict[str, list] = {}
+    for r in rows:
+        groups.setdefault(str(r[key]), []).append(r)
+
+    train: list = []
+    test: list = []
+    for k in sorted(groups):
+        grp = groups[k]
+        n_train_grp = int(round(len(grp) * train_n / n))
+        chosen = set(rng.permutation(len(grp))[:n_train_grp].tolist())
+        for j, row in enumerate(grp):
+            (train if j in chosen else test).append(row)
+    return train, test
+
+
 def pin_threshold_at_fpr(legit_scores: Sequence[float], target_fpr: float) -> float:
     """Smallest threshold whose false-positive rate on `legit_scores` does not
     exceed `target_fpr`. Scores are 'higher is more suspicious'.
@@ -209,4 +254,5 @@ __all__ = [
     "precision_at_prevalence",
     "prevalence_sweep",
     "recall_at_threshold",
+    "stratified_split_by_key",
 ]

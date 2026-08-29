@@ -79,7 +79,7 @@ export function AttackerFeed({
         <CardTitle className="flex items-center gap-2 text-sm">
           Attacker Stream
           <Badge variant="outline" className="font-mono text-[9px] text-red-400 border-red-900">
-            stealth/ox-alpha
+            LLM red team
           </Badge>
         </CardTitle>
       </CardHeader>
