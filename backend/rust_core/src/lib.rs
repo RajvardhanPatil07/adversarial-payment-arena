@@ -222,12 +222,13 @@ impl RollingFeatureState {
     ) {
         let maxlen = self.maxlen;
 
-        let customer = self.customer_states.entry(customer_id.to_owned()).or_insert_with(|| {
-            CustomerState {
+        let customer = self
+            .customer_states
+            .entry(customer_id.to_owned())
+            .or_insert_with(|| CustomerState {
                 ordered: true,
                 ..CustomerState::default()
-            }
-        });
+            });
         customer.ordered &= was_monotonic(&customer.events, ts, |event| event.ts);
         if customer.events.len() >= maxlen {
             if let Some(evicted) = customer.events.pop_front() {
@@ -237,12 +238,13 @@ impl RollingFeatureState {
         customer.events.push_back(CustomerEvent { ts, amount, mcc });
         customer.amount_sum += amount;
 
-        let device = self.device_states.entry(device_id.to_owned()).or_insert_with(|| {
-            DeviceState {
+        let device = self
+            .device_states
+            .entry(device_id.to_owned())
+            .or_insert_with(|| DeviceState {
                 ordered: true,
                 ..DeviceState::default()
-            }
-        });
+            });
         device.ordered &= was_monotonic(&device.events, ts, |event| event.ts);
         if device.events.len() >= maxlen {
             device.events.pop_front();
