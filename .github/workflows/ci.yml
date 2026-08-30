@@ -34,6 +34,7 @@ jobs:
           tests/test_threat_miner.py
           tests/test_graph_risk.py
           tests/test_challenger_containment.py
+          tests/test_feedback_adapter.py
 
   model-sweep:
     name: Fraud model quality + throughput sweep
