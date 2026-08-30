@@ -193,7 +193,12 @@ def main() -> None:
                 continue
 
             truth = "attack" if msg.stolen_resource is not None else "legit"
-            prepared.append(engine.prepare_for_batch(msg))
+            # ``env.ingest`` has already validated and serialized this exact
+            # message into the internal event. Reuse that wire representation
+            # instead of coercing/model-dumping the same transaction again.
+            prepared.append(
+                engine.prepare_wire_for_batch(gate["internal_event"]["payload"])
+            )
             truths.append(truth)
         prepare_seconds += time.perf_counter() - started
 
