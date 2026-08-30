@@ -107,6 +107,11 @@ def main() -> None:
     parser.add_argument("--events", type=int, default=12_000)
     parser.add_argument("--repeats", type=int, default=3)
     parser.add_argument("--maxlen", type=int, default=500)
+    parser.add_argument(
+        "--native-only",
+        action="store_true",
+        help="Measure only the Rust/PyO3 backend for large-volume scale runs.",
+    )
     parser.add_argument("--json", type=Path)
     args = parser.parse_args()
 
@@ -117,13 +122,26 @@ def main() -> None:
     results = {
         "scope": "FeatureExtractor.features+observe only; excludes XGBoost inference",
         "events_per_workload": args.events,
+        "total_measured_events": args.events * 3 * args.repeats,
         "repeats": args.repeats,
         "maxlen": args.maxlen,
+        "backend_mode": "rust-only" if args.native_only else "python-vs-rust",
         "workloads": {},
     }
 
     for kind in ("hot", "windowed", "mixed"):
         payloads = _payloads(kind, args.events)
+        if args.native_only:
+            results["workloads"][kind] = {
+                "rust": _measure(
+                    payloads,
+                    native=True,
+                    repeats=args.repeats,
+                    maxlen=args.maxlen,
+                )
+            }
+            continue
+
         python_result = _measure(payloads, native=False, repeats=args.repeats, maxlen=args.maxlen)
         rust_result = _measure(payloads, native=True, repeats=args.repeats, maxlen=args.maxlen)
         if python_result["checksum"] != rust_result["checksum"]:
