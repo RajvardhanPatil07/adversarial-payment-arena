@@ -159,10 +159,11 @@ impl GraphRiskState {
             .entry(device_id.to_owned())
             .or_default()
             .observe(ts, self.window_seconds, customer_id);
-        self.ips
-            .entry(ip_address.to_owned())
-            .or_default()
-            .observe(ts, self.window_seconds, customer_id);
+        self.ips.entry(ip_address.to_owned()).or_default().observe(
+            ts,
+            self.window_seconds,
+            customer_id,
+        );
         self.merchants
             .entry(merchant_id.to_owned())
             .or_default()
@@ -193,8 +194,7 @@ mod tests {
         let mut state = GraphRiskState::new(600.0).unwrap();
         state.observe(1.0, "C1", "D", "1.1.1.1", "M1");
         state.observe(2.0, "C2", "D", "2.2.2.2", "M2");
-        let (risk, ring, device_degree, _, _) =
-            state.check(3.0, "C3", "D", "3.3.3.3", "M3");
+        let (risk, ring, device_degree, _, _) = state.check(3.0, "C3", "D", "3.3.3.3", "M3");
         assert!(ring);
         assert_eq!(device_degree, 3);
         assert!(risk >= 0.72);
