@@ -1,14 +1,13 @@
 """Compare production-plausible fraud model families on one reproducible corpus.
 
-The sweep deliberately scores both detection quality and batch inference speed.
-It uses the existing transaction feature contract plus an optional compact set
-of local graph-context features derived from the exact EntityGraph semantics.
+The sweep scores both held-out fraud quality and batched inference speed. It
+uses the existing transaction feature contract plus an optional compact set of
+local graph-context features derived from the exact EntityGraph semantics.
 
 Heavy GNN/Transformer runtimes are not silently treated as equivalent: the
-current training corpus stores per-transaction tabular features, not learned
-node/edge sequence tensors. The graph-augmented candidates therefore test the
-useful part we can validate today -- whether local structural context improves
-held-out fraud detection enough to justify more graph learning later.
+current corpus stores per-transaction tabular features, not learned node/edge
+sequence tensors. The graph-augmented candidates test the useful structural
+signal we can validate today before adding a deep graph runtime.
 """
 from __future__ import annotations
 
@@ -22,9 +21,10 @@ from pathlib import Path
 
 import numpy as np
 from sklearn.decomposition import PCA
-from sklearn.ensemble import ExtraTreesClassifier, IsolationForest, RandomForestClassifier, HistGradientBoostingClassifier
+from sklearn.ensemble import ExtraTreesClassifier, HistGradientBoostingClassifier, IsolationForest, RandomForestClassifier
 from sklearn.linear_model import LogisticRegression, SGDClassifier
 from sklearn.neural_network import MLPClassifier
+from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
 from sklearn.svm import OneClassSVM
 from xgboost import XGBClassifier
@@ -81,7 +81,7 @@ def base_matrix(rows: list[dict]) -> np.ndarray:
     )
 
 
-def supervised_models(seed: int) -> dict[str, object]:
+def supervised_models(seed: int, scale_pos_weight: float) -> dict[str, object]:
     return {
         "xgboost": XGBClassifier(
             n_estimators=300,
@@ -91,6 +91,7 @@ def supervised_models(seed: int) -> dict[str, object]:
             colsample_bytree=0.9,
             min_child_weight=5,
             gamma=0.1,
+            scale_pos_weight=scale_pos_weight,
             eval_metric="logloss",
             random_state=seed,
             n_jobs=-1,
@@ -119,26 +120,31 @@ def supervised_models(seed: int) -> dict[str, object]:
             n_jobs=-1,
             random_state=seed,
         ),
-        "logistic": LogisticRegression(
-            max_iter=1000,
-            class_weight="balanced",
-            random_state=seed,
+        "logistic": make_pipeline(
+            StandardScaler(),
+            LogisticRegression(max_iter=1000, class_weight="balanced", random_state=seed),
         ),
-        "sgd_logistic": SGDClassifier(
-            loss="log_loss",
-            alpha=1e-4,
-            class_weight="balanced",
-            max_iter=2000,
-            tol=1e-4,
-            random_state=seed,
+        "sgd_logistic": make_pipeline(
+            StandardScaler(),
+            SGDClassifier(
+                loss="log_loss",
+                alpha=1e-4,
+                class_weight="balanced",
+                max_iter=2000,
+                tol=1e-4,
+                random_state=seed,
+            ),
         ),
-        "small_mlp": MLPClassifier(
-            hidden_layer_sizes=(32, 16),
-            activation="relu",
-            alpha=1e-4,
-            max_iter=250,
-            early_stopping=True,
-            random_state=seed,
+        "small_mlp": make_pipeline(
+            StandardScaler(),
+            MLPClassifier(
+                hidden_layer_sizes=(32, 16),
+                activation="relu",
+                alpha=1e-4,
+                max_iter=250,
+                early_stopping=True,
+                random_state=seed,
+            ),
         ),
     }
 
@@ -178,7 +184,7 @@ class PCANovelty(NoveltyBase):
     def fit(self, x: np.ndarray) -> "PCANovelty":
         z = self.scaler.fit_transform(x)
         components = max(1, min(6, z.shape[1] - 1))
-        self.pca = PCA(n_components=components, random_state=42).fit(z)
+        self.pca = PCA(n_components=components).fit(z)
         scores = self._scores_z(z)
         self.threshold = float(np.quantile(scores, 0.99))
         return self
@@ -255,18 +261,11 @@ def benchmark_call(fn, x: np.ndarray, target_rows: int = 200_000, repeats: int =
     return float(len(bench) / elapsed)
 
 
-def final_metrics(
-    scores: np.ndarray,
-    anomalies: np.ndarray,
-    rings: list[dict],
-    rows: list[dict],
-) -> dict:
+def final_metrics(scores: np.ndarray, anomalies: np.ndarray, rings: list[dict], rows: list[dict]) -> dict:
     decisions: list[str] = []
     per_family: Counter[str] = Counter()
     family_totals: Counter[str] = Counter()
-    fp = 0
-    attacks = 0
-    caught = 0
+    fp = attacks = caught = 0
     for idx, row in enumerate(rows):
         is_attack = int(row["label"]) == 1
         attack_id = row["attack_id"]
@@ -300,11 +299,10 @@ def final_metrics(
         attack: round(per_family[attack] / max(1, total), 4)
         for attack, total in sorted(family_totals.items())
     }
-    worst_family = min(per_attack.values(), default=0.0)
     return {
         "fpr": round(fpr, 6),
         "tpr": round(tpr, 6),
-        "worst_family_tpr": round(worst_family, 6),
+        "worst_family_tpr": round(min(per_attack.values(), default=0.0), 6),
         "caught": caught,
         "attacks": attacks,
         "false_positives": fp,
@@ -334,6 +332,9 @@ def main() -> None:
     x_eval_graph = np.hstack([x_eval_base, g_eval])
     y_train = np.asarray([int(row["label"]) for row in train_rows], dtype=np.int8)
     legit_mask = y_train == 0
+    positives = int(y_train.sum())
+    negatives = int((y_train == 0).sum())
+    scale_pos_weight = negatives / max(positives, 1)
 
     results: dict = {
         "train_rows": len(train_rows),
@@ -344,13 +345,13 @@ def main() -> None:
         },
         "methodology": (
             "Fresh seed evaluation across attacks 1-8. Final decisions preserve the existing "
-            "ring-first ladder and 0.85/0.60/0.30 score thresholds. Throughput measures "
-            "batched model inference only on 200k rows."
+            "ring-first ladder and 0.85/0.60/0.30 score thresholds. Linear/MLP inputs are "
+            "standardized and XGBoost uses the production class-imbalance weighting."
         ),
         "deep_model_note": (
             "CNN/Transformer/TGN/GNN candidates require raw sequence/edge tensors and a deep-learning "
             "runtime not present in the production contract. They are not assigned invented scores; "
-            "the base_plus_graph sweep tests validated structural context first."
+            "base_plus_graph validates structural context first."
         ),
         "candidates": [],
     }
@@ -359,7 +360,7 @@ def main() -> None:
         ("base", x_train_base, x_eval_base),
         ("base_plus_graph", x_train_graph, x_eval_graph),
     ):
-        supervised = supervised_models(seed=42)
+        supervised = supervised_models(seed=42, scale_pos_weight=scale_pos_weight)
         novelty = novelty_models(seed=42)
 
         supervised_results: dict[str, tuple[np.ndarray, float]] = {}
@@ -399,8 +400,6 @@ def main() -> None:
             for novelty_name, (anomalies, novelty_tps) in novelty_results.items():
                 metrics = final_metrics(scores, anomalies, eval_rings, eval_rows)
                 combined_tps = 1.0 / (1.0 / supervised_tps + 1.0 / novelty_tps)
-                # Quality dominates. Speed differentiates candidates that satisfy
-                # the same FPR/TPR envelope; a failed FPR budget is heavily penalized.
                 quality = (
                     0.55 * metrics["tpr"]
                     + 0.25 * metrics["worst_family_tpr"]
@@ -408,14 +407,13 @@ def main() -> None:
                 )
                 fpr_penalty = 0.35 if metrics["fpr"] > 0.05 else 0.0
                 speed_bonus = min(math.log10(max(combined_tps, 1.0)) / 8.0, 0.15)
-                rank_score = quality - fpr_penalty + speed_bonus
                 results["candidates"].append({
                     "kind": "combined",
                     "feature_set": feature_set,
                     "supervised": supervised_name,
                     "novelty": novelty_name,
                     "combined_model_rows_per_second": round(combined_tps, 2),
-                    "rank_score": round(rank_score, 6),
+                    "rank_score": round(quality - fpr_penalty + speed_bonus, 6),
                     **metrics,
                 })
 
