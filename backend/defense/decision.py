@@ -60,20 +60,11 @@ class DecisionEngine:
         graph: EntityGraph | None = None,
     ) -> None:
         self.env = environment
-        # One extractor instance shared by scorer layers keeps state coherent;
-        # a custom scorer brings its own only if the caller wires it so.
         self.scorer = scorer or VelocityScorer()
-        # CRITICAL WIRING: the scorer's extractor needs issuer state for
-        # device-binding lookups. Without this, device_known silently reads 0
-        # for EVERYONE at inference — train/infer skew that nukes the FPR.
         if environment is not None:
             self.scorer.extractor.env = environment
         self.novelty = novelty or NoveltyDetector()
         self.graph = graph or EntityGraph()
-
-    # ------------------------------------------------------------------ #
-    # Training entrypoint (delegates to layers over one labeled corpus)
-    # ------------------------------------------------------------------ #
 
     def train(self, rows: list[dict]) -> dict:
         metrics = {
@@ -81,10 +72,6 @@ class DecisionEngine:
             "iforest": self.novelty.train(rows, save_path=None),
         }
         return metrics
-
-    # ------------------------------------------------------------------ #
-    # Inference
-    # ------------------------------------------------------------------ #
 
     @staticmethod
     def _coerce(payload) -> PaymentMessage:
@@ -120,6 +107,14 @@ class DecisionEngine:
         else:
             decision = APPROVE
 
+        shared = ring.get("shared_infra", [])
+        graph_component_customers = int(ring.get("component_customers", 1))
+        graph_shared_infra_count = len(shared)
+        graph_max_linked_customers = max(
+            (int(item.get("linked_customers", 0)) for item in shared),
+            default=0,
+        )
+
         return {
             "decision": decision,
             "reasons": reasons,
@@ -130,6 +125,12 @@ class DecisionEngine:
                 "ring_risk": ring["risk_score"],
                 "ring_detected": ring["ring_detected"],
                 "ring_id": ring["ring_id"],
+                # Same compact graph-context contract used by the fair model
+                # sweep. These are additive observability fields; they do not
+                # change the champion decision ladder.
+                "graph_component_customers": graph_component_customers,
+                "graph_shared_infra_count": graph_shared_infra_count,
+                "graph_max_linked_customers": graph_max_linked_customers,
             },
             "features": feats,
             "payload": wire,
@@ -156,8 +157,6 @@ class DecisionEngine:
         nov = self.novelty.detect(wire, feats)
         ring = self.graph.check(wire)
 
-        # Fold state forward. EntityGraph.observe() returns only newly-created
-        # edges; repeats only bump edge weights and produce no graph delta.
         self.scorer.observe(wire)
         graph_new_edges = self.graph.observe(wire)
 
@@ -171,19 +170,7 @@ class DecisionEngine:
         )
 
     def prepare_for_batch(self, payload: PaymentMessage | dict) -> PreparedDecision:
-        """Capture all stateful analysis for one row, then advance state.
-
-        Model inference is deliberately deferred. XGBoost and IsolationForest
-        are stateless at inference time, so batching them later cannot affect
-        the rolling features or graph result captured here. The feature values
-        are computed before the current event is observed, exactly like
-        :meth:`decide`.
-
-        For callers that also use ``PaymentEnvironment.ingest``, ingest each
-        message and call this method immediately before moving to the next
-        message. That preserves the same issuer-ledger timing as the scalar
-        application path while still allowing model inference to be batched.
-        """
+        """Capture all stateful analysis for one row, then advance state."""
         msg = self._coerce(payload)
         wire = msg.to_wire()
         history = (
@@ -227,10 +214,6 @@ class DecisionEngine:
         prepared = [self.prepare_for_batch(payload) for payload in payloads]
         return self.finalize_batch(prepared)
 
-    # ------------------------------------------------------------------ #
-    # Cost matrix
-    # ------------------------------------------------------------------ #
-
     @staticmethod
     def _new_cost_totals() -> dict:
         return {
@@ -241,24 +224,21 @@ class DecisionEngine:
         }
 
     def apply_to_running_totals(self, totals: dict, record: dict, truth: str) -> None:
-        """Fold ONE decision into running counters (live cost tracking for
-        the dashboard). truth: 'legit' | anything else counts as attack."""
+        """Fold ONE decision into running counters."""
         amt = float(record["amount"])
         d = record["decision"]
         if truth == "legit":
             totals["legit_volume"] += amt
-            if d != APPROVE:  # any friction on honest customers is FP
+            if d != APPROVE:
                 totals["fp_count"] += 1
                 totals["fp_cost_usd"] += amt * FP_FRICTION_BPS / 10_000.0
         else:
             if d == APPROVE:
                 totals["fn_count"] += 1
-                totals["fn_loss_usd"] += amt          # fraud loss: full amount
+                totals["fn_loss_usd"] += amt
             elif d == DECLINE:
                 totals["tp_count"] += 1
-                totals["tp_saved_usd"] += amt         # prevented loss
-            # STEP_UP / MANUAL_REVIEW on attacks: challenged — neither lost
-            # nor saved until the challenge resolves.
+                totals["tp_saved_usd"] += amt
 
     @classmethod
     def summarize_totals(cls, totals: dict) -> dict:
@@ -284,10 +264,6 @@ class DecisionEngine:
         decisions: Iterable[dict],
         ground_truth: Iterable[str],
     ) -> dict:
-        """
-        decisions: outputs of .decide(); ground_truth: aligned labels where
-        'legit' means genuine traffic and anything else is attack.
-        """
         totals = self._new_cost_totals()
         for rec, truth in zip(decisions, ground_truth):
             self.apply_to_running_totals(totals, rec, truth)
