@@ -22,6 +22,7 @@ Cost matrix (bps = basis points of transaction amount):
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from typing import Iterable
 
 from defense.graph import EntityGraph
@@ -36,6 +37,16 @@ STEPUP_VELOCITY = 0.60
 MANUAL_VELOCITY = 0.30
 
 FP_FRICTION_BPS = 15.0
+
+
+@dataclass(slots=True)
+class PreparedDecision:
+    """Stateful pre-model work captured for later batched model inference."""
+
+    wire: dict
+    features: dict
+    ring: dict
+    graph_new_edges: list[tuple[str, str]]
 
 
 class DecisionEngine:
@@ -81,24 +92,15 @@ class DecisionEngine:
             return payload
         return PaymentMessage.model_validate(payload)
 
-    def decide(self, payload: PaymentMessage | dict) -> dict:
-        """Score one payload and emit the issuer decision.
-
-        Observe-after-score discipline: all layer state is folded in AFTER
-        the decision, never before. Newly created graph edges are returned as
-        a small delta so the live API never needs to rescan the entire graph.
-        """
-        msg = self._coerce(payload)
-        wire = msg.to_wire()
-        history = (
-            self.env.get_customer_history(msg.customer_id) if self.env else None
-        )
-
-        feats = self.scorer.features(wire, history)
-        v_score = self.scorer.score_from_features(feats)
-        nov = self.novelty.detect(wire, feats)
-        ring = self.graph.check(wire)
-
+    @staticmethod
+    def _record_from_scores(
+        wire: dict,
+        feats: dict,
+        v_score: float,
+        nov: dict,
+        ring: dict,
+        graph_new_edges: list[tuple[str, str]],
+    ) -> dict:
         reasons: list[str] = []
         if ring["ring_detected"]:
             decision = DECLINE
@@ -118,11 +120,6 @@ class DecisionEngine:
         else:
             decision = APPROVE
 
-        # Fold state forward. EntityGraph.observe() returns only newly-created
-        # edges; repeats only bump edge weights and produce no graph delta.
-        self.scorer.observe(wire)
-        graph_new_edges = self.graph.observe(wire)
-
         return {
             "decision": decision,
             "reasons": reasons,
@@ -140,6 +137,95 @@ class DecisionEngine:
             "label_hint": wire.get("stolen_resource") is not None,
             "graph_new_edges": graph_new_edges,
         }
+
+    def decide(self, payload: PaymentMessage | dict) -> dict:
+        """Score one payload and emit the issuer decision.
+
+        Observe-after-score discipline: all layer state is folded in AFTER
+        the decision, never before. Newly created graph edges are returned as
+        a small delta so the live API never needs to rescan the entire graph.
+        """
+        msg = self._coerce(payload)
+        wire = msg.to_wire()
+        history = (
+            self.env.get_customer_history(msg.customer_id) if self.env else None
+        )
+
+        feats = self.scorer.features(wire, history)
+        v_score = self.scorer.score_from_features(feats)
+        nov = self.novelty.detect(wire, feats)
+        ring = self.graph.check(wire)
+
+        # Fold state forward. EntityGraph.observe() returns only newly-created
+        # edges; repeats only bump edge weights and produce no graph delta.
+        self.scorer.observe(wire)
+        graph_new_edges = self.graph.observe(wire)
+
+        return self._record_from_scores(
+            wire,
+            feats,
+            v_score,
+            nov,
+            ring,
+            graph_new_edges,
+        )
+
+    def prepare_for_batch(self, payload: PaymentMessage | dict) -> PreparedDecision:
+        """Capture all stateful analysis for one row, then advance state.
+
+        Model inference is deliberately deferred. XGBoost and IsolationForest
+        are stateless at inference time, so batching them later cannot affect
+        the rolling features or graph result captured here. The feature values
+        are computed before the current event is observed, exactly like
+        :meth:`decide`.
+
+        For callers that also use ``PaymentEnvironment.ingest``, ingest each
+        message and call this method immediately before moving to the next
+        message. That preserves the same issuer-ledger timing as the scalar
+        application path while still allowing model inference to be batched.
+        """
+        msg = self._coerce(payload)
+        wire = msg.to_wire()
+        history = (
+            self.env.get_customer_history(msg.customer_id) if self.env else None
+        )
+
+        ring = self.graph.check(wire)
+        feats = self.scorer.features_and_observe(wire, history)
+        graph_new_edges = self.graph.observe(wire)
+        return PreparedDecision(
+            wire=wire,
+            features=feats,
+            ring=ring,
+            graph_new_edges=graph_new_edges,
+        )
+
+    def finalize_batch(self, prepared: list[PreparedDecision]) -> list[dict]:
+        """Run both ML layers in batches and fuse the original decision ladder."""
+        if not prepared:
+            return []
+
+        features = [item.features for item in prepared]
+        wires = [item.wire for item in prepared]
+        velocity_scores = self.scorer.score_many_from_features(features)
+        novelty = self.novelty.detect_many(wires, features)
+
+        return [
+            self._record_from_scores(
+                item.wire,
+                item.features,
+                v_score,
+                nov,
+                item.ring,
+                item.graph_new_edges,
+            )
+            for item, v_score, nov in zip(prepared, velocity_scores, novelty)
+        ]
+
+    def decide_batch(self, payloads: Iterable[PaymentMessage | dict]) -> list[dict]:
+        """High-throughput decision path with scalar-equivalent state semantics."""
+        prepared = [self.prepare_for_batch(payload) for payload in payloads]
+        return self.finalize_batch(prepared)
 
     # ------------------------------------------------------------------ #
     # Cost matrix
@@ -210,6 +296,7 @@ class DecisionEngine:
 
 __all__ = [
     "DecisionEngine",
+    "PreparedDecision",
     "APPROVE",
     "STEP_UP",
     "DECLINE",
