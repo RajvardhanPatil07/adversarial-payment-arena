@@ -283,6 +283,18 @@ class PaymentEnvironment:
         self.merchant_registry = build_merchant_registry()
         self.customers = build_customer_profiles(n_customers, seed=seed)
 
+        # These views are immutable for the lifetime of the simulated issuer
+        # world. Building them once avoids Pydantic serialization and repeated
+        # list scans in the per-authorization hot path.
+        self._merchant_enrichment: dict[str, dict] = {
+            merchant_id: merchant.model_dump()
+            for merchant_id, merchant in self.merchant_registry.items()
+        }
+        self._customer_devices: dict[str, frozenset[str]] = {
+            customer_id: frozenset(customer.devices)
+            for customer_id, customer in self.customers.items()
+        }
+
         self._history_size = history_size
         self._customer_ledgers: dict[str, deque] = {
             cid: deque(maxlen=history_size) for cid in self.customers
@@ -356,6 +368,10 @@ class PaymentEnvironment:
         """Return the retained ACCEPTED transaction history for a customer."""
         return list(self._customer_ledgers.get(customer_id, ()))
 
+    def is_device_known(self, customer_id: str, device_id: str) -> bool:
+        """O(1) issuer binding lookup used by enrichment/feature extraction."""
+        return device_id in self._customer_devices.get(customer_id, ())
+
     # ------------------------------------------------------------------ #
     # Internals
     # ------------------------------------------------------------------ #
@@ -366,7 +382,7 @@ class PaymentEnvironment:
         `device_known` is enrichment only — a new device is NOT a gate reject;
         novel-device scoring belongs to the defense stack (novelty.py).
         """
-        merchant = self.merchant_registry.get(payload.merchant_id)
+        merchant = self._merchant_enrichment.get(payload.merchant_id)
         customer = self.customers.get(payload.customer_id)
         return {
             "type": "transaction",
@@ -375,10 +391,12 @@ class PaymentEnvironment:
             "risk_flags": flags,
             "payload": payload.to_wire(),
             "enrichment": {
-                "merchant": merchant.model_dump() if merchant else None,
+                # Give each event its own mapping so downstream diagnostic code
+                # can mutate an event without corrupting the cached registry view.
+                "merchant": dict(merchant) if merchant is not None else None,
                 "customer_country": customer.country if customer else None,
-                "device_known": bool(
-                    customer and payload.device_id in customer.devices
+                "device_known": self.is_device_known(
+                    payload.customer_id, payload.device_id
                 ),
                 "balance_before": customer.balance if customer else None,
             },
