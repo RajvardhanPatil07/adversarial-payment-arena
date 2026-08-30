@@ -103,6 +103,26 @@ class DecisionEngine:
             return payload
         return PaymentMessage.model_validate(payload)
 
+    def _history_for(self, customer_id: str) -> list[dict] | None:
+        """Return issuer history only while the scorer is genuinely cold.
+
+        The environment ledger is primarily a cold-start aid for
+        ``amount_over_mean30``. Once the scorer has observed one transaction for
+        a customer, the rolling/sequence state owns the required history. The
+        previous implementation copied the bounded issuer deque to a new list
+        on every authorization, even though that list was ignored after the
+        first scorer observation. At scale that meant copying tens of millions
+        of Python references for no change in model behavior.
+        """
+        if self.env is None:
+            return None
+        extractor = getattr(self.scorer, "extractor", None)
+        sequence = getattr(extractor, "_sequence", None)
+        customers = getattr(sequence, "customers", None)
+        if customers is not None and customer_id in customers:
+            return None
+        return self.env.get_customer_history(customer_id)
+
     def calibrate(
         self,
         rows: Iterable[dict],
@@ -313,9 +333,7 @@ class DecisionEngine:
     def decide(self, payload: PaymentMessage | dict) -> dict:
         msg = self._coerce(payload)
         wire = msg.to_wire()
-        history = (
-            self.env.get_customer_history(msg.customer_id) if self.env else None
-        )
+        history = self._history_for(msg.customer_id)
 
         feats = self.scorer.features(wire, history)
         velocity = self.scorer.score_from_features(feats)
@@ -328,17 +346,26 @@ class DecisionEngine:
             wire, feats, velocity, novelty, ring, graph_new_edges
         )
 
-    def prepare_for_batch(self, payload: PaymentMessage | dict) -> PreparedDecision:
-        """Capture stateful analysis for one row and then advance state."""
-        msg = self._coerce(payload)
-        wire = msg.to_wire()
-        history = (
-            self.env.get_customer_history(msg.customer_id) if self.env else None
-        )
+    def prepare_wire_for_batch(self, wire: dict) -> PreparedDecision:
+        """Prepare an already validated/serialized wire payload.
+
+        This is the high-throughput entry point used after ``PaymentEnvironment``
+        has already validated and serialized a ``PaymentMessage``. It avoids a
+        second Pydantic coercion and a second ``model_dump(mode='json')`` while
+        preserving the exact same state transition ordering as
+        ``prepare_for_batch``.
+        """
+        customer_id = str(wire["customer_id"])
+        history = self._history_for(customer_id)
         ring = self.graph.check(wire)
         feats = self.scorer.features_and_observe(wire, history)
         graph_new_edges = self.graph.observe(wire)
         return PreparedDecision(wire, feats, ring, graph_new_edges)
+
+    def prepare_for_batch(self, payload: PaymentMessage | dict) -> PreparedDecision:
+        """Capture stateful analysis for one row and then advance state."""
+        msg = self._coerce(payload)
+        return self.prepare_wire_for_batch(msg.to_wire())
 
     def finalize_batch(self, prepared: list[PreparedDecision]) -> list[dict]:
         if not prepared:
