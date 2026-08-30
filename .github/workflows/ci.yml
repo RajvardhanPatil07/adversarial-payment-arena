@@ -44,7 +44,7 @@ jobs:
         run: cargo test --manifest-path backend/rust_core/Cargo.toml
       - name: Build native wheel
         run: |
-          python -m pip install "maturin>=1.8,<2" pytest numpy
+          python -m pip install "maturin>=1.9.4,<2" pytest numpy
           maturin build --release --manifest-path backend/rust_core/Cargo.toml --interpreter python3 --out /tmp/arena-wheels
           python -m pip install /tmp/arena-wheels/*.whl
       - name: Verify native/Python feature parity
