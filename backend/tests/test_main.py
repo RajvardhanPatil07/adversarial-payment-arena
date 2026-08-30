@@ -21,7 +21,7 @@ def _free_port() -> int:
         return sock.getsockname()[1]
 
 
-def _wait_ready(port: int, timeout_s: float = 40.0) -> bool:
+def _wait_ready(port: int, timeout_s: float = 50.0) -> bool:
     deadline = time.time() + timeout_s
     while time.time() < deadline:
         try:
@@ -75,6 +75,10 @@ def test_rest_endpoints(server_port: int):
     health = httpx.get(f"{base}/api/health").json()
     assert health["status"] == "ok"
     assert health["feature_backend"] in {"python", "rust"}
+    assert health["graph_backend"] in {"python", "rust"}
+    assert set(health["graph_state_sizes"]) == {"devices", "ips", "merchants"}
+    assert "threat_miner" in health
+    assert health["challenger"]["controls_live_authorizations"] is False
 
     merchants = httpx.get(f"{base}/api/merchants").json()
     assert len(merchants) == 20
@@ -90,6 +94,17 @@ def test_rest_endpoints(server_port: int):
     assert set(snapshot) == {"nodes", "edges"}
     assert all({"id", "type"} == set(node) for node in snapshot["nodes"])
 
+    threats = httpx.get(f"{base}/api/threats").json()
+    assert set(threats) == {"diagnostics", "threats"}
+    assert isinstance(threats["threats"], list)
+
+    challenger = httpx.get(f"{base}/api/challenger").json()
+    assert challenger["controls_live_authorizations"] is False
+    assert challenger["name"].startswith("random_forest")
+
+    containment = httpx.get(f"{base}/api/containment/last").json()
+    assert "containment" in containment
+
     assert (
         httpx.post(f"{base}/api/load_attack", json={"filename": "../secrets"}).status_code
         == 400
@@ -102,6 +117,7 @@ async def _ws_campaign_flow(port: int) -> tuple[dict, int]:
     seen_types: list[str] = []
     defense_decisions = 0
     defender_feedback = 0
+    containment_summary = None
     summary = None
 
     async with websockets.connect(f"ws://127.0.0.1:{port}/ws") as ws:
@@ -112,8 +128,8 @@ async def _ws_campaign_flow(port: int) -> tuple[dict, int]:
             "sleep_s": 0,
             "feedback_mode": "gray",
         }))
-        while summary is None:
-            event = json.loads(await asyncio.wait_for(ws.recv(), timeout=60))
+        while containment_summary is None:
+            event = json.loads(await asyncio.wait_for(ws.recv(), timeout=90))
             seen_types.append(event["type"])
             if event["type"] == "defense_decision":
                 defense_decisions += 1
@@ -137,12 +153,16 @@ async def _ws_campaign_flow(port: int) -> tuple[dict, int]:
                 assert event["signal_families"]
             if event["type"] == "campaign_summary":
                 summary = event
+                assert "containment" in event["data"]
+            if event["type"] == "containment_summary":
+                containment_summary = event["data"]
 
     return {
         "types": set(seen_types),
         "defense_decisions": defense_decisions,
         "defender_feedback": defender_feedback,
         "summary": summary,
+        "containment": containment_summary,
     }, defense_decisions
 
 
@@ -155,14 +175,21 @@ def test_ws_ten_txn_campaign(server_port: int):
         "plausibility_check",
         "defense_decision",
         "defender_feedback",
+        "containment_summary",
     }
     missing = mandated - result["types"]
     assert not missing, f"missing mandated events: {missing}"
     assert defenses >= 10, f"expected >=10 defense decisions, got {defenses}"
     assert result["defender_feedback"] == defenses
     assert result["summary"]["data"]["accepted"] >= 3
+    assert result["containment"]["transactions_scored"] == defenses
+    assert 0.0 <= result["containment"]["escape_rate"] <= 1.0
     assert "cost_update" in result["types"]
     assert "graph_update" in result["types"]
+
+    base = f"http://127.0.0.1:{server_port}"
+    last = httpx.get(f"{base}/api/containment/last").json()["containment"]
+    assert last["transactions_scored"] == defenses
 
 
 async def _ws_validation_flow(port: int) -> list[dict]:
