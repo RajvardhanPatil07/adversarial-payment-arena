@@ -1,9 +1,9 @@
 """FastAPI control plane for the Adversarial Payment Arena.
 
-REST exposes health, registry, attack-spec, graph and evidence endpoints. The
-WebSocket endpoint streams campaign events, decisions, cost updates and
-incremental graph changes. Ambient legitimate traffic shares the same in-memory
-issuer/decision state.
+REST exposes health, registry, attack-spec, graph, emerging-threat and evidence
+endpoints. The WebSocket endpoint streams campaign events, decisions, cost
+updates, threat fingerprints and incremental graph changes. Ambient legitimate
+traffic shares the same in-memory issuer/decision state.
 """
 
 from __future__ import annotations
@@ -28,6 +28,7 @@ from data.legit_generator import build_legit_payload
 from defense.decision import DecisionEngine
 from defense.novelty import NoveltyDetector
 from defense.realtime import DEFAULT_MODEL_PATH, VelocityScorer
+from defense.threat_miner import ThreatMiner
 from environment.payment_stack import PaymentEnvironment
 from schemas.attack import load_attack_spec
 from schemas.payment import PaymentMessage
@@ -50,7 +51,7 @@ DEFAULT_ORIGINS = [
 
 
 class ArenaStack:
-    """One simulated issuer world, defense engine and running cost ledger."""
+    """One simulated issuer world, defense engine and running evidence state."""
 
     def __init__(self) -> None:
         self.env = PaymentEnvironment(
@@ -64,6 +65,7 @@ class ArenaStack:
             scorer=VelocityScorer(DEFAULT_MODEL_PATH),
             novelty=NoveltyDetector(),
         )
+        self.threat_miner = ThreatMiner()
         self.costs = DecisionEngine._new_cost_totals()
         self.campaign_lock = asyncio.Lock()
         self._pending_graph_edges: set[tuple[str, str]] = set()
@@ -73,6 +75,9 @@ class ArenaStack:
 
     def cost_summary(self) -> dict:
         return self.engine.summarize_totals(self.costs)
+
+    def observe_threat(self, record: dict) -> dict | None:
+        return self.threat_miner.observe(record)
 
     def queue_graph_edges(self, pairs) -> None:
         for a, b in pairs:
@@ -117,12 +122,7 @@ def resolve_attack_path(name: str) -> Path:
 
 
 def _coarse_signal_families(record: dict) -> list[str]:
-    """Translate internal reasons into realistic gray-box feedback.
-
-    Gray-box mode deliberately avoids exposing thresholds or raw model scores.
-    It models what an adaptive adversary could infer from challenge/decline
-    behaviour without handing it the defender implementation.
-    """
+    """Translate internal reasons into realistic gray-box feedback."""
     families: list[str] = []
     reasons = record.get("reasons", ())
     if any(str(reason).startswith("ring_detected") for reason in reasons):
@@ -135,14 +135,7 @@ def _coarse_signal_families(record: dict) -> list[str]:
 
 
 def _defender_feedback(record: dict, txn_index: int | None, mode: str) -> dict:
-    """Build one feedback turn for the next adversarial move.
-
-    The async generator yields ``payload_generated`` before it asks the model
-    for the next transaction. ``pump_campaign`` therefore has a clean point to
-    append this user turn to the attacker's conversation. The next LLM call
-    sees the real defender outcome, closing the loop rather than merely showing
-    a defender beside an independent generator.
-    """
+    """Build one feedback turn consumed before the next adversarial move."""
     decision = str(record["decision"])
     families = _coarse_signal_families(record)
     prefix = f"Defender outcome for transaction {txn_index or '?'}: {decision}."
@@ -183,9 +176,8 @@ async def pump_campaign(
 
     Each accepted generated payload is scored immediately. The observed
     defender outcome is appended to the attacker's conversation before the
-    generator advances to the next transaction slot, so later moves can adapt
-    to actual defense behaviour. The defender itself remains unchanged by this
-    feedback; hardening/retraining is a separate controlled experiment.
+    generator advances to the next transaction slot. Suspicious decisions are
+    also fed to the online threat miner; clustering never reads simulator truth.
     """
     try:
         async for event in agent.run_campaign(campaign_size=campaign_size):
@@ -208,11 +200,16 @@ async def pump_campaign(
                 "amount": record["amount"],
             })
 
-            # Close the adversarial loop. _user_say is intentionally used here
-            # rather than letting the defender call the LLM directly: the
-            # attacker owns its conversation and the next normal model turn
-            # consumes this feedback. This preserves rate limiting and the
-            # existing structured-output contract.
+            fingerprint = stack.observe_threat(record)
+            if fingerprint is not None:
+                await emit({
+                    "type": "emerging_threat",
+                    "txn_index": event.get("txn_index"),
+                    "data": fingerprint,
+                })
+
+            # Close the adversarial loop. The attacker owns its conversation;
+            # the next normal model turn consumes this real defender feedback.
             feedback = _defender_feedback(record, event.get("txn_index"), feedback_mode)
             agent._user_say(feedback["prompt"])
             await emit({
@@ -263,7 +260,7 @@ async def lifespan(app: FastAPI):
             await ambient
 
 
-app = FastAPI(title="Adversarial Payment Arena", version="0.8.0", lifespan=lifespan)
+app = FastAPI(title="Adversarial Payment Arena", version="0.9.0", lifespan=lifespan)
 
 
 def _origins() -> list[str]:
@@ -294,6 +291,7 @@ async def _ambient_legit_drip(stack: ArenaStack) -> None:
             if result["accepted"]:
                 record = stack.engine.decide(message)
                 stack.apply_cost(record, "legit")
+                stack.observe_threat(record)
                 stack.queue_graph_edges(record.get("graph_new_edges", ()))
         except Exception as exc:
             print(f"[ambient] skipped txn: {exc!r}")
@@ -314,6 +312,7 @@ async def health():
         },
         "feature_backend": stack.engine.scorer.extractor.backend,
         "events_seen": stack.env.events_seen_total,
+        "threat_miner": stack.threat_miner.diagnostics(),
         "costs": stack.cost_summary(),
     }
 
@@ -327,6 +326,15 @@ async def merchants():
 @app.get("/api/attacks")
 async def attacks():
     return {"attacks": sorted(path.stem for path in SPECS_DIR.glob("*.yaml"))}
+
+
+@app.get("/api/threats")
+async def threats(include_candidates: bool = False):
+    stack: ArenaStack = app.state.stack
+    return {
+        "diagnostics": stack.threat_miner.diagnostics(),
+        "threats": stack.threat_miner.snapshot(include_candidates=include_candidates),
+    }
 
 
 @app.post("/api/load_attack")
@@ -381,8 +389,6 @@ async def ws_endpoint(ws: WebSocket):
                 await ws.send_json({"type": "pong"})
                 continue
 
-            # Both fields are required. The old `and` condition accidentally
-            # accepted arbitrary message types whenever attack_file existed.
             if message.get("type") != "start_campaign" or "attack_file" not in message:
                 await _send_ws_usage_error(ws)
                 continue
