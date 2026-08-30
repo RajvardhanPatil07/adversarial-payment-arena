@@ -1,0 +1,49 @@
+# ATTACK 11 — Delegated Agent Scope Expansion  [T-19]
+# Taxon: agentic commerce. The newest surface in the taxonomy and the one with
+# no established control at all.
+#
+# What GenAI changed: this attack DID NOT EXIST before delegated payment
+# agents. A cardholder grants an AI shopping agent a mandate ("buy groceries
+# weekly, under $80"). Intent manipulation — a poisoned product feed, a
+# prompt-injected merchant page, or simply a drifting objective — widens that
+# mandate over time. Every payment is technically authorised: consent was
+# captured once, at delegation time, and never re-checked.
+#
+# Why this is hard: the device is the agent's, stable and previously trusted.
+# The customer is genuine. Nothing is stolen. The fraud is the GAP between the
+# mandate the human granted and the payments the agent now makes.
+
+spec_id: ATTACK_11_AGENTIC_SCOPE_EXPANSION
+attack_name: "Delegated Agent Scope Expansion (mandate drift)"
+taxon: agentic_commerce
+
+description: >
+  A delegated payment agent begins inside its mandate and drifts outside it:
+  amounts escalate ticket over ticket, merchant categories widen away from the
+  original grant, and the cadence becomes machine-regular rather than human.
+  The agent's device stays constant and trusted throughout, which is exactly
+  what makes the drift invisible to device-binding controls.
+
+preconditions: >
+  A cardholder-granted agent mandate with stored credentials, plus an intent
+  manipulation channel — poisoned catalogue, injected merchant content, or an
+  objective the agent optimises past its instruction.
+
+economic_model:
+  acquisition_cost_usd: 8          # cost of the injection channel, not a credential
+  expected_payoff_usd: 1400
+  breakeven_txns: 3
+
+constraints:
+  stolen_resource: phished_credentials
+  pos_entry_modes: [ECOM]
+  preferred_three_ds: [Y]          # stored-credential flow, merchant-initiated
+  target_verticals: [ecommerce, electronics]
+  min_amount_usd: 45
+  max_amount_usd: 1500             # the wide band IS the attack: drift needs room
+
+evasion_notes: >
+  Defeats consent captured once at delegation time, and defeats device binding
+  because the agent's device is legitimately bound. Detection must model the
+  mandate itself — escalation slope, category widening, and machine-regular
+  inter-arrival timing that no human shopper produces.

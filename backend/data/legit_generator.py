@@ -140,6 +140,219 @@ def build_legit_payload(
     )
 
 
+# --------------------------------------------------------------------------- #
+# HARD NEGATIVES — legitimate traffic that LOOKS like fraud
+# --------------------------------------------------------------------------- #
+#
+# Why this exists
+# ---------------
+# Without this, every legitimate transaction in the corpus is a single
+# well-behaved event spread over 90 days, while every attack is bursty and
+# mostly on an unknown device. The two classes become linearly separable on
+# `device_known` and `cust_txn_count_10m` alone, any classifier reaches ~0.999
+# recall, and the benchmark stops measuring anything: a saturated metric cannot
+# rank two defences.
+#
+# Real issuers do not have that luxury. Their false positives come from a small
+# set of well-known *benign anomalies* -- the honeymoon customer on a new phone
+# abroad, the family sharing one tablet, the Black-Friday burst, the genuine
+# high-ticket purchase. Those are the transactions that generate insult cost,
+# and they are structurally indistinguishable from fraud on the naive features.
+#
+# So we generate them ON PURPOSE, label them LEGIT, and let them punish the
+# model. Every profile below is a real, documented benign pattern, and each one
+# collides with a specific attack family:
+#
+#   travel_abroad_burst   collides with ATTACK_1  (new device + burst + geo)
+#   shared_family_device  collides with ATTACK_2  (one device, several people)
+#   flash_sale_crowd      collides with ATTACK_3  (many customers, one merchant)
+#   subscription_batch    collides with ATTACK_4  (rapid low-value cadence)
+#   big_ticket_purchase   collides with ATTACK_5  (amount far over own baseline)
+#   payday_regular        collides with ATTACK_11 (machine-regular cadence)
+#
+# This makes the benchmark harder on purpose. The recall number goes DOWN and
+# becomes informative, which is the entire point.
+
+_HARD_NEGATIVE_PROFILES = [
+    "travel_abroad_burst",
+    "shared_family_device",
+    "flash_sale_crowd",
+    "subscription_batch",
+    "big_ticket_purchase",
+    "payday_regular",
+]
+
+
+def build_hard_negatives(
+    env: PaymentEnvironment,
+    rng: random.Random,
+    fake: Faker,
+    n: int,
+    profile: str | None = None,
+) -> list[PaymentMessage]:
+    """Generate `n` LEGITIMATE payloads that mimic fraud signatures.
+
+    Returns PaymentMessages carrying `stolen_resource=None` (they are genuinely
+    legitimate) that nonetheless move the same features the attack families
+    move. Coherent-by-construction against the Plausibility Gate: mcc and
+    ip_country are always copied from the chosen merchant.
+    """
+    out: list[PaymentMessage] = []
+    while len(out) < n:
+        kind = profile or rng.choice(_HARD_NEGATIVE_PROFILES)
+
+        # --- 1. Honeymoon abroad: new phone, new country, holiday burst ----- #
+        # Collides with voice-clone ATO: unknown device + rapid CNP tickets.
+        if kind == "travel_abroad_burst":
+            customer = env.customers[f"CUST_{rng.randrange(len(env.customers)):04d}"]
+            device = f"DEV_{fake.uuid4().replace('-', '')[:10]}"   # genuinely new phone
+            ip = fake.ipv4_public()
+            base = _LEGIT_NOW - timedelta(days=rng.randint(1, 60))
+            for _ in range(min(rng.randint(3, 6), n - len(out))):
+                base += timedelta(seconds=rng.randint(120, 900))
+                merchant = _pick_merchant(env, rng, PosEntryMode.ECOM)
+                out.append(PaymentMessage(
+                    transaction_id=f"{rng.getrandbits(64):016X}",
+                    customer_id=customer.customer_id,
+                    merchant_id=merchant.merchant_id,
+                    mcc=merchant.mcc,
+                    amount=_sample_amount(rng, merchant.category),
+                    pos_entry_mode=PosEntryMode.ECOM,
+                    **{"3ds_status": ThreeDSStatus.Y.value},
+                    ip_address=ip,
+                    ip_country=merchant.country,
+                    device_id=device,
+                    stolen_resource=None,
+                    timestamp=base,
+                ))
+
+        # --- 2. One household tablet used by several family members --------- #
+        # Collides with the mule ring: ONE device across several customer ids.
+        elif kind == "shared_family_device":
+            family = rng.sample(sorted(env.customers.keys()), rng.randint(2, 4))
+            device = f"DEV_{fake.uuid4().replace('-', '')[:10]}"
+            base = _LEGIT_NOW - timedelta(days=rng.randint(1, 85))
+            for cid in family:
+                if len(out) >= n:
+                    break
+                for _ in range(rng.randint(1, 2)):
+                    if len(out) >= n:
+                        break
+                    base += timedelta(seconds=rng.randint(300, 3600))
+                    merchant = _pick_merchant(env, rng, PosEntryMode.ECOM)
+                    out.append(PaymentMessage(
+                        transaction_id=f"{rng.getrandbits(64):016X}",
+                        customer_id=cid,
+                        merchant_id=merchant.merchant_id,
+                        mcc=merchant.mcc,
+                        amount=_sample_amount(rng, merchant.category),
+                        pos_entry_mode=PosEntryMode.ECOM,
+                        **{"3ds_status": ThreeDSStatus.Y.value},
+                        ip_address=fake.ipv4_public(),
+                        ip_country=merchant.country,
+                        device_id=device,
+                        stolen_resource=None,
+                        timestamp=base,
+                    ))
+
+        # --- 3. Flash sale: a crowd converges on one merchant in minutes ---- #
+        # Collides with merchant compromise AND merchant bust-out.
+        elif kind == "flash_sale_crowd":
+            merchant = _pick_merchant(env, rng, PosEntryMode.ECOM)
+            crowd = rng.sample(sorted(env.customers.keys()), min(rng.randint(12, 20), len(env.customers)))
+            base = _LEGIT_NOW - timedelta(days=rng.randint(1, 80))
+            for cid in crowd:
+                if len(out) >= n:
+                    break
+                customer = env.customers[cid]
+                base += timedelta(seconds=rng.randint(5, 45))
+                out.append(PaymentMessage(
+                    transaction_id=f"{rng.getrandbits(64):016X}",
+                    customer_id=cid,
+                    merchant_id=merchant.merchant_id,
+                    mcc=merchant.mcc,
+                    amount=_sample_amount(rng, merchant.category),
+                    pos_entry_mode=PosEntryMode.ECOM,
+                    **{"3ds_status": rng.choice([ThreeDSStatus.Y, ThreeDSStatus.N]).value},
+                    ip_address=fake.ipv4_public(),
+                    ip_country=merchant.country,
+                    device_id=rng.choice(customer.devices),
+                    stolen_resource=None,
+                    timestamp=base,
+                ))
+
+        # --- 4. Monthly subscription batch billed back-to-back ------------- #
+        # Collides with card testing: rapid low-value cadence on one card.
+        elif kind == "subscription_batch":
+            customer = env.customers[f"CUST_{rng.randrange(len(env.customers)):04d}"]
+            device = rng.choice(customer.devices)
+            base = _LEGIT_NOW - timedelta(days=rng.randint(1, 85))
+            for _ in range(min(rng.randint(3, 6), n - len(out))):
+                base += timedelta(seconds=rng.randint(10, 120))
+                merchant = _pick_merchant(env, rng, PosEntryMode.ECOM)
+                out.append(PaymentMessage(
+                    transaction_id=f"{rng.getrandbits(64):016X}",
+                    customer_id=customer.customer_id,
+                    merchant_id=merchant.merchant_id,
+                    mcc=merchant.mcc,
+                    amount=round(rng.uniform(4.99, 24.99), 2),   # small, like a probe
+                    pos_entry_mode=PosEntryMode.ECOM,
+                    **{"3ds_status": ThreeDSStatus.N.value},      # MIT, no challenge
+                    ip_address=fake.ipv4_public(),
+                    ip_country=merchant.country,
+                    device_id=device,
+                    stolen_resource=None,
+                    timestamp=base,
+                ))
+
+        # --- 5. Genuine high-ticket purchase far over own baseline --------- #
+        # Collides with the APP scam: amount wildly outside personal history.
+        elif kind == "big_ticket_purchase":
+            customer = env.customers[f"CUST_{rng.randrange(len(env.customers)):04d}"]
+            merchant = _pick_merchant(env, rng, PosEntryMode.ECOM)
+            out.append(PaymentMessage(
+                transaction_id=f"{rng.getrandbits(64):016X}",
+                customer_id=customer.customer_id,
+                merchant_id=merchant.merchant_id,
+                mcc=merchant.mcc,
+                # A real laptop / holiday: 8-20x this customer's typical ticket.
+                amount=round(_sample_amount(rng, merchant.category) * rng.uniform(8.0, 20.0), 2),
+                pos_entry_mode=PosEntryMode.ECOM,
+                **{"3ds_status": ThreeDSStatus.Y.value},
+                ip_address=fake.ipv4_public(),
+                ip_country=merchant.country,
+                device_id=rng.choice(customer.devices),
+                stolen_resource=None,
+                timestamp=_LEGIT_NOW - timedelta(days=rng.randint(1, 85)),
+            ))
+
+        # --- 6. Payday standing orders: machine-regular cadence ------------ #
+        # Collides with agent scope expansion: fixed-period, low-jitter timing.
+        else:
+            customer = env.customers[f"CUST_{rng.randrange(len(env.customers)):04d}"]
+            device = rng.choice(customer.devices)
+            base = _LEGIT_NOW - timedelta(days=rng.randint(30, 88))
+            period = rng.randint(3600, 7200)
+            for _ in range(min(rng.randint(3, 5), n - len(out))):
+                base += timedelta(seconds=period + rng.randint(-45, 45))
+                merchant = _pick_merchant(env, rng, PosEntryMode.ECOM)
+                out.append(PaymentMessage(
+                    transaction_id=f"{rng.getrandbits(64):016X}",
+                    customer_id=customer.customer_id,
+                    merchant_id=merchant.merchant_id,
+                    mcc=merchant.mcc,
+                    amount=_sample_amount(rng, merchant.category),
+                    pos_entry_mode=PosEntryMode.ECOM,
+                    **{"3ds_status": ThreeDSStatus.Y.value},
+                    ip_address=fake.ipv4_public(),
+                    ip_country=merchant.country,
+                    device_id=device,
+                    stolen_resource=None,
+                    timestamp=base,
+                ))
+    return out[:n]
+
+
 def generate_baseline(n: int = 10_000, seed: int = 42) -> list[dict]:
     """Generate n legit txns through the live gate; persist + return payloads.
 

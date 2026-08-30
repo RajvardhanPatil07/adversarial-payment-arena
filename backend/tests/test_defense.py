@@ -27,16 +27,21 @@ from defense.decision import (  # noqa: E402
 from defense.graph import EntityGraph  # noqa: E402
 from environment.payment_stack import PaymentEnvironment  # noqa: E402
 
+# Training spans families across every control class the taxonomy names, not
+# just the original three card-velocity ones. ATTACK_4 stays held out as the
+# zero-day for the holdout experiment.
 TRAIN_COUNTS = {
-    "ATTACK_1_MFA_RESET_VOICE_CLONE": 230,
-    "ATTACK_2_SYNTHETIC_MULE_RING": 230,
-    "ATTACK_3_PROMPT_INJECTED_MERCHANT": 240,
+    "ATTACK_1_MFA_RESET_VOICE_CLONE": 150,
+    "ATTACK_2_SYNTHETIC_MULE_RING": 150,
+    "ATTACK_3_PROMPT_INJECTED_MERCHANT": 150,
+    "ATTACK_5_APP_SCAM_PERSONALISED": 110,
+    "ATTACK_9_OTP_RELAY_VISHING": 110,
+    "ATTACK_10_EXEMPTION_BAND_ABUSE": 110,
+    "ATTACK_11_AGENTIC_SCOPE_EXPANSION": 110,
+    "ATTACK_13_MERCHANT_BUSTOUT": 110,
+    "ATTACK_14_ADVERSARIAL_BOUNDARY_PROBE": 110,
 }
-EVAL_COUNTS = {
-    "ATTACK_1_MFA_RESET_VOICE_CLONE": 34,
-    "ATTACK_2_SYNTHETIC_MULE_RING": 33,
-    "ATTACK_3_PROMPT_INJECTED_MERCHANT": 33,
-}
+EVAL_COUNTS = {k: 30 for k in TRAIN_COUNTS}
 
 
 @pytest.fixture(scope="module")
@@ -44,6 +49,12 @@ def trained_engine():
     corpus = build_corpus(n_legit=3000, attack_counts=TRAIN_COUNTS, seed=123)
     engine = DecisionEngine(environment=corpus["env"])
     metrics = engine.train(corpus["rows"])
+    # Pin the operating point on a legitimate split generated from a seed that
+    # is DISJOINT from both the training seed and the evaluation seed. Thresholds
+    # fitted on the evaluation rows would be leakage, which is exactly the
+    # discipline this repository claims to enforce -- so it is enforced here too.
+    calib = build_corpus(n_legit=1500, attack_counts={}, seed=321)
+    engine.calibrate(calib["rows"], target_fpr=0.01)
     return engine, metrics
 
 
@@ -53,6 +64,10 @@ def eval_run(trained_engine):
     engine, _ = trained_engine
     ev = build_corpus(n_legit=1000, attack_counts=EVAL_COUNTS, seed=777)
     engine_eval = DecisionEngine(environment=ev["env"], scorer=engine.scorer, novelty=engine.novelty)
+    # Carry the calibrated operating point across to the evaluation engine.
+    engine_eval.stepup_threshold = engine.stepup_threshold
+    engine_eval.decline_threshold = engine.decline_threshold
+    engine_eval.manual_threshold = engine.manual_threshold
 
     records, truths = [], []
     for r in sorted(ev["rows"], key=lambda r: r["payload"]["timestamp"]):

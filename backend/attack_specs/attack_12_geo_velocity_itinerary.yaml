@@ -1,0 +1,46 @@
+# ATTACK 12 — Geo-Velocity Spoof With a Plausible Itinerary  [T-11]
+# Taxon: rule evasion against impossible-travel logic.
+#
+# What GenAI changed: impossible-travel rules are defeated by making the travel
+# POSSIBLE. A generative planner builds a coherent itinerary — book the flight,
+# spend at the origin airport, then spend at the destination after a realistic
+# flight time — so every consecutive pair of transactions passes a geo-velocity
+# check that only ever compares two adjacent events.
+#
+# The architectural point: a rule evaluating adjacent pairs cannot see that the
+# whole itinerary was fabricated. This family exists to show that per-pair
+# rule logic is the wrong granularity.
+
+spec_id: ATTACK_12_GEO_VELOCITY_ITINERARY
+attack_name: "Geo-Velocity Spoof with Generated Itinerary"
+taxon: rule_evasion
+
+description: >
+  The agent constructs a travel narrative and spends along it: a travel booking
+  first, then card-present-style spend consistent with an origin, then spend at
+  a destination separated by a plausible elapsed flight time. Each adjacent
+  pair is individually feasible, so no impossible-travel rule fires, while the
+  card is in fact being worked by an operator who never moved.
+
+preconditions: >
+  A cloned card usable across rails, plus a generative planner able to produce
+  an internally consistent itinerary with realistic timings and merchant mix.
+
+economic_model:
+  acquisition_cost_usd: 25         # magstripe clone / shimmer dump
+  expected_payoff_usd: 2100
+  breakeven_txns: 2
+
+constraints:
+  stolen_resource: cloned_card
+  pos_entry_modes: [ECOM]
+  preferred_three_ds: [N, A]
+  target_verticals: [travel, ecommerce]
+  min_amount_usd: 90               # clears the $25 clone floor comfortably
+  max_amount_usd: 2600
+
+evasion_notes: >
+  Defeats impossible-travel and geo-velocity rules by satisfying them pairwise.
+  Detection needs sequence-level reasoning: the itinerary is novel against the
+  customer's own 90-day travel history, and the spend mix along it does not
+  match how that cardholder has ever travelled before.
