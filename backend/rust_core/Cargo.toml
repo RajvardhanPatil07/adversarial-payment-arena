@@ -1,0 +1,18 @@
+[package]
+name = "arena-core"
+version = "0.1.0"
+edition = "2021"
+description = "Rust hot-path state for Adversarial Payment Arena"
+license = "MIT"
+
+[lib]
+name = "arena_core"
+crate-type = ["cdylib"]
+
+[dependencies]
+pyo3 = { version = "0.23", features = ["extension-module", "abi3-py39"] }
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
+strip = "symbols"
