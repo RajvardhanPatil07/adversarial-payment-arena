@@ -135,9 +135,29 @@ def resolve_attack_path(name: str) -> Path:
     for cand in (SPECS_DIR / f"{name}.yaml",):
         if cand.exists():
             return cand
-    matches = [p for p in SPECS_DIR.glob("*.yaml") if p.stem.startswith(name)]
+    # Prefix match, but on WHOLE UNDERSCORE SEGMENTS rather than raw characters.
+    #
+    # Naive str.startswith broke the moment a tenth attack family landed:
+    # "attack_1" is a character-prefix of attack_1_mfa_reset_voice_clone AND of
+    # attack_10 through attack_14, so six files matched, the uniqueness check
+    # failed, and /api/load_attack started returning 404 for the FIRST attack in
+    # the taxonomy. Growing the corpus silently broke the demo path.
+    #
+    # Segment-aware matching makes "attack_1" match attack_1_* only, while
+    # "attack_1_mfa" and the full stem keep working.
+    wanted = name.split("_")
+    matches = [
+        p for p in SPECS_DIR.glob("*.yaml")
+        if p.stem.split("_")[: len(wanted)] == wanted
+    ]
     if len(matches) == 1:
         return matches[0]
+    if len(matches) > 1:
+        opts = ", ".join(sorted(p.stem for p in matches))
+        raise HTTPException(
+            status_code=400,
+            detail=f"ambiguous attack spec {name!r}; candidates: {opts}",
+        )
     raise HTTPException(status_code=404, detail=f"no unique attack spec for {name!r}")
 
 
