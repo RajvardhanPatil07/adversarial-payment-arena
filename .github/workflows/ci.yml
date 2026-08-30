@@ -57,19 +57,29 @@ jobs:
         env:
           PYTHONPATH: backend
         run: python -m pytest -q backend/tests/test_realtime_backend.py
-      - name: Benchmark rolling feature integration
+      - name: Benchmark rolling feature integration (maxlen 500)
         env:
           PYTHONPATH: backend
         run: >-
           python backend/benchmarks/benchmark_feature_state.py
           --events 12000
           --repeats 3
-          --json /tmp/feature-state-benchmark.json
-      - name: Upload benchmark result
+          --maxlen 500
+          --json /tmp/feature-state-benchmark-500.json
+      - name: Benchmark rolling feature integration (maxlen 10000)
+        env:
+          PYTHONPATH: backend
+        run: >-
+          python backend/benchmarks/benchmark_feature_state.py
+          --events 12000
+          --repeats 1
+          --maxlen 10000
+          --json /tmp/feature-state-benchmark-10000.json
+      - name: Upload benchmark results
         uses: actions/upload-artifact@v4
         with:
-          name: feature-state-benchmark
-          path: /tmp/feature-state-benchmark.json
+          name: feature-state-benchmarks
+          path: /tmp/feature-state-benchmark-*.json
           if-no-files-found: error
 
   container-smoke:
