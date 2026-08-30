@@ -24,7 +24,9 @@ FROM python:3.13-slim AS rust-core
 RUN apt-get update \
  && apt-get install -y --no-install-recommends build-essential cargo \
  && rm -rf /var/lib/apt/lists/*
-RUN pip install --no-cache-dir "maturin>=1.8,<2"
+# Maturin >=1.9.4 scopes PyO3 extension-module linking behavior to wheel
+# builds, which keeps ordinary `cargo test` linkable against libpython.
+RUN pip install --no-cache-dir "maturin>=1.9.4,<2"
 
 WORKDIR /build
 COPY backend/rust_core/ ./backend/rust_core/
