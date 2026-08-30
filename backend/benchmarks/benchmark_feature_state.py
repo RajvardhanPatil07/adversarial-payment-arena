@@ -1,12 +1,13 @@
 """Microbenchmark the rolling feature-state integration.
 
-This intentionally benchmarks FeatureExtractor.features()+observe(), not a bare
-Rust function, so Python/Rust boundary conversion and final feature-dict
-construction are included. It does not benchmark XGBoost inference.
+The baseline benchmarks ``FeatureExtractor.features()+observe()`` so results stay
+comparable with the original Python implementation. Native-only scale runs may
+use the fused ``features_and_observe()`` path used by the high-throughput engine.
+Neither mode benchmarks XGBoost inference.
 
 Large runs are generated in bounded chunks. Payload construction happens outside
 the measured sections, so a 100M-event run does not require 100M Python dicts in
-RAM and remains comparable with the earlier benchmark scope.
+RAM.
 
 Run after installing the arena_core wheel:
     PYTHONPATH=backend python backend/benchmarks/benchmark_feature_state.py
@@ -71,12 +72,15 @@ def _run_once(
     native: bool,
     maxlen: int,
     chunk_size: int,
+    fused: bool,
 ) -> tuple[float, float]:
     extractor = FeatureExtractor(maxlen=maxlen)
     if not native:
         extractor._rust = None
     elif extractor.backend != "rust":
         raise RuntimeError("arena_core is not installed; native benchmark unavailable")
+    if fused and not native:
+        raise ValueError("fused mode is reserved for native-only scale runs")
 
     checksum = 0.0
     measured_elapsed = 0.0
@@ -89,9 +93,12 @@ def _run_once(
 
         started = time.perf_counter()
         for payload in payloads:
-            features = extractor.features(payload)
+            if fused:
+                features = extractor.features_and_observe(payload)
+            else:
+                features = extractor.features(payload)
+                extractor.observe(payload)
             checksum += features["cust_txn_count_10m"] + features["amount_over_mean30"]
-            extractor.observe(payload)
         measured_elapsed += time.perf_counter() - started
 
     return measured_elapsed, checksum
@@ -104,6 +111,7 @@ def _measure(
     repeats: int,
     maxlen: int,
     chunk_size: int,
+    fused: bool = False,
 ) -> dict:
     timings: list[float] = []
     checksums: list[float] = []
@@ -117,6 +125,7 @@ def _measure(
         native=native,
         maxlen=maxlen,
         chunk_size=min(chunk_size, warmup_count),
+        fused=fused,
     )
 
     for _ in range(repeats):
@@ -126,6 +135,7 @@ def _measure(
             native=native,
             maxlen=maxlen,
             chunk_size=chunk_size,
+            fused=fused,
         )
         timings.append(elapsed)
         checksums.append(checksum)
@@ -161,6 +171,11 @@ def main() -> None:
         action="store_true",
         help="Measure only the Rust/PyO3 backend for large-volume scale runs.",
     )
+    parser.add_argument(
+        "--fused",
+        action="store_true",
+        help="Use native features_and_observe in one PyO3 call (requires --native-only).",
+    )
     parser.add_argument("--json", type=Path)
     args = parser.parse_args()
 
@@ -172,20 +187,24 @@ def main() -> None:
         parser.error("--maxlen must be >= 1")
     if args.chunk_size < 1:
         parser.error("--chunk-size must be >= 1")
+    if args.fused and not args.native_only:
+        parser.error("--fused requires --native-only")
 
     probe = FeatureExtractor(maxlen=args.maxlen)
     if probe.backend != "rust":
         raise SystemExit("arena_core must be installed before running this benchmark")
 
     workloads = list(dict.fromkeys(args.workloads))
+    operation = "features_and_observe" if args.fused else "features+observe"
     results = {
-        "scope": "FeatureExtractor.features+observe only; excludes payload generation and XGBoost inference",
+        "scope": f"FeatureExtractor.{operation} only; excludes payload generation and XGBoost inference",
         "events_per_workload": args.events,
         "total_measured_events": args.events * len(workloads) * args.repeats,
         "repeats": args.repeats,
         "maxlen": args.maxlen,
         "chunk_size": args.chunk_size,
         "backend_mode": "rust-only" if args.native_only else "python-vs-rust",
+        "native_operation": operation if args.native_only else "features+observe",
         "selected_workloads": workloads,
         "workloads": {},
     }
@@ -200,6 +219,7 @@ def main() -> None:
                     repeats=args.repeats,
                     maxlen=args.maxlen,
                     chunk_size=args.chunk_size,
+                    fused=args.fused,
                 )
             }
             continue
