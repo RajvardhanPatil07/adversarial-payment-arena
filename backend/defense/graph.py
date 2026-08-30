@@ -1,54 +1,205 @@
-"""
-Layer 2 — Entity graph for fraud-ring detection (NetworkX).
+"""Evidence-weighted entity graph for real-time fraud-ring detection.
 
-Nodes: customer (`C:`), device (`D:`), ip (`I:`), merchant (`M:`).
-Edges: observed co-occurrence on accepted transactions (customer USED device,
-customer SEEN at ip, customer SHOPPED at merchant).
+NetworkX is retained as the topology/UI mirror, but the authorization decision
+uses a compact temporal risk state. When ``arena_graph_core`` is installed that
+state is implemented in Rust; source checkouts use a semantically equivalent
+Python fallback.
 
-Ring rule: a customer is in a ring when the current transaction would make a
-device or IP directly shared by >=3 customers. Merchant edges are stored for
-topology/UI but deliberately EXCLUDED from ring logic — everyone shops at the
-same popular merchants, so merchant hubs must never inflate ring size or make
-per-transaction checks traverse the whole graph.
+Evidence policy:
+* shared device across unrelated customers is strong evidence;
+* shared IP is weak by itself (office/campus/carrier NAT is normal);
+* shared IP becomes hard evidence only when beneficiary/merchant convergence
+  occurs in the same recent window;
+* merchant fan-in contributes soft risk but never creates a ring on its own.
 
-The hot-path check is intentionally local: it inspects only the current
-transaction's device/IP neighborhoods. Global analytics can still call
-`scan_rings()`, which walks the merchant-free graph off the request path.
+This removes the old "three people on one IP => hard decline" failure mode while
+keeping the immediate third-customer shared-device signal used by mule attacks.
 """
 
 from __future__ import annotations
 
 import hashlib
+from collections import Counter, defaultdict, deque
+from datetime import datetime, timezone
 
 import networkx as nx
 
+try:
+    from arena_graph_core import GraphRiskState as _RustGraphRiskState
+except ImportError:
+    _RustGraphRiskState = None
+
+
+class _RecentCustomers:
+    def __init__(self) -> None:
+        self.events: deque[tuple[float, str]] = deque()
+        self.counts: Counter[str] = Counter()
+
+    def purge(self, now: float, window_seconds: float) -> None:
+        while self.events and now - self.events[0][0] > window_seconds:
+            _, customer = self.events.popleft()
+            self.counts[customer] -= 1
+            if self.counts[customer] <= 0:
+                del self.counts[customer]
+
+    def prospective_distinct(self, now: float, window_seconds: float, customer: str) -> int:
+        self.purge(now, window_seconds)
+        return len(self.counts) + int(customer not in self.counts)
+
+    def observe(self, now: float, window_seconds: float, customer: str) -> None:
+        self.purge(now, window_seconds)
+        self.events.append((now, customer))
+        self.counts[customer] += 1
+
+
+class _PythonGraphRiskState:
+    def __init__(self, window_seconds: float = 600.0) -> None:
+        self.window_seconds = window_seconds
+        self.devices: dict[str, _RecentCustomers] = defaultdict(_RecentCustomers)
+        self.ips: dict[str, _RecentCustomers] = defaultdict(_RecentCustomers)
+        self.merchants: dict[str, _RecentCustomers] = defaultdict(_RecentCustomers)
+
+    @staticmethod
+    def _device_risk(degree: int) -> float:
+        if degree <= 1:
+            return 0.0
+        if degree == 2:
+            return 0.18
+        return min(0.95, 0.55 + 0.08 * (degree - 3))
+
+    @staticmethod
+    def _ip_risk(degree: int) -> float:
+        if degree <= 1:
+            return 0.0
+        if degree <= 4:
+            return 0.03 * (degree - 1)
+        return min(0.35, 0.10 + 0.03 * (degree - 5))
+
+    @staticmethod
+    def _merchant_risk(degree: int) -> float:
+        if degree <= 3:
+            return 0.0
+        if degree <= 7:
+            return 0.025 * (degree - 3)
+        return min(0.65, 0.20 + 0.04 * (degree - 8))
+
+    @staticmethod
+    def _fuse(parts: tuple[float, ...]) -> float:
+        safe = [max(0.0, min(float(value), 1.0)) for value in parts]
+        product = 1.0
+        for value in safe:
+            product *= 1.0 - value
+        return max(0.0, min(1.0, 1.0 - product))
+
+    def check(
+        self,
+        ts: float,
+        customer_id: str,
+        device_id: str,
+        ip_address: str,
+        merchant_id: str,
+    ) -> tuple[float, bool, int, int, int]:
+        device_degree = self.devices[device_id].prospective_distinct(
+            ts, self.window_seconds, customer_id
+        )
+        ip_degree = self.ips[ip_address].prospective_distinct(
+            ts, self.window_seconds, customer_id
+        )
+        merchant_degree = self.merchants[merchant_id].prospective_distinct(
+            ts, self.window_seconds, customer_id
+        )
+        ring = device_degree >= 3 or (ip_degree >= 5 and merchant_degree >= 5)
+        risk = self._fuse(
+            (
+                self._device_risk(device_degree),
+                self._ip_risk(ip_degree),
+                self._merchant_risk(merchant_degree),
+            )
+        )
+        if ring:
+            risk = max(risk, 0.72)
+        return risk, ring, device_degree, ip_degree, merchant_degree
+
+    def observe(
+        self,
+        ts: float,
+        customer_id: str,
+        device_id: str,
+        ip_address: str,
+        merchant_id: str,
+    ) -> None:
+        self.devices[device_id].observe(ts, self.window_seconds, customer_id)
+        self.ips[ip_address].observe(ts, self.window_seconds, customer_id)
+        self.merchants[merchant_id].observe(ts, self.window_seconds, customer_id)
+
+    def state_sizes(self) -> tuple[int, int, int]:
+        return len(self.devices), len(self.ips), len(self.merchants)
+
 
 class EntityGraph:
-    """Incremental entity graph over the accepted-transaction stream."""
+    """Incremental graph mirror plus temporal evidence-weighted risk state."""
 
-    def __init__(self) -> None:
+    def __init__(self, *, window_seconds: float = 600.0) -> None:
         self.g = nx.Graph()
+        self.window_seconds = float(window_seconds)
+        self._risk = (
+            _RustGraphRiskState(self.window_seconds)
+            if _RustGraphRiskState is not None
+            else _PythonGraphRiskState(self.window_seconds)
+        )
+        self._logical_clock = 0.0
+
+    @property
+    def backend(self) -> str:
+        return "rust" if _RustGraphRiskState is not None and not isinstance(
+            self._risk, _PythonGraphRiskState
+        ) else "python"
+
+    def risk_state_sizes(self) -> dict[str, int]:
+        devices, ips, merchants = self._risk.state_sizes()
+        return {
+            "devices": int(devices),
+            "ips": int(ips),
+            "merchants": int(merchants),
+        }
+
+    def _event_ts(self, wire: dict) -> float:
+        raw = wire.get("timestamp")
+        if raw is None:
+            return self._logical_clock
+        if isinstance(raw, datetime):
+            value = raw
+        else:
+            value = datetime.fromisoformat(str(raw).replace("Z", "+00:00"))
+        if value.tzinfo is None:
+            value = value.replace(tzinfo=timezone.utc)
+        return value.timestamp()
 
     # ------------------------------------------------------------------ #
-    # State
+    # State / UI topology
     # ------------------------------------------------------------------ #
 
     def observe(self, wire: dict) -> list[tuple[str, str]]:
-        """Fold one ACCEPTED transaction into the graph. Call AFTER check().
+        """Fold one accepted transaction after ``check`` and return new UI edges."""
+        ts = self._event_ts(wire)
+        self._risk.observe(
+            ts,
+            str(wire["customer_id"]),
+            str(wire["device_id"]),
+            str(wire["ip_address"]),
+            str(wire["merchant_id"]),
+        )
+        if wire.get("timestamp") is None:
+            self._logical_clock += 1.0
 
-        Returns only edges created by this observation. Repeated transactions
-        merely bump edge weights and therefore return an empty list. The live
-        API uses this delta directly instead of rescanning every graph edge
-        after every transaction.
-        """
         c, d, i, m = (
             f"C:{wire['customer_id']}",
             f"D:{wire['device_id']}",
             f"I:{wire['ip_address']}",
             f"M:{wire['merchant_id']}",
         )
-        for n in (c, d, i, m):
-            self.g.add_node(n)
+        for node in (c, d, i, m):
+            self.g.add_node(node)
 
         fresh: list[tuple[str, str]] = []
         for a, b in ((c, d), (c, i), (c, m)):
@@ -64,7 +215,7 @@ class EntityGraph:
         return True
 
     # ------------------------------------------------------------------ #
-    # Ring detection
+    # Ring / evidence risk
     # ------------------------------------------------------------------ #
 
     def _linked_customers(self, infra_node: str) -> set[str]:
@@ -73,76 +224,68 @@ class EntityGraph:
         return {nb for nb in self.g.neighbors(infra_node) if nb.startswith("C:")}
 
     def _prospective_customers(self, infra_node: str, customer_node: str) -> set[str]:
-        """Customers linked after accepting the *current* transaction."""
         linked = self._linked_customers(infra_node)
         linked.add(customer_node)
         return linked
 
     def check(self, payload: dict) -> dict:
-        """
-        Ring screen for one payload. The current transaction is evaluated
-        prospectively, so the third customer joining a shared device/IP is
-        caught immediately instead of only on a later returning transaction.
-
-        Returns
-          {ring_detected, ring_id, risk_score, component_customers,
-           shared_infra: [{node, linked_customers}]}
-
-        `component_customers` is retained for API compatibility; on the live
-        path it now means the directly implicated customer cohort reachable
-        through this payload's device/IP, not a merchant-inflated global
-        connected component.
-        """
-        c_node = f"C:{payload['customer_id']}"
-        candidate_infra = (
-            f"D:{payload['device_id']}",
-            f"I:{payload['ip_address']}",
+        """Prospectively score device/IP/beneficiary evidence for one payment."""
+        ts = self._event_ts(payload)
+        risk, ring_detected, device_degree, ip_degree, merchant_degree = self._risk.check(
+            ts,
+            str(payload["customer_id"]),
+            str(payload["device_id"]),
+            str(payload["ip_address"]),
+            str(payload["merchant_id"]),
         )
+        risk = round(float(risk), 3)
+        device_degree = int(device_degree)
+        ip_degree = int(ip_degree)
+        merchant_degree = int(merchant_degree)
 
-        shared: list[dict] = []
+        c_node = f"C:{payload['customer_id']}"
+        d_node = f"D:{payload['device_id']}"
+        i_node = f"I:{payload['ip_address']}"
         implicated = {c_node}
-        soft_max = 1
+        shared: list[dict] = []
 
-        for infra_node in candidate_infra:
-            linked = self._prospective_customers(infra_node, c_node)
-            implicated.update(linked)
-            soft_max = max(soft_max, len(linked))
-            if len(linked) >= 3:
-                shared.append({
-                    "node": infra_node,
-                    "linked_customers": len(linked),
-                })
+        if device_degree >= 2:
+            customers = self._prospective_customers(d_node, c_node)
+            implicated.update(customers)
+            shared.append({
+                "node": d_node,
+                "linked_customers": device_degree,
+                "evidence": "strong_device",
+            })
+        if ip_degree >= 2:
+            customers = self._prospective_customers(i_node, c_node)
+            implicated.update(customers)
+            shared.append({
+                "node": i_node,
+                "linked_customers": ip_degree,
+                "evidence": "weak_ip",
+            })
 
-        base = {
-            "ring_detected": False,
-            "ring_id": None,
-            "risk_score": 0.0,
-            "component_customers": len(implicated),
-            "shared_infra": sorted(shared, key=lambda s: -s["linked_customers"]),
+        ring_customers = {c_node}
+        if device_degree >= 3:
+            ring_customers.update(self._prospective_customers(d_node, c_node))
+        elif ring_detected and ip_degree >= 5 and merchant_degree >= 5:
+            ring_customers.update(self._prospective_customers(i_node, c_node))
+
+        return {
+            "ring_detected": bool(ring_detected),
+            "ring_id": self._ring_id(ring_customers) if ring_detected else None,
+            "risk_score": risk,
+            "component_customers": len(ring_customers) if ring_detected else len(implicated),
+            "shared_infra": sorted(shared, key=lambda item: -item["linked_customers"]),
+            "evidence": {
+                "device_degree_10m": device_degree,
+                "ip_degree_10m": ip_degree,
+                "merchant_fanin_10m": merchant_degree,
+                "shared_ip_alone_is_hard_rule": False,
+                "backend": self.backend,
+            },
         }
-
-        if shared:
-            # The ring identity is derived only from customers directly tied to
-            # shared infrastructure in this transaction. Merchant hubs cannot
-            # leak unrelated customers into the ID or risk score.
-            ring_customers = {c_node}
-            for item in shared:
-                ring_customers.update(self._prospective_customers(item["node"], c_node))
-
-            max_link = max(item["linked_customers"] for item in shared)
-            base["ring_detected"] = True
-            base["ring_id"] = self._ring_id(ring_customers)
-            base["component_customers"] = len(ring_customers)
-            base["risk_score"] = min(
-                1.0,
-                round(0.12 * len(ring_customers) + 0.06 * max_link, 3),
-            )
-        else:
-            # Soft signal: this transaction would share infra with one other
-            # profile (e.g. a couple sharing a tablet). Worth a little risk,
-            # but it is not a ring.
-            base["risk_score"] = round(min(0.4, 0.08 * max(soft_max - 1, 0)), 3)
-        return base
 
     @staticmethod
     def _ring_id(customers: set[str]) -> str:
@@ -150,36 +293,40 @@ class EntityGraph:
         return f"RING_{digest.upper()}"
 
     # ------------------------------------------------------------------ #
-    # Global scans (UI / analytics)
+    # Global analytics
     # ------------------------------------------------------------------ #
 
     def scan_rings(self) -> list[dict]:
-        """Whole-graph ring scan over the merchant-free entity graph.
+        """Conservative all-history scan for strong shared-device rings.
 
-        This is deliberately off the transaction hot path. Connected
-        components are deterministic here and match the documented topology:
-        customers, devices and IPs only; merchant hubs are excluded.
+        Temporal weighted risk remains the live authority. The global graph is
+        primarily a UI/case-analysis structure, so this scan intentionally
+        avoids turning historic shared IPs into rings.
         """
-        infra = self.g.subgraph(
-            [n for n in self.g.nodes if not n.startswith("M:")]
-        ).copy()
-        rings = []
-        for community in nx.connected_components(infra):
-            customers = {n for n in community if n.startswith("C:")}
+        rings: list[dict] = []
+        seen: set[str] = set()
+        for node in self.g.nodes:
+            if not node.startswith("D:"):
+                continue
+            customers = self._linked_customers(node)
             if len(customers) < 3:
                 continue
-            shared = [
-                {"node": n, "linked_customers": len(self._linked_customers(n))}
-                for n in community
-                if n.startswith(("D:", "I:")) and len(self._linked_customers(n)) >= 3
-            ]
-            if shared:
-                rings.append({
-                    "ring_id": self._ring_id(customers),
-                    "customers": len(customers),
-                    "shared_infra": sorted(shared, key=lambda s: -s["linked_customers"]),
-                })
-        return rings
+            ring_id = self._ring_id(customers)
+            if ring_id in seen:
+                continue
+            seen.add(ring_id)
+            rings.append({
+                "ring_id": ring_id,
+                "customers": len(customers),
+                "shared_infra": [
+                    {
+                        "node": node,
+                        "linked_customers": len(customers),
+                        "evidence": "strong_device",
+                    }
+                ],
+            })
+        return sorted(rings, key=lambda row: -row["customers"])
 
 
 __all__ = ["EntityGraph"]
