@@ -391,6 +391,20 @@ class AttackerAgent:
             base_url=os.getenv("OPENROUTER_BASE_URL", DEFAULT_BASE_URL),
         ))
 
+    def _degrade_to_offline(self, planner_done: bool) -> None:
+        """A misbehaving provider must not kill a live demo.
+
+        Swap the live client for the deterministic offline attacker, which
+        speaks the same .create() protocol. Its call counter is advanced past
+        the planner turn when the planner phase already ran, so the next
+        create() yields a clean move instead of a plan.
+        """
+        if isinstance(self.client, _OfflineHeuristicAttacker):
+            return
+        shim = _OfflineHeuristicAttacker(self.spec, self.env)
+        shim.calls = 2 if planner_done else 0
+        self.client = shim
+
     async def _complete(self, response_format: Optional[dict]) -> str:
         """One LLM turn. Sync SDK call pushed off-loop via asyncio.to_thread."""
         kwargs: dict = {"model": self.model, "messages": list(self._window())}
@@ -400,8 +414,16 @@ class AttackerAgent:
             resp = await asyncio.to_thread(self.client.create, **kwargs)
         except Exception as exc:  # noqa: BLE001 — provider surface is OpenAI SDK (NotFoundError, RateLimitError, etc.)
             raise LLMProviderError(f"LLM provider error for model {self.model!r}: {exc}") from exc
+        choices = getattr(resp, "choices", None)
+        if not choices or getattr(choices[0], "message", None) is None:
+            # Free-tier providers can return 200 with choices=null. That must
+            # travel the provider-error path (retry/degrade), never crash the
+            # campaign with a TypeError mid-demo.
+            raise LLMProviderError(
+                f"LLM provider returned no usable choices for model {self.model!r}"
+            )
         self.stats["llm_calls"] += 1
-        msg = resp.choices[0].message
+        msg = choices[0].message
         # Reasoning models (e.g., Nemotron) may put the JSON in `reasoning`
         # when `content` is empty. Prefer content, fall back to reasoning.
         content = (getattr(msg, "content", None) or getattr(msg, "reasoning", None) or "")
@@ -468,23 +490,12 @@ class AttackerAgent:
         try:
             plan_text = await self._complete(response_format=None)
         except LLMProviderError as exc:
-            yield {"type": "error", "data": str(exc)}
-            # Graceful end: campaign summary reflects zero progress so the
-            # dashboard can surface the fix ("set OPENROUTER_MODEL to a valid slug").
-            yield {"type": "campaign_summary", "data": {
-                "spec_id": self.spec.spec_id,
-                "txn_slots": 0,
-                "accepted": 0,
-                "accept_rate": 0.0,
-                "attempts": 0,
-                "gate_rejects": {},
-                "malformed": 0,
-                "llm_calls": self.stats["llm_calls"],
-                "gross_value_usd": 0.0,
-                "net_vs_tooling_usd": round(0.0 - self.spec.economic_model.acquisition_cost_usd, 2),
-                "error": str(exc),
-            }}
-            return
+            self._degrade_to_offline(planner_done=False)
+            yield {"type": "agent_thought", "role": "SYSTEM", "data": (
+                f"LLM provider unavailable ({exc}). Finishing this campaign with the "
+                "deterministic offline attacker."
+            )}
+            plan_text = await self._complete(response_format=None)
         self._assistant_say(plan_text)
         yield {"type": "agent_thought", "role": "PLANNER", "data": plan_text}
 
@@ -499,9 +510,15 @@ class AttackerAgent:
                     raw = await self._complete(response_format=self._move_schema)
                     reasoning, payload = self._parse_move(raw)
                 except LLMProviderError as exc:
+                    if not isinstance(self.client, _OfflineHeuristicAttacker):
+                        self._degrade_to_offline(planner_done=True)
+                        yield {"type": "agent_thought", "role": "SYSTEM", "data": (
+                            f"LLM provider error mid-campaign ({exc}). Degrading to the "
+                            "deterministic offline attacker; the fight continues."
+                        )}
+                        continue  # retry this slot with the offline attacker
                     yield {"type": "error", "data": str(exc), "txn_index": idx}
                     yield {"type": "txn_abandoned", "txn_index": idx, "data": {"reason": "llm_provider_error"}}
-                    # Persistent config/rate-limit errors won't heal on retry within this slot
                     continue
                 except MalformedMoveError as exc:
                     self._assistant_say(raw)

@@ -130,8 +130,56 @@ def test_campaign_state_reaches_environment(spec: AttackSpec):
 
 
 # --------------------------------------------------------------------------- #
-# Live smoke test — opt-in only (needs OPENROUTER_API_KEY + RUN_LIVE=1)
+# Provider failure regression: HTTP 200 with choices=null must degrade, not die
 # --------------------------------------------------------------------------- #
+
+
+class _NullChoicesClient:
+    """Mimics a free-tier provider that returns 200 with choices=null."""
+
+    def create(self, **kwargs: object) -> object:
+        class _R:
+            choices = None
+
+        return _R()
+
+
+class _FlakyAfterPlanClient:
+    """Answers the planner call, then returns choices=null forever."""
+
+    def __init__(self) -> None:
+        self.calls = 0
+
+    def create(self, **kwargs: object) -> object:
+        self.calls += 1
+        if self.calls == 1:
+            from agents.attacker import _FakeResponse
+
+            return _FakeResponse("plan: probe the grocery vertical, then escalate.")
+        return _NullChoicesClient().create(**kwargs)
+
+
+def test_null_choices_provider_degrades_at_planner(spec: AttackSpec, env: PaymentEnvironment):
+    agent = AttackerAgent(spec, env, client=_NullChoicesClient(), sleep_between_calls_s=0.0)
+    events = _drain(agent, campaign_size=5)
+
+    assert any(e["type"] == "agent_thought" and e["role"] == "SYSTEM" for e in events)
+    assert not any(e["type"] == "error" for e in events), "degradation must not surface errors"
+    summary = events[-1]
+    assert summary["type"] == "campaign_summary"
+    assert summary["data"]["accepted"] >= 3
+
+
+def test_null_choices_provider_degrades_mid_operator(spec: AttackSpec, env: PaymentEnvironment):
+    agent = AttackerAgent(spec, env, client=_FlakyAfterPlanClient(), sleep_between_calls_s=0.0)
+    events = _drain(agent, campaign_size=5)
+
+    planners = [e for e in events if e["type"] == "agent_thought" and e["role"] == "PLANNER"]
+    assert len(planners) == 1, "planner phase must have run on the live client"
+    assert any(e["type"] == "agent_thought" and e["role"] == "SYSTEM" for e in events)
+    summary = events[-1]
+    assert summary["type"] == "campaign_summary"
+    assert summary["data"]["accepted"] >= 3
 
 
 @pytest.mark.skipif(

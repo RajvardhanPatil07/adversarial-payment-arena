@@ -13,7 +13,7 @@ import type { PaymentPayload } from "@/lib/arena-types";
 
 export interface ThoughtRow {
   id: number;
-  role: "PLANNER" | "OPERATOR";
+  role: "PLANNER" | "OPERATOR" | "SYSTEM";
   text: string;
   txn?: number;
 }
@@ -109,12 +109,18 @@ export function AttackerFeed({
                 className={`rounded-md border p-2 text-[11px] leading-snug ${
                   t.role === "PLANNER"
                     ? "border-violet-900 bg-violet-500/10 text-violet-200"
-                    : "border-zinc-800 bg-zinc-900/60 text-zinc-300"
+                    : t.role === "SYSTEM"
+                      ? "border-amber-900 bg-amber-500/10 text-amber-200"
+                      : "border-zinc-800 bg-zinc-900/60 text-zinc-300"
                 }`}
               >
                 <span
                   className={`mr-1.5 font-mono text-[9px] font-bold ${
-                    t.role === "PLANNER" ? "text-violet-400" : "text-red-400"
+                    t.role === "PLANNER"
+                      ? "text-violet-400"
+                      : t.role === "SYSTEM"
+                        ? "text-amber-400"
+                        : "text-red-400"
                   }`}
                 >
                   {t.role}

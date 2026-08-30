@@ -71,7 +71,7 @@ export interface CampaignSummaryData {
 export type ArenaEvent =
   | { type: "campaign_accepted"; spec: string; size: number; attack_file: string }
   | { type: "campaign_start"; data: { spec_id: string; size: number } }
-  | { type: "agent_thought"; role: "PLANNER" | "OPERATOR"; data: string; txn_index?: number }
+  | { type: "agent_thought"; role: "PLANNER" | "OPERATOR" | "SYSTEM"; data: string; txn_index?: number }
   | { type: "payload_generated"; data: PaymentPayload; txn_index?: number }
   | {
       type: "plausibility_check";
