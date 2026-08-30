@@ -34,6 +34,7 @@ jobs:
   rust-core:
     name: Rust core + Python parity + benchmark
     runs-on: ubuntu-latest
+    timeout-minutes: 90
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
@@ -76,6 +77,18 @@ jobs:
           --maxlen 10000
           --native-only
           --json /tmp/feature-state-benchmark-500k.json
+      - name: Network-scale Rust test (100M mixed transactions)
+        env:
+          PYTHONPATH: backend
+        run: >-
+          python backend/benchmarks/benchmark_feature_state.py
+          --events 100000000
+          --repeats 1
+          --maxlen 10000
+          --chunk-size 50000
+          --workloads mixed
+          --native-only
+          --json /tmp/feature-state-benchmark-100m-mixed.json
       - name: Upload benchmark results
         uses: actions/upload-artifact@v4
         with:
