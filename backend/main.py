@@ -38,6 +38,7 @@ SPECS_DIR = BACKEND_ROOT / "attack_specs"
 AMBIENT_INTERVAL_S = 2.0
 MAX_CAMPAIGN_SIZE = 200
 MAX_SLEEP_S = 3.0
+FEEDBACK_MODES = {"black", "gray", "white"}
 
 _SAFE_SPEC_NAME = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_-]*$")
 NODE_TYPE = {"C": "customer", "D": "device", "I": "ip", "M": "merchant"}
@@ -115,13 +116,77 @@ def resolve_attack_path(name: str) -> Path:
     raise HTTPException(status_code=404, detail=f"no unique attack spec for {name!r}")
 
 
+def _coarse_signal_families(record: dict) -> list[str]:
+    """Translate internal reasons into realistic gray-box feedback.
+
+    Gray-box mode deliberately avoids exposing thresholds or raw model scores.
+    It models what an adaptive adversary could infer from challenge/decline
+    behaviour without handing it the defender implementation.
+    """
+    families: list[str] = []
+    reasons = record.get("reasons", ())
+    if any(str(reason).startswith("ring_detected") for reason in reasons):
+        families.append("shared-infrastructure topology")
+    if any(str(reason).startswith("velocity>") for reason in reasons):
+        families.append("behavioural velocity")
+    if any("novelty" in str(reason) for reason in reasons):
+        families.append("out-of-distribution behaviour")
+    return families or ["no dominant defense signal"]
+
+
+def _defender_feedback(record: dict, txn_index: int | None, mode: str) -> dict:
+    """Build one feedback turn for the next adversarial move.
+
+    The async generator yields ``payload_generated`` before it asks the model
+    for the next transaction. ``pump_campaign`` therefore has a clean point to
+    append this user turn to the attacker's conversation. The next LLM call
+    sees the real defender outcome, closing the loop rather than merely showing
+    a defender beside an independent generator.
+    """
+    decision = str(record["decision"])
+    families = _coarse_signal_families(record)
+    prefix = f"Defender outcome for transaction {txn_index or '?'}: {decision}."
+
+    if mode == "black":
+        prompt = (
+            f"{prefix} Treat only that outcome as observable. Adapt the next "
+            "synthetic move if useful while staying inside the attack specification."
+        )
+    elif mode == "white":
+        prompt = (
+            f"{prefix} Lab-only white-box telemetry: reasons={record.get('reasons', [])}; "
+            f"scores={record.get('scores', {})}. Adapt the next synthetic move while "
+            "remaining schema-valid, economically plausible and inside the declared attack spec."
+        )
+    else:
+        prompt = (
+            f"{prefix} Observable signal family: {', '.join(families)}. Adapt the next "
+            "synthetic move if useful, but do not leave the declared attack specification."
+        )
+
+    return {
+        "mode": mode,
+        "decision": decision,
+        "signal_families": families,
+        "prompt": prompt,
+    }
+
+
 async def pump_campaign(
     stack: ArenaStack,
     agent: AttackerAgent,
     campaign_size: int,
     emit,
+    feedback_mode: str = "gray",
 ) -> None:
-    """Drive one campaign and merge decision/cost/graph events into its stream."""
+    """Drive one genuinely closed-loop campaign.
+
+    Each accepted generated payload is scored immediately. The observed
+    defender outcome is appended to the attacker's conversation before the
+    generator advances to the next transaction slot, so later moves can adapt
+    to actual defense behaviour. The defender itself remains unchanged by this
+    feedback; hardening/retraining is a separate controlled experiment.
+    """
     try:
         async for event in agent.run_campaign(campaign_size=campaign_size):
             await emit(event)
@@ -142,6 +207,22 @@ async def pump_campaign(
                 "scores": record["scores"],
                 "amount": record["amount"],
             })
+
+            # Close the adversarial loop. _user_say is intentionally used here
+            # rather than letting the defender call the LLM directly: the
+            # attacker owns its conversation and the next normal model turn
+            # consumes this feedback. This preserves rate limiting and the
+            # existing structured-output contract.
+            feedback = _defender_feedback(record, event.get("txn_index"), feedback_mode)
+            agent._user_say(feedback["prompt"])
+            await emit({
+                "type": "defender_feedback",
+                "txn_index": event.get("txn_index"),
+                "mode": feedback["mode"],
+                "decision": feedback["decision"],
+                "signal_families": feedback["signal_families"],
+            })
+
             await emit({"type": "cost_update", **stack.cost_summary()})
 
             fresh = stack.drain_graph_edges()
@@ -182,7 +263,7 @@ async def lifespan(app: FastAPI):
             await ambient
 
 
-app = FastAPI(title="Adversarial Payment Arena", version="0.7.0", lifespan=lifespan)
+app = FastAPI(title="Adversarial Payment Arena", version="0.8.0", lifespan=lifespan)
 
 
 def _origins() -> list[str]:
@@ -322,6 +403,11 @@ async def ws_endpoint(ws: WebSocket):
                 sleep_s = float(raw_sleep)
                 if not math.isfinite(sleep_s) or sleep_s < 0:
                     raise ValueError("sleep_s must be a finite non-negative number")
+                feedback_mode = str(message.get("feedback_mode", "gray")).strip().lower()
+                if feedback_mode not in FEEDBACK_MODES:
+                    raise ValueError(
+                        f"feedback_mode must be one of {sorted(FEEDBACK_MODES)}"
+                    )
             except (TypeError, ValueError, OverflowError) as exc:
                 await _send_ws_usage_error(ws, f"invalid campaign controls: {exc}")
                 continue
@@ -340,8 +426,15 @@ async def ws_endpoint(ws: WebSocket):
                     "spec": spec.spec_id,
                     "size": size,
                     "attack_file": path.name,
+                    "feedback_mode": feedback_mode,
                 })
-                await pump_campaign(stack, agent, size, emit)
+                await pump_campaign(
+                    stack,
+                    agent,
+                    size,
+                    emit,
+                    feedback_mode=feedback_mode,
+                )
                 await ws.send_json({"type": "cost_update", **stack.cost_summary()})
     except WebSocketDisconnect:
         return
