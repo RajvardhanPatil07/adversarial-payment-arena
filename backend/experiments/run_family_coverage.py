@@ -9,7 +9,8 @@ family you cannot GENERATE cannot be measured, and a family you cannot measure
 cannot be defended.
 
 So this experiment takes every executable family in the repository and reports,
-per family, at ONE honestly-pinned operating point:
+per family, at ONE operating point derived from a calibration split that the
+evaluation corpus never touches:
 
   * recall            did the stack catch it?
   * which LAYER caught it (supervised / unsupervised / graph)
@@ -128,6 +129,9 @@ TRAIN_PER_FAMILY = 110
 EVAL_PER_FAMILY = 45
 N_LEGIT_TRAIN = 4200
 N_LEGIT_EVAL = 1100
+N_LEGIT_CALIB = 2400
+CALIB_ATTACKS_PER_FAMILY = 40
+TARGET_FPR = 0.01
 
 
 def _layer_attribution(record: dict) -> List[str]:
@@ -148,13 +152,37 @@ def _layer_attribution(record: dict) -> List[str]:
 
 
 def run_seed(seed: int, withheld: str | None) -> Dict[str, object]:
-    """Train on all families except `withheld`, then evaluate on all of them."""
+    """Train on all families except `withheld`, then evaluate on all of them.
+
+    The operating point is pinned FIRST, on a calibration split with a seed
+    disjoint from both training and evaluation, and containing the families the
+    supervised model will see at deployment. This is the leakage discipline the
+    rest of the repository claims to enforce: a per-family recall quoted at an
+    uncalibrated (or evaluation-fitted) threshold is a fit, not a measurement.
+    """
     train_counts = {
         f: TRAIN_PER_FAMILY for f in FAMILIES if f != withheld
     }
     train = build_corpus(n_legit=N_LEGIT_TRAIN, attack_counts=train_counts, seed=seed)
     engine = DecisionEngine(environment=train["env"])
     engine.train(train["rows"])
+
+    # Calibration is a mixed stream by design: the full-stack threshold search
+    # maximises recall inside an FPR budget, so a legitimate-only split carries
+    # no recall signal and returns an arbitrary operating point. The families
+    # mirror deployment composition -- the family under measurement is still
+    # absent from supervised TRAINING, which is the condition under test.
+    cal_counts = {
+        f: CALIB_ATTACKS_PER_FAMILY
+        for f in FAMILIES
+        if f != withheld
+    }
+    cal = build_corpus(n_legit=N_LEGIT_CALIB, attack_counts=cal_counts, seed=seed + 500)
+    calibration = engine.calibrate(cal["rows"], target_fpr=TARGET_FPR)
+    if not calibration.get("calibrated"):
+        raise RuntimeError(
+            f"family coverage could not pin a {TARGET_FPR:.0%} operating point: {calibration}"
+        )
 
     ev_counts = {f: EVAL_PER_FAMILY for f in FAMILIES}
     ev = build_corpus(n_legit=N_LEGIT_EVAL, attack_counts=ev_counts, seed=seed + 500)
@@ -182,7 +210,13 @@ def run_seed(seed: int, withheld: str | None) -> Dict[str, object]:
         for layer in _layer_attribution(rec):
             entry["layers"][layer] = entry["layers"].get(layer, 0) + 1
 
-    out = {"seed": seed, "withheld": withheld, "legit_fpr": legit_flagged / max(legit_n, 1), "families": {}}
+    out = {
+        "seed": seed,
+        "withheld": withheld,
+        "legit_fpr": legit_flagged / max(legit_n, 1),
+        "calibration": calibration,
+        "families": {},
+    }
     for f, e in per_family.items():
         n = max(e["n"], 1)
         out["families"][f] = {
@@ -230,7 +264,7 @@ def _plot(trained: Dict[str, object], zero_day: Dict[str, object], fpr: Dict[str
     ax.set_yticks(y)
     ax.set_yticklabels(names, fontsize=9.4)
     ax.set_xlim(0, 1.14)
-    ax.set_xlabel("recall (non-APPROVE) at a pinned operating point")
+    ax.set_xlabel("recall (non-APPROVE) at a calibrated operating point")
     ax.axvline(1.0, color="#d1d5db", lw=1, ls=":")
     ax.set_title(
         f"Per-family detection: {len(FAMILIES)} executable families, each defeating a different control\n"
@@ -332,6 +366,9 @@ def main() -> Dict[str, object]:
         }
 
     fpr_all = bootstrap_mean_ci([r["legit_fpr"] for r in all_in], seed=3)
+    cal_fpr = bootstrap_mean_ci(
+        [r["calibration"]["achieved_validation_fpr_upper95"] for r in all_in], seed=3
+    )
     _plot(trained, zero_day, fpr_all)
 
     weakest = min(FAMILIES, key=lambda f: zero_day[f]["recall"]["mean"] or 0.0)
@@ -343,6 +380,18 @@ def main() -> Dict[str, object]:
         "mean_recall_family_in_training": round(mean_tr, 4),
         "mean_recall_family_withheld_zero_day": round(mean_zd, 4),
         "legit_fpr": fpr_all,
+        "calibrated_validation_fpr_upper95": cal_fpr,
+        "operating_point": {
+            "target_fpr": TARGET_FPR,
+            "source": (
+                "full-stack threshold search on a mixed calibration split "
+                "(seed disjoint from train and evaluation), re-pinned for every seed "
+                "and every withhold condition"
+            ),
+            "validation_fpr_upper95": cal_fpr,
+            "eval_fpr_realised": fpr_all,
+            "calibration": all_in[0].get("calibration", {}),
+        },
         "weakest_family_when_withheld": {
             "family": weakest,
             "label": SHORT[weakest],
@@ -377,6 +426,13 @@ def main() -> Dict[str, object]:
                     "B": "the measured family is WITHHELD from supervised training (leave-one-family-out)",
                 },
                 "recall_definition": "share of family transactions receiving a non-APPROVE decision",
+                "operating_point": (
+                    f"full stack threshold search at {TARGET_FPR:.0%} legitimate FPR on a "
+                    "mixed calibration split whose seed is disjoint from both training "
+                    "and evaluation; re-pinned for every seed and every withheld family"
+                ),
+                "calibration_attack_rows_per_family": CALIB_ATTACKS_PER_FAMILY,
+                "n_legit_calibration": N_LEGIT_CALIB,
                 "layer_attribution": "overlapping; a transaction can be flagged by several layers",
             },
             "families_defeat": DEFEATS,
@@ -401,7 +457,11 @@ def main() -> Dict[str, object]:
             claim=f"All {len(FAMILIES)} attack families are executable and individually measured, not merely listed.",
             artifact="family_coverage",
             field="family_in_training.*.recall",
-            derivation="Per-family non-APPROVE rate on a fresh evaluation corpus at a pinned operating point.",
+            derivation=(
+                "Per-family non-APPROVE rate on a fresh evaluation corpus, at a full-stack "
+                "operating point calibrated on a mixed split disjoint from training and "
+                "evaluation and re-pinned for every seed and withheld family."
+            ),
             boundary="Synthetic environment; each family generated through the same Plausibility Gate as every other payload.",
         )
         .add(

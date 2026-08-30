@@ -1,8 +1,8 @@
 {
   "provenance": {
     "schema_version": "1.0.0",
-    "generated_at": "2026-08-30T12:01:02.803514+00:00",
-    "git_sha": "52061f0",
+    "generated_at": "2026-08-30T13:50:28.674058+00:00",
+    "git_sha": "e1bea35",
     "python": "3.12.13",
     "platform": "macOS-26.6.2-arm64-arm-64bit",
     "seeds": [
@@ -45,6 +45,9 @@
       "B": "the measured family is WITHHELD from supervised training (leave-one-family-out)"
     },
     "recall_definition": "share of family transactions receiving a non-APPROVE decision",
+    "operating_point": "full stack threshold search at 1% legitimate FPR on a mixed calibration split whose seed is disjoint from both training and evaluation; re-pinned for every seed and every withheld family",
+    "calibration_attack_rows_per_family": 40,
+    "n_legit_calibration": 2400,
     "layer_attribution": "overlapping; a transaction can be flagged by several layers"
   },
   "families_defeat": {
@@ -72,6 +75,44 @@
       "lo": 0.022727,
       "hi": 0.118182,
       "n": 3
+    },
+    "calibrated_validation_fpr_upper95": {
+      "mean": 0.010713,
+      "lo": 0.009891,
+      "hi": 0.012357,
+      "n": 3
+    },
+    "operating_point": {
+      "target_fpr": 0.01,
+      "source": "full-stack threshold search on a mixed calibration split (seed disjoint from train and evaluation), re-pinned for every seed and every withhold condition",
+      "validation_fpr_upper95": {
+        "mean": 0.010713,
+        "lo": 0.009891,
+        "hi": 0.012357,
+        "n": 3
+      },
+      "eval_fpr_realised": {
+        "mean": 0.070909,
+        "lo": 0.022727,
+        "hi": 0.118182,
+        "n": 3
+      },
+      "calibration": {
+        "calibrated": true,
+        "method": "full_stack_threshold_search",
+        "feature_source": "corpus_stored",
+        "novelty_alone_alerts": false,
+        "ring_risk_threshold": 1.0,
+        "target_fpr": 0.01,
+        "achieved_validation_fpr_upper95": 0.009891,
+        "achieved_validation_recall": 0.9875,
+        "stepup_threshold": 0.046305,
+        "decline_threshold": 0.706972,
+        "manual_threshold": 0.000162,
+        "n_legit_validation": 2400,
+        "n_rows_validation": 2960,
+        "budget_reachable": true
+      }
     },
     "weakest_family_when_withheld": {
       "family": "ATTACK_13_MERCHANT_BUSTOUT",
@@ -948,6 +989,22 @@
       "seed": 11,
       "withheld": null,
       "legit_fpr": 0.022727272727272728,
+      "calibration": {
+        "calibrated": true,
+        "method": "full_stack_threshold_search",
+        "feature_source": "corpus_stored",
+        "novelty_alone_alerts": false,
+        "ring_risk_threshold": 1.0,
+        "target_fpr": 0.01,
+        "achieved_validation_fpr_upper95": 0.009891,
+        "achieved_validation_recall": 0.9875,
+        "stepup_threshold": 0.046305,
+        "decline_threshold": 0.706972,
+        "manual_threshold": 0.000162,
+        "n_legit_validation": 2400,
+        "n_rows_validation": 2960,
+        "budget_reachable": true
+      },
       "families": {
         "ATTACK_1_MFA_RESET_VOICE_CLONE": {
           "n": 45,
@@ -1102,6 +1159,22 @@
       "seed": 23,
       "withheld": null,
       "legit_fpr": 0.07181818181818182,
+      "calibration": {
+        "calibrated": true,
+        "method": "full_stack_threshold_search",
+        "feature_source": "corpus_stored",
+        "novelty_alone_alerts": false,
+        "ring_risk_threshold": 1.0,
+        "target_fpr": 0.01,
+        "achieved_validation_fpr_upper95": 0.009891,
+        "achieved_validation_recall": 0.923214,
+        "stepup_threshold": 0.054943,
+        "decline_threshold": 0.799839,
+        "manual_threshold": 0.000156,
+        "n_legit_validation": 2400,
+        "n_rows_validation": 2960,
+        "budget_reachable": true
+      },
       "families": {
         "ATTACK_1_MFA_RESET_VOICE_CLONE": {
           "n": 45,
@@ -1257,6 +1330,22 @@
       "seed": 37,
       "withheld": null,
       "legit_fpr": 0.11818181818181818,
+      "calibration": {
+        "calibrated": true,
+        "method": "full_stack_threshold_search",
+        "feature_source": "corpus_stored",
+        "novelty_alone_alerts": false,
+        "ring_risk_threshold": 1.0,
+        "target_fpr": 0.01,
+        "achieved_validation_fpr_upper95": 0.012357,
+        "achieved_validation_recall": 0.642857,
+        "stepup_threshold": 0.993099,
+        "decline_threshold": 0.993099,
+        "manual_threshold": 0.000171,
+        "n_legit_validation": 2400,
+        "n_rows_validation": 2960,
+        "budget_reachable": false
+      },
       "families": {
         "ATTACK_1_MFA_RESET_VOICE_CLONE": {
           "n": 45,
