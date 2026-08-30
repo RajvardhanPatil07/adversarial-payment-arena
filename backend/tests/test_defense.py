@@ -164,7 +164,6 @@ def test_cost_matrix_shape_on_eval_run(eval_run, trained_engine):
 
 def test_graph_flags_mule_ring_shared_device():
     g = EntityGraph()
-    rng = random.Random(3)
 
     def wire(cid, dev, ip="9.9.9.9"):
         return {
@@ -172,18 +171,15 @@ def test_graph_flags_mule_ring_shared_device():
             "merchant_id": "MERCH_ELEC_BESTBUYX",
         }
 
-    g.observe(wire("CUST_0001", "DEV_AAA"))
-    g.observe(wire("CUST_0002", "DEV_AAA"))
-    res = g.check(wire("CUST_0003", "DEV_AAA"))  # check BEFORE observing 3rd
-    assert not res["ring_detected"]              # device links only 2 customers
+    g.observe(wire("CUST_0001", "DEV_AAA", "1.1.1.1"))
+    g.observe(wire("CUST_0002", "DEV_AAA", "2.2.2.2"))
 
-    g.observe(wire("CUST_0003", "DEV_AAA"))
-    # a RETURNING ring member trips the screen: the checked customer must be
-    # directly linked to the shared infra (merchant-mediated co-residence in
-    # a component never implicates anyone — see EntityGraph.check).
-    res = g.check(wire("CUST_0001", "DEV_AAA"))
+    # check() runs before observe(), so the current customer must be included
+    # prospectively. The third distinct customer on one device is the first
+    # transaction that completes the ring and should be caught immediately.
+    res = g.check(wire("CUST_0003", "DEV_AAA", "3.3.3.3"))
     assert res["ring_detected"]
-    assert res["component_customers"] >= 3
+    assert res["component_customers"] == 3
     assert any(s["linked_customers"] >= 3 for s in res["shared_infra"])
     assert res["risk_score"] > 0.5
 
