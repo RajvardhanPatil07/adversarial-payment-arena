@@ -63,7 +63,6 @@ fn ip_risk(degree: usize) -> f64 {
 }
 
 fn merchant_risk(degree: usize) -> f64 {
-    // Merchant popularity is common, so fan-in is corroborating evidence only.
     if degree < 8 {
         0.0
     } else {
@@ -72,7 +71,11 @@ fn merchant_risk(degree: usize) -> f64 {
 }
 
 fn fuse_risks(parts: &[f64]) -> f64 {
-    clamp01(1.0 - parts.iter().fold(1.0, |acc, value| acc * (1.0 - clamp01(*value))))
+    clamp01(
+        1.0 - parts
+            .iter()
+            .fold(1.0, |acc, value| acc * (1.0 - clamp01(*value))),
+    )
 }
 
 #[pyclass(module = "arena_graph_core")]
@@ -128,8 +131,16 @@ impl GraphRiskState {
         let d = device_risk(device_degree);
         let i = ip_risk(ip_degree);
         let m = merchant_risk(merchant_degree);
-        let ring = device_degree >= 3 || (ip_degree >= 5 && merchant_degree >= 5);
+        let ring = device_degree >= 3;
         let mut risk = fuse_risks(&[d, i, m]);
+
+        // Shared IP plus beneficiary/merchant convergence is meaningful, but it
+        // is not safe enough to hard-decline: an office NAT can legitimately
+        // produce the same shape at a popular merchant. Elevate it as a strong
+        // soft feature for the model/threat miner instead.
+        if ip_degree >= 5 && merchant_degree >= 5 {
+            risk = risk.max(0.55);
+        }
         if ring {
             risk = risk.max(0.72);
         }
@@ -229,7 +240,7 @@ mod tests {
     }
 
     #[test]
-    fn shared_ip_plus_beneficiary_convergence_can_be_ring_evidence() {
+    fn nat_plus_beneficiary_convergence_is_strong_but_not_hard_decline() {
         let mut state = GraphRiskState::new(600.0).unwrap();
         for i in 0..4 {
             state.observe(
@@ -242,10 +253,11 @@ mod tests {
         }
         let (risk, ring, _, ip_degree, merchant_degree) =
             state.check(5.0, "C4", "D4", "10.0.0.1", "MULE");
-        assert!(ring);
+        assert!(!ring);
         assert_eq!(ip_degree, 5);
         assert_eq!(merchant_degree, 5);
-        assert!(risk >= 0.72);
+        assert!(risk >= 0.55);
+        assert!(risk < 0.72);
     }
 
     #[test]
