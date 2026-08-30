@@ -31,6 +31,13 @@ const nextConfig: NextConfig = {
         images: { unoptimized: true },
       }
     : {}),
+  // Dev-only: the sandbox proxies dev traffic through its own hostname, and
+  // Next blocks cross-origin dev-resource requests by default. Allowed here
+  // once rather than re-echoed as a warning on every request.
+  allowedDevOrigins: [
+    "3000-ivxqw04vwssako2dtg5d0-d0b9e1e2.sandbox.novita.ai",
+    "3000-ivxqw04vwssako2dtg5d0-d0b9e1e2.e2b.dev",
+  ],
   // Surface the mode to the client so the UI can explain a disabled feature
   // instead of showing an unexplained error.
   env: {

@@ -33,6 +33,12 @@ RUN npm install --no-audit --no-fund
 
 COPY frontend/ ./
 
+# The judge-facing pages read measured numbers from artifacts/ at BUILD time
+# (node:fs in server components), so the static export needs the evidence set
+# present while prerendering. ARTIFACTS_DIR points src/lib/artifacts.ts at it.
+COPY artifacts/ ./artifacts/
+ENV ARTIFACTS_DIR=/ui/artifacts
+
 # STATIC_EXPORT flips next.config.ts into `output: "export"`. It is a build-time
 # switch rather than a committed default so that `npm run dev` keeps full
 # server-side capability (including the /api/analyst streaming route) on a

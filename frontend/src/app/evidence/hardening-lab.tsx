@@ -14,8 +14,6 @@ import { useEffect, useState } from "react";
 
 import { backendHttpUrl } from "@/lib/backend";
 
-type Interval = { mean: number; lo: number; hi: number; n?: number };
-
 type Arm = {
   arm: string;
   gated: boolean;
