@@ -11,9 +11,6 @@ Evidence policy:
 * shared IP becomes hard evidence only when beneficiary/merchant convergence
   occurs in the same recent window;
 * merchant fan-in contributes soft risk but never creates a ring on its own.
-
-This removes the old "three people on one IP => hard decline" failure mode while
-keeping the immediate third-customer shared-device signal used by mule attacks.
 """
 
 from __future__ import annotations
@@ -77,11 +74,12 @@ class _PythonGraphRiskState:
 
     @staticmethod
     def _merchant_risk(degree: int) -> float:
-        if degree <= 3:
+        # A popular merchant is not fraud evidence by itself. Keep fan-in as a
+        # small corroborating term for synchronized convergence but cap it well
+        # below any standalone friction threshold.
+        if degree < 8:
             return 0.0
-        if degree <= 7:
-            return 0.025 * (degree - 3)
-        return min(0.65, 0.20 + 0.04 * (degree - 8))
+        return min(0.15, 0.04 + 0.01 * (degree - 8))
 
     @staticmethod
     def _fuse(parts: tuple[float, ...]) -> float:
@@ -175,10 +173,6 @@ class EntityGraph:
             value = value.replace(tzinfo=timezone.utc)
         return value.timestamp()
 
-    # ------------------------------------------------------------------ #
-    # State / UI topology
-    # ------------------------------------------------------------------ #
-
     def observe(self, wire: dict) -> list[tuple[str, str]]:
         """Fold one accepted transaction after ``check`` and return new UI edges."""
         ts = self._event_ts(wire)
@@ -213,10 +207,6 @@ class EntityGraph:
             return False
         self.g.add_edge(a, b, weight=1)
         return True
-
-    # ------------------------------------------------------------------ #
-    # Ring / evidence risk
-    # ------------------------------------------------------------------ #
 
     def _linked_customers(self, infra_node: str) -> set[str]:
         if infra_node not in self.g:
@@ -292,17 +282,8 @@ class EntityGraph:
         digest = hashlib.sha1("|".join(sorted(customers)).encode()).hexdigest()[:10]
         return f"RING_{digest.upper()}"
 
-    # ------------------------------------------------------------------ #
-    # Global analytics
-    # ------------------------------------------------------------------ #
-
     def scan_rings(self) -> list[dict]:
-        """Conservative all-history scan for strong shared-device rings.
-
-        Temporal weighted risk remains the live authority. The global graph is
-        primarily a UI/case-analysis structure, so this scan intentionally
-        avoids turning historic shared IPs into rings.
-        """
+        """Conservative all-history scan for strong shared-device rings."""
         rings: list[dict] = []
         seen: set[str] = set()
         for node in self.g.nodes:
