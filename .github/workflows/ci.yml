@@ -10,8 +10,10 @@ on:
 permissions:
   contents: read
 
-# Scale validation can run for hours. A newer commit makes an older result
-# inapplicable to the PR head, so do not burn runners on superseded 100M jobs.
+# Scale validation is intentionally fast enough to run on every PR head.
+# The benchmark harness itself still supports 100M transactions for explicit
+# network-scale evidence runs, but ordinary CI validates the exact same paths
+# at 1M so iteration does not spend hours on superseded commits.
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -71,7 +73,7 @@ jobs:
   rust-core:
     name: Rust feature + graph core, parity + benchmark
     runs-on: ubuntu-latest
-    timeout-minutes: 180
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
@@ -128,30 +130,30 @@ jobs:
           --maxlen 10000
           --native-only
           --json /tmp/feature-state-benchmark-500k.json
-      - name: Network-scale Rust feature-state test (100M mixed transactions)
+      - name: PR-scale Rust feature-state test (1M mixed transactions)
         env:
           PYTHONPATH: backend
         run: >-
           python backend/benchmarks/benchmark_feature_state.py
-          --events 100000000
+          --events 1000000
           --repeats 1
           --maxlen 10000
           --chunk-size 50000
           --workloads mixed
           --native-only
           --fused
-          --json /tmp/feature-state-benchmark-100m-mixed.json
-      - name: Full analysis scale test (100M transactions, Rust feature + graph state)
+          --json /tmp/feature-state-benchmark-1m-mixed.json
+      - name: Full analysis scale test (1M transactions, Rust feature + graph state)
         env:
           PYTHONPATH: backend
         run: >-
           python backend/benchmarks/benchmark_full_stack.py
-          --events 100000000
+          --events 1000000
           --chunk-size 50000
           --customers 1000
           --maxlen 10000
           --event-retention 50000
-          --json /tmp/full-stack-benchmark-100m.json
+          --json /tmp/full-stack-benchmark-1m.json
       - name: Upload benchmark results
         uses: actions/upload-artifact@v4
         with:
