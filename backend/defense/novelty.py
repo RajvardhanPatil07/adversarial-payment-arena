@@ -43,6 +43,40 @@ class NoveltyDetector:
     def vectorize(features: dict) -> list[float]:
         return [float(features[f]) for f in FEATURE_NAMES]
 
+    def detect_many(self, payloads: list[dict], feature_rows: list[dict]) -> list[dict]:
+        """Batch novelty inference while preserving scalar IsolationForest semantics.
+
+        ``payloads`` remains part of the interface for symmetry/future feature
+        conditioning. The current detector uses only the already-computed
+        feature rows. sklearn's ``predict`` labels a row anomalous exactly when
+        ``decision_function(row) < 0``; using that same threshold lets us avoid
+        traversing the forest twice per transaction.
+        """
+        if len(payloads) != len(feature_rows):
+            raise ValueError("payloads and feature_rows must have equal length")
+        if not feature_rows:
+            return []
+        if self.model is None:
+            return [
+                {
+                    "is_anomaly": False,
+                    "anomaly_score": 0.0,
+                    "model_source": "untrained",
+                }
+                for _ in feature_rows
+            ]
+
+        x = np.array([self.vectorize(features) for features in feature_rows])
+        raw_scores = self.model.decision_function(x)
+        return [
+            {
+                "is_anomaly": bool(float(raw) < 0.0),
+                "anomaly_score": round(-float(raw), 5),
+                "model_source": self.model_source,
+            }
+            for raw in raw_scores
+        ]
+
     def detect(self, payload: dict, features: dict) -> dict:
         """
         Mandated API. `payload` is accepted for interface symmetry (and future
@@ -52,15 +86,7 @@ class NoveltyDetector:
         Returns {is_anomaly: bool, anomaly_score: float} where anomaly_score
         is the negated decision_function (higher == weirder).
         """
-        if self.model is None:
-            return {"is_anomaly": False, "anomaly_score": 0.0, "model_source": "untrained"}
-        x = np.array([self.vectorize(features)])
-        raw = float(self.model.decision_function(x)[0])
-        return {
-            "is_anomaly": bool(self.model.predict(x)[0] == -1),
-            "anomaly_score": round(-raw, 5),
-            "model_source": self.model_source,
-        }
+        return self.detect_many([payload], [features])[0]
 
     # ---------------- training ---------------- #
 
