@@ -310,8 +310,7 @@ impl RollingFeatureState {
             customer_history_count,
             customer_amount_total,
         ) = if let Some(state) = self.customer_states.get_mut(customer_id) {
-            let query_ordered = state.ordered
-                && was_monotonic(&state.events, ts, |event| event.ts);
+            let query_ordered = state.ordered && was_monotonic(&state.events, ts, |event| event.ts);
             if query_ordered {
                 purge_customer_windows(state, ts);
                 (
@@ -355,8 +354,7 @@ impl RollingFeatureState {
         let amount_over_mean = amount / (historical_mean + 1e-6);
 
         let device_count_10m = if let Some(state) = self.device_states.get_mut(device_id) {
-            let query_ordered = state.ordered
-                && was_monotonic(&state.events, ts, |event| event.ts);
+            let query_ordered = state.ordered && was_monotonic(&state.events, ts, |event| event.ts);
             if query_ordered {
                 purge_device_window(state, ts);
                 state.ten_min.len()
@@ -371,27 +369,27 @@ impl RollingFeatureState {
             0
         };
 
-        let (merchant_count_10m, merchant_distinct_10m) =
-            if let Some(state) = self.merchant_states.get_mut(merchant_id) {
-                let query_ordered = state.ordered
-                    && was_monotonic(&state.events, ts, |event| event.ts);
-                if query_ordered {
-                    purge_merchant_window(state, ts);
-                    (state.ten_min.len(), state.ten_min_customer_counts.len())
-                } else {
-                    let mut count = 0usize;
-                    let mut customers: HashSet<&str> = HashSet::new();
-                    for event in &state.events {
-                        if ts - event.ts <= 600.0 {
-                            count += 1;
-                            customers.insert(event.customer_id.as_str());
-                        }
-                    }
-                    (count, customers.len())
-                }
+        let (merchant_count_10m, merchant_distinct_10m) = if let Some(state) =
+            self.merchant_states.get_mut(merchant_id)
+        {
+            let query_ordered = state.ordered && was_monotonic(&state.events, ts, |event| event.ts);
+            if query_ordered {
+                purge_merchant_window(state, ts);
+                (state.ten_min.len(), state.ten_min_customer_counts.len())
             } else {
-                (0, 0)
-            };
+                let mut count = 0usize;
+                let mut customers: HashSet<&str> = HashSet::new();
+                for event in &state.events {
+                    if ts - event.ts <= 600.0 {
+                        count += 1;
+                        customers.insert(event.customer_id.as_str());
+                    }
+                }
+                (count, customers.len())
+            }
+        } else {
+            (0, 0)
+        };
 
         let device_age_hours = self
             .device_first_seen
@@ -430,8 +428,7 @@ impl RollingFeatureState {
                 ordered: true,
                 ..CustomerState::default()
             });
-        let monotonic = customer.ordered
-            && was_monotonic(&customer.events, ts, |event| event.ts);
+        let monotonic = customer.ordered && was_monotonic(&customer.events, ts, |event| event.ts);
         if monotonic {
             purge_customer_windows(customer, ts);
         } else {
@@ -461,8 +458,7 @@ impl RollingFeatureState {
                 ordered: true,
                 ..DeviceState::default()
             });
-        let monotonic = device.ordered
-            && was_monotonic(&device.events, ts, |event| event.ts);
+        let monotonic = device.ordered && was_monotonic(&device.events, ts, |event| event.ts);
         if monotonic {
             purge_device_window(device, ts);
         } else {
@@ -487,8 +483,7 @@ impl RollingFeatureState {
                 ordered: true,
                 ..MerchantState::default()
             });
-        let monotonic = merchant.ordered
-            && was_monotonic(&merchant.events, ts, |event| event.ts);
+        let monotonic = merchant.ordered && was_monotonic(&merchant.events, ts, |event| event.ts);
         if monotonic {
             purge_merchant_window(merchant, ts);
         } else {
@@ -649,8 +644,7 @@ mod tests {
 
     #[test]
     fn chronological_expiry_fast_path_matches_scan() {
-        let mut state = RollingFeatureState::new(100);
-        let mut state = state.unwrap();
+        let mut state = RollingFeatureState::new(100).unwrap();
         for index in 0..50 {
             let ts = index as f64 * 120.0;
             state.observe_inner(ts, "C1", "D1", "M1", 10.0 + index as f64, index % 5);
