@@ -85,7 +85,8 @@ class DecisionEngine:
         """Score one payload and emit the issuer decision.
 
         Observe-after-score discipline: all layer state is folded in AFTER
-        the decision, never before.
+        the decision, never before. Newly created graph edges are returned as
+        a small delta so the live API never needs to rescan the entire graph.
         """
         msg = self._coerce(payload)
         wire = msg.to_wire()
@@ -117,9 +118,10 @@ class DecisionEngine:
         else:
             decision = APPROVE
 
-        # fold state forward
+        # Fold state forward. EntityGraph.observe() returns only newly-created
+        # edges; repeats only bump edge weights and produce no graph delta.
         self.scorer.observe(wire)
-        self.graph.observe(wire)
+        graph_new_edges = self.graph.observe(wire)
 
         return {
             "decision": decision,
@@ -136,6 +138,7 @@ class DecisionEngine:
             "payload": wire,
             "amount": float(wire["amount"]),
             "label_hint": wire.get("stolen_resource") is not None,
+            "graph_new_edges": graph_new_edges,
         }
 
     # ------------------------------------------------------------------ #
