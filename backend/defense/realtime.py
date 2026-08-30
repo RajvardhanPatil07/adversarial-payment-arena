@@ -65,6 +65,23 @@ class FeatureExtractor:
     def backend(self) -> str:
         return "rust" if self._rust is not None else "python"
 
+    def state_sizes(self) -> dict[str, int]:
+        """Return small cardinality counters for health/load diagnostics."""
+        if self._rust is not None:
+            customers, devices, merchants, first_seen = self._rust.state_sizes()
+            return {
+                "customers": int(customers),
+                "devices": int(devices),
+                "merchants": int(merchants),
+                "devices_first_seen": int(first_seen),
+            }
+        return {
+            "customers": len(self.cust_ev),
+            "devices": len(self.dev_ev),
+            "merchants": len(self.merch_ev),
+            "devices_first_seen": len(self.dev_first_seen),
+        }
+
     def device_known(self, wire: dict) -> bool:
         customer = self.env.customers.get(wire["customer_id"]) if self.env else None
         return bool(customer and wire["device_id"] in customer.devices)
@@ -72,10 +89,14 @@ class FeatureExtractor:
     def _cold_start_ratio(self, feats: dict, amount: float, history: list | None) -> None:
         if not history:
             return
-        amounts = [h["payload"]["amount"] for h in history]
-        if amounts:
+        total = 0.0
+        count = 0
+        for event in history:
+            total += float(event["payload"]["amount"])
+            count += 1
+        if count:
             feats["amount_over_mean30"] = round(
-                amount / (float(np.mean(amounts)) + 1e-6), 3
+                amount / (total / count + 1e-6), 3
             )
 
     def _features_rust(self, wire: dict, history: list | None) -> dict:
@@ -106,18 +127,41 @@ class FeatureExtractor:
         return feats
 
     def _features_python(self, wire: dict, history: list | None) -> dict:
+        """Allocation-light reference implementation used as the native oracle."""
         ts = _ts(wire)
         cid, did, mid = wire["customer_id"], wire["device_id"], wire["merchant_id"]
         amount = float(wire["amount"])
 
-        cust_all = self.cust_ev[cid]
-        c10 = [e for e in cust_all if ts - e[0] <= timedelta(minutes=10)]
-        c1h = [e for e in cust_all if ts - e[0] <= timedelta(hours=1)]
-        d10 = [e for e in self.dev_ev[did] if ts - e[0] <= timedelta(minutes=10)]
-        m10 = [e for e in self.merch_ev[mid] if ts - e[0] <= timedelta(minutes=10)]
+        customer = self.cust_ev[cid]
+        customer_count_10m = 0
+        customer_amount_10m = 0.0
+        customer_mcc_1h: set[int] = set()
+        historical_total = 0.0
+        historical_count = 0
+        for event_ts, event_amount, event_mcc in customer:
+            age = ts - event_ts
+            if age <= timedelta(minutes=10):
+                customer_count_10m += 1
+                customer_amount_10m += event_amount
+            if age <= timedelta(hours=1):
+                customer_mcc_1h.add(event_mcc)
+            historical_total += event_amount
+            historical_count += 1
 
-        hist_amounts = [e[1] for e in cust_all]
-        mean = float(np.mean(hist_amounts)) if hist_amounts else amount
+        device_count_10m = sum(
+            1
+            for (event_ts,) in self.dev_ev[did]
+            if ts - event_ts <= timedelta(minutes=10)
+        )
+
+        merchant_count_10m = 0
+        merchant_customers_10m: set[str] = set()
+        for event_ts, customer_id in self.merch_ev[mid]:
+            if ts - event_ts <= timedelta(minutes=10):
+                merchant_count_10m += 1
+                merchant_customers_10m.add(customer_id)
+
+        mean = historical_total / historical_count if historical_count else amount
         age_hours = (
             0.0
             if did not in self.dev_first_seen
@@ -125,19 +169,19 @@ class FeatureExtractor:
         )
 
         feats = {
-            "cust_txn_count_10m": len(c10),
-            "cust_amount_sum_10m": round(sum(e[1] for e in c10), 2),
+            "cust_txn_count_10m": customer_count_10m,
+            "cust_amount_sum_10m": round(customer_amount_10m, 2),
             "amount_over_mean30": round(amount / (mean + 1e-6), 3),
-            "cust_mcc_distinct_1h": len({e[2] for e in c1h}),
+            "cust_mcc_distinct_1h": len(customer_mcc_1h),
             "device_age_hours": round(age_hours, 4),
-            "dev_txn_count_10m": len(d10),
-            "merch_txn_count_10m": len(m10),
-            "merch_distinct_custs_10m": len({e[1] for e in m10}),
+            "dev_txn_count_10m": device_count_10m,
+            "merch_txn_count_10m": merchant_count_10m,
+            "merch_distinct_custs_10m": len(merchant_customers_10m),
             "device_known": int(self.device_known(wire)),
             "pos_entry_code": MODE_CODE[wire["pos_entry_mode"]],
             "tds_code": TDS_CODE[wire["3ds_status"]],
         }
-        if not hist_amounts:
+        if not historical_count:
             self._cold_start_ratio(feats, amount, history)
         return feats
 
