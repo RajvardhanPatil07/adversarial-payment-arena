@@ -5,8 +5,8 @@ used by the arena for each transaction:
 
 1. Pydantic PaymentMessage validation;
 2. Plausibility Gate + issuer enrichment/history/balance mutation;
-3. rolling feature extraction/state update (Rust when installed);
-4. entity-graph ring check/update;
+3. rolling feature extraction/state update (Rust required here);
+4. evidence-weighted entity-graph risk/check/update (Rust required here);
 5. XGBoost velocity inference;
 6. IsolationForest novelty inference;
 7. the existing decision ladder;
@@ -63,17 +63,14 @@ def _payload_chunk(
         merchant_id, mcc, merchant_country = merchant_rows[(index // 7) % merchant_count]
 
         # Most customers have their own stable IP. Three customers in each
-        # 100-customer block deliberately share one IP so ring analysis remains
-        # active without creating unbounded shared-neighbour sets.
+        # 100-customer block deliberately share one IP so graph analysis stays
+        # active while the evidence-weighted IP rule must avoid false rings.
         if customer_index % 100 < 3:
             shared_group = customer_index // 100
             ip_address = _ipv4(172, shared_group + 1)
         else:
             ip_address = _ipv4(10, customer_index + 1)
 
-        # Spread the requested transaction volume across a synthetic one-hour
-        # event-time horizon. This is a throughput target, not a claim about any
-        # payment network's private traffic distribution.
         offset_us = (index * ONE_HOUR_US) // total_events
         timestamp = BASE_TIME + timedelta(microseconds=offset_us)
 
@@ -90,10 +87,6 @@ def _payload_chunk(
                 "ip_address": ip_address,
                 "ip_country": merchant_country,
                 "device_id": known_device,
-                # ~1.3% attack-labelled traffic, near the production prevalence
-                # used elsewhere in the evidence layer. The $25+ amount clears
-                # the $8 phished-credential economic floor, so these rows still
-                # pass the same Plausibility Gate as the scalar application.
                 "stolen_resource": (
                     "phished_credentials" if index % 77 == 0 else None
                 ),
@@ -141,6 +134,8 @@ def main() -> None:
 
     if engine.scorer.extractor.backend != "rust":
         raise SystemExit("arena_core must be installed for the scale benchmark")
+    if engine.graph.backend != "rust":
+        raise SystemExit("arena_graph_core must be installed for the scale benchmark")
     if engine.scorer.model is None:
         raise SystemExit("XGBoost model must be available for the full-stack benchmark")
     if engine.novelty.model is None:
@@ -171,7 +166,6 @@ def main() -> None:
     wall_started = time.perf_counter()
     for chunk_start in range(0, args.events, args.chunk_size):
         chunk_count = min(args.chunk_size, args.events - chunk_start)
-        # Generation is deliberately outside the measured analysis sections.
         raw_payloads = _payload_chunk(
             chunk_start,
             chunk_count,
@@ -223,9 +217,10 @@ def main() -> None:
     result = {
         "scope": (
             "Pydantic validation + Plausibility Gate/enrichment/history + "
-            "Rust rolling features + entity graph + XGBoost + IsolationForest + "
-            "decision ladder + cost accounting; excludes payload generation, "
-            "model loading, LLM generation and WebSocket/UI serialization"
+            "Rust rolling features + Rust evidence-weighted graph risk + "
+            "XGBoost + IsolationForest + decision ladder + cost accounting; "
+            "excludes payload generation, model loading, LLM generation and "
+            "WebSocket/UI serialization"
         ),
         "events_requested": args.events,
         "events_seen_total": env.events_seen_total,
@@ -235,6 +230,8 @@ def main() -> None:
         "chunk_size": args.chunk_size,
         "feature_maxlen": args.maxlen,
         "feature_backend": engine.scorer.extractor.backend,
+        "graph_backend": engine.graph.backend,
+        "graph_risk_state_sizes": engine.graph.risk_state_sizes(),
         "xgb_model": engine.scorer.model_source,
         "iforest_model": engine.novelty.model_source,
         "synthetic_event_time_span_seconds": 3600,
