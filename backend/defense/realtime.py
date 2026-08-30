@@ -99,16 +99,13 @@ class FeatureExtractor:
                 amount / (total / count + 1e-6), 3
             )
 
-    def _features_rust(self, wire: dict, history: list | None) -> dict:
-        ts = _ts(wire)
-        amount = float(wire["amount"])
-        values = self._rust.features(
-            ts.timestamp(),
-            wire["customer_id"],
-            wire["device_id"],
-            wire["merchant_id"],
-            amount,
-        )
+    def _rust_values_to_features(
+        self,
+        wire: dict,
+        history: list | None,
+        amount: float,
+        values,
+    ) -> dict:
         feats = {
             "cust_txn_count_10m": int(values[0]),
             "cust_amount_sum_10m": round(float(values[1]), 2),
@@ -125,6 +122,18 @@ class FeatureExtractor:
         if int(values[8]) == 0:
             self._cold_start_ratio(feats, amount, history)
         return feats
+
+    def _features_rust(self, wire: dict, history: list | None) -> dict:
+        ts = _ts(wire)
+        amount = float(wire["amount"])
+        values = self._rust.features(
+            ts.timestamp(),
+            wire["customer_id"],
+            wire["device_id"],
+            wire["merchant_id"],
+            amount,
+        )
+        return self._rust_values_to_features(wire, history, amount, values)
 
     def _features_python(self, wire: dict, history: list | None) -> dict:
         """Allocation-light reference implementation used as the native oracle."""
@@ -190,6 +199,31 @@ class FeatureExtractor:
             return self._features_rust(wire, history)
         return self._features_python(wire, history)
 
+    def features_and_observe(self, wire: dict, history: list | None = None) -> dict:
+        """Return pre-observation features and then advance rolling state.
+
+        The native implementation performs both operations in one PyO3 call.
+        This is safe for the batch inference path because model inference is
+        stateless and still consumes the exact features captured before the
+        current event was observed.
+        """
+        if self._rust is None:
+            feats = self._features_python(wire, history)
+            self.observe(wire)
+            return feats
+
+        ts = _ts(wire)
+        amount = float(wire["amount"])
+        values = self._rust.features_and_observe(
+            ts.timestamp(),
+            wire["customer_id"],
+            wire["device_id"],
+            wire["merchant_id"],
+            amount,
+            int(wire["mcc"]),
+        )
+        return self._rust_values_to_features(wire, history, amount, values)
+
     def observe(self, wire: dict) -> None:
         ts = _ts(wire)
         if self._rust is not None:
@@ -224,12 +258,26 @@ class VelocityScorer:
     def features(self, payload: dict, history: list | None = None) -> dict:
         return self.extractor.features(payload, history)
 
+    def features_and_observe(self, payload: dict, history: list | None = None) -> dict:
+        return self.extractor.features_and_observe(payload, history)
+
     def observe(self, payload: dict) -> None:
         self.extractor.observe(payload)
 
     @staticmethod
     def vectorize(feats: dict) -> list[float]:
         return [float(feats[name]) for name in FEATURE_NAMES]
+
+    def score_many_from_features(self, feature_rows: list[dict]) -> list[float]:
+        """Score a batch without changing the saved model or feature contract."""
+        if not feature_rows:
+            return []
+        if self.model is None:
+            return [self._heuristic_score(feats) for feats in feature_rows]
+
+        x = np.array([self.vectorize(feats) for feats in feature_rows])
+        probabilities = self.model.predict_proba(x)[:, 1]
+        return [float(value) for value in probabilities]
 
     def score_from_features(self, feats: dict) -> float:
         x = np.array([self.vectorize(feats)])
