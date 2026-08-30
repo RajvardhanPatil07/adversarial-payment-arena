@@ -20,6 +20,14 @@ def _features(index: int, attack: bool) -> dict:
         "device_known": 1,
         "pos_entry_code": 0,
         "tds_code": 0,
+        # Sequence-level features added by the 14-family calibrated corpus.
+        "dev_distinct_custs_1h": 1,
+        "iat_regularity": 0.25,
+        "amount_escalation": 0.0,
+        "amount_band_tightness": 0.35,
+        "round_amount_frac": 0.25,
+        "merch_youth": 0.05,
+        "low_value_probe_ratio": 0.0,
     }
     if attack:
         base.update(
@@ -32,6 +40,13 @@ def _features(index: int, attack: bool) -> dict:
             merch_distinct_custs_10m=9,
             device_known=0,
             tds_code=2,
+            dev_distinct_custs_1h=5,
+            iat_regularity=0.92,
+            amount_escalation=0.42,
+            amount_band_tightness=0.88,
+            round_amount_frac=0.02,
+            merch_youth=0.95,
+            low_value_probe_ratio=0.84,
         )
     assert set(base) == set(FEATURE_NAMES)
     return base
