@@ -31,6 +31,9 @@ jobs:
           tests/test_main.py
           tests/test_realtime_backend.py
           tests/test_batch_decision.py
+          tests/test_threat_miner.py
+          tests/test_graph_risk.py
+          tests/test_challenger_containment.py
 
   model-sweep:
     name: Fraud model quality + throughput sweep
@@ -59,7 +62,7 @@ jobs:
           if-no-files-found: error
 
   rust-core:
-    name: Rust core + Python parity + benchmark
+    name: Rust feature + graph core, parity + benchmark
     runs-on: ubuntu-latest
     timeout-minutes: 180
     steps:
@@ -73,22 +76,31 @@ jobs:
           cache: pip
           cache-dependency-path: backend/requirements.txt
       - name: Rust formatting
-        run: cargo fmt --manifest-path backend/rust_core/Cargo.toml -- --check
+        run: |
+          cargo fmt --manifest-path backend/rust_core/Cargo.toml -- --check
+          cargo fmt --manifest-path backend/rust_graph_core/Cargo.toml -- --check
       - name: Rust lint
-        run: cargo clippy --manifest-path backend/rust_core/Cargo.toml --all-targets -- -D warnings
+        run: |
+          cargo clippy --manifest-path backend/rust_core/Cargo.toml --all-targets -- -D warnings
+          cargo clippy --manifest-path backend/rust_graph_core/Cargo.toml --all-targets -- -D warnings
       - name: Rust unit tests
-        run: cargo test --manifest-path backend/rust_core/Cargo.toml
-      - name: Build native wheel and install backend dependencies
+        run: |
+          cargo test --manifest-path backend/rust_core/Cargo.toml
+          cargo test --manifest-path backend/rust_graph_core/Cargo.toml
+      - name: Build native wheels and install backend dependencies
         run: |
           python -m pip install -r backend/requirements.txt "maturin>=1.9.4,<2"
+          mkdir -p /tmp/arena-wheels
           maturin build --release --manifest-path backend/rust_core/Cargo.toml --interpreter python3 --out /tmp/arena-wheels
+          maturin build --release --manifest-path backend/rust_graph_core/Cargo.toml --interpreter python3 --out /tmp/arena-wheels
           python -m pip install /tmp/arena-wheels/*.whl
-      - name: Verify native/Python feature and batch-decision parity
+      - name: Verify native/Python feature, graph and batch parity
         env:
           PYTHONPATH: backend
         run: >-
           python -m pytest -q
           backend/tests/test_realtime_backend.py
+          backend/tests/test_graph_risk.py
           backend/tests/test_batch_decision.py
       - name: Benchmark Python vs Rust baseline (12k/workload)
         env:
@@ -122,7 +134,7 @@ jobs:
           --native-only
           --fused
           --json /tmp/feature-state-benchmark-100m-mixed.json
-      - name: Full analysis scale test (100M transactions)
+      - name: Full analysis scale test (100M transactions, Rust feature + graph state)
         env:
           PYTHONPATH: backend
         run: >-
@@ -152,7 +164,7 @@ jobs:
         run: docker build --tag adversarial-payment-arena:ci .
       - name: Boot production image
         run: docker run --detach --name arena-ci --publish 8000:8000 adversarial-payment-arena:ci
-      - name: Verify health and native backend
+      - name: Verify health and both native backends
         run: |
           rm -f /tmp/arena-health.json
           for attempt in $(seq 1 60); do
@@ -170,6 +182,8 @@ jobs:
           health = json.loads(Path('/tmp/arena-health.json').read_text())
           assert health['status'] == 'ok', health
           assert health['feature_backend'] == 'rust', health
+          assert health['graph_backend'] == 'rust', health
+          assert health['challenger']['controls_live_authorizations'] is False, health
           PY
       - name: Print container logs on failure
         if: failure()
