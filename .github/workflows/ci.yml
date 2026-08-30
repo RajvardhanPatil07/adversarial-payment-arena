@@ -94,6 +94,7 @@ jobs:
           --chunk-size 50000
           --workloads mixed
           --native-only
+          --fused
           --json /tmp/feature-state-benchmark-100m-mixed.json
       - name: Full analysis scale test (100M transactions)
         env:
