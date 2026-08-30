@@ -101,6 +101,7 @@ async def _ws_campaign_flow(port: int) -> tuple[dict, int]:
 
     seen_types: list[str] = []
     defense_decisions = 0
+    defender_feedback = 0
     summary = None
 
     async with websockets.connect(f"ws://127.0.0.1:{port}/ws") as ws:
@@ -109,6 +110,7 @@ async def _ws_campaign_flow(port: int) -> tuple[dict, int]:
             "attack_file": "attack_1",
             "campaign_size": 10,
             "sleep_s": 0,
+            "feedback_mode": "gray",
         }))
         while summary is None:
             event = json.loads(await asyncio.wait_for(ws.recv(), timeout=60))
@@ -122,12 +124,24 @@ async def _ws_campaign_flow(port: int) -> tuple[dict, int]:
                     "MANUAL_REVIEW",
                 }
                 assert isinstance(event["reasons"], list)
+            if event["type"] == "defender_feedback":
+                defender_feedback += 1
+                assert event["mode"] == "gray"
+                assert event["decision"] in {
+                    "APPROVE",
+                    "STEP_UP",
+                    "DECLINE",
+                    "MANUAL_REVIEW",
+                }
+                assert isinstance(event["signal_families"], list)
+                assert event["signal_families"]
             if event["type"] == "campaign_summary":
                 summary = event
 
     return {
         "types": set(seen_types),
         "defense_decisions": defense_decisions,
+        "defender_feedback": defender_feedback,
         "summary": summary,
     }, defense_decisions
 
@@ -140,10 +154,12 @@ def test_ws_ten_txn_campaign(server_port: int):
         "payload_generated",
         "plausibility_check",
         "defense_decision",
+        "defender_feedback",
     }
     missing = mandated - result["types"]
     assert not missing, f"missing mandated events: {missing}"
     assert defenses >= 10, f"expected >=10 defense decisions, got {defenses}"
+    assert result["defender_feedback"] == defenses
     assert result["summary"]["data"]["accepted"] >= 3
     assert "cost_update" in result["types"]
     assert "graph_update" in result["types"]
@@ -167,6 +183,11 @@ async def _ws_validation_flow(port: int) -> list[dict]:
                 "attack_file": "attack_1",
                 "sleep_s": "nan",
             },
+            {
+                "type": "start_campaign",
+                "attack_file": "attack_1",
+                "feedback_mode": "oracle",
+            },
         ]
         for message in bad_messages:
             await ws.send(json.dumps(message))
@@ -176,9 +197,10 @@ async def _ws_validation_flow(port: int) -> list[dict]:
 
 def test_ws_rejects_malformed_and_unbounded_controls(server_port: int):
     replies = asyncio.run(_ws_validation_flow(server_port))
-    assert len(replies) == 4
+    assert len(replies) == 5
     assert all(reply["type"] == "error" for reply in replies)
     assert "JSON objects" in replies[0]["data"]
     assert "send" in replies[1]["data"]
     assert "invalid campaign controls" in replies[2]["data"]
     assert "invalid campaign controls" in replies[3]["data"]
+    assert "feedback_mode" in replies[4]["data"]
