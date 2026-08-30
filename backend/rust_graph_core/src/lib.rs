@@ -63,10 +63,11 @@ fn ip_risk(degree: usize) -> f64 {
 }
 
 fn merchant_risk(degree: usize) -> f64 {
-    match degree {
-        0..=3 => 0.0,
-        4..=7 => 0.025 * (degree.saturating_sub(3) as f64),
-        _ => (0.20 + 0.04 * (degree.saturating_sub(8) as f64)).min(0.65),
+    // Merchant popularity is common, so fan-in is corroborating evidence only.
+    if degree < 8 {
+        0.0
+    } else {
+        (0.04 + 0.01 * (degree.saturating_sub(8) as f64)).min(0.15)
     }
 }
 
@@ -74,11 +75,6 @@ fn fuse_risks(parts: &[f64]) -> f64 {
     clamp01(1.0 - parts.iter().fold(1.0, |acc, value| acc * (1.0 - clamp01(*value))))
 }
 
-/// Bounded, temporal graph-risk state used on the authorization hot path.
-///
-/// Shared devices are strong evidence. Shared IPs are weak by themselves
-/// because office, campus and carrier NATs are legitimate; an IP can produce a
-/// hard ring only when it coincides with beneficiary/merchant convergence.
 #[pyclass(module = "arena_graph_core")]
 pub struct GraphRiskState {
     window_seconds: f64,
@@ -105,8 +101,6 @@ impl GraphRiskState {
         })
     }
 
-    /// Return prospective risk BEFORE the current transaction is observed.
-    /// Tuple: risk, ring, device_degree, ip_degree, merchant_fanin.
     fn check(
         &mut self,
         ts: f64,
@@ -213,6 +207,25 @@ mod tests {
         assert_eq!(ip_degree, 9);
         assert_eq!(merchant_degree, 1);
         assert!(risk < 0.5);
+    }
+
+    #[test]
+    fn popular_merchant_alone_remains_low_risk() {
+        let mut state = GraphRiskState::new(600.0).unwrap();
+        for i in 0..50 {
+            state.observe(
+                i as f64,
+                &format!("C{i}"),
+                &format!("D{i}"),
+                &format!("10.0.0.{i}"),
+                "POPULAR",
+            );
+        }
+        let (risk, ring, _, _, merchant_degree) =
+            state.check(51.0, "C51", "D51", "10.0.1.1", "POPULAR");
+        assert!(!ring);
+        assert_eq!(merchant_degree, 51);
+        assert!(risk < 0.2);
     }
 
     #[test]
