@@ -293,6 +293,24 @@ class _SequenceFeatureState:
         self.devices: dict[str, _DeviceSequence] = {}
         self.merchant_first_seen: dict[str, datetime] = {}
 
+    @staticmethod
+    def _cold_customer_features(amount: float) -> dict:
+        return {
+            "iat_regularity": 0.0,
+            "amount_escalation": 0.0,
+            "amount_band_tightness": 0.0,
+            "round_amount_frac": round(int(_is_round_amount(amount)), 4),
+        }
+
+    @staticmethod
+    def _merchant_youth(now: datetime, first_seen: datetime | None) -> float:
+        age_days = (
+            0.0
+            if first_seen is None
+            else (now - first_seen).total_seconds() / 86400.0
+        )
+        return round(1.0 / (1.0 + max(age_days, 0.0)), 4)
+
     def features(self, wire: dict) -> dict:
         now = _ts(wire)
         amount = float(wire["amount"])
@@ -301,15 +319,11 @@ class _SequenceFeatureState:
         mid = wire["merchant_id"]
 
         customer = self.customers.get(cid)
-        if customer is None:
-            customer_features = {
-                "iat_regularity": 0.0,
-                "amount_escalation": 0.0,
-                "amount_band_tightness": 0.0,
-                "round_amount_frac": round(int(_is_round_amount(amount)), 4),
-            }
-        else:
-            customer_features = customer.features(now, amount)
+        customer_features = (
+            customer.features(now, amount)
+            if customer is not None
+            else self._cold_customer_features(amount)
+        )
 
         device = self.devices.get(did)
         device_features = (
@@ -318,9 +332,64 @@ class _SequenceFeatureState:
             else {"dev_distinct_custs_1h": 0, "low_value_probe_ratio": 0.0}
         )
 
-        first_seen = self.merchant_first_seen.get(mid)
-        age_days = 0.0 if first_seen is None else (now - first_seen).total_seconds() / 86400.0
-        merchant_youth = round(1.0 / (1.0 + max(age_days, 0.0)), 4)
+        return {
+            **device_features,
+            **customer_features,
+            "merch_youth": self._merchant_youth(
+                now, self.merchant_first_seen.get(mid)
+            ),
+        }
+
+    def features_and_observe(
+        self,
+        wire: dict,
+        *,
+        now: datetime | None = None,
+        amount: float | None = None,
+    ) -> dict:
+        """Read pre-observation sequence features and advance state once.
+
+        The former native path called ``features`` and ``observe`` separately,
+        which reparsed the ISO timestamp and repeated customer/device/merchant
+        lookups. This fused path keeps exactly the same pre-observation feature
+        semantics while sharing those values and lookups.
+        """
+        if now is None:
+            now = _ts(wire)
+        if amount is None:
+            amount = float(wire["amount"])
+        cid = wire["customer_id"]
+        did = wire["device_id"]
+        mid = wire["merchant_id"]
+
+        customer = self.customers.get(cid)
+        customer_features = (
+            customer.features(now, amount)
+            if customer is not None
+            else self._cold_customer_features(amount)
+        )
+        if customer is None:
+            customer = _CustomerSequence(self.maxlen)
+            self.customers[cid] = customer
+
+        device = self.devices.get(did)
+        device_features = (
+            device.features(now)
+            if device is not None
+            else {"dev_distinct_custs_1h": 0, "low_value_probe_ratio": 0.0}
+        )
+        if device is None:
+            device = _DeviceSequence(self.maxlen)
+            self.devices[did] = device
+
+        merchant_youth = self._merchant_youth(
+            now, self.merchant_first_seen.get(mid)
+        )
+
+        customer.observe(now, amount)
+        device.observe(now, cid, amount)
+        self.merchant_first_seen.setdefault(mid, now)
+
         return {
             **device_features,
             **customer_features,
@@ -376,7 +445,12 @@ class FeatureExtractor:
         }
 
     def device_known(self, wire: dict) -> bool:
-        customer = self.env.customers.get(wire["customer_id"]) if self.env else None
+        if self.env is None:
+            return False
+        lookup = getattr(self.env, "is_device_known", None)
+        if lookup is not None:
+            return bool(lookup(wire["customer_id"], wire["device_id"]))
+        customer = self.env.customers.get(wire["customer_id"])
         return bool(customer and wire["device_id"] in customer.devices)
 
     def _cold_start_ratio(self, feats: dict, amount: float, history: list | None) -> None:
@@ -394,6 +468,7 @@ class FeatureExtractor:
         history: list | None,
         amount: float,
         values,
+        sequence_features: dict | None = None,
     ) -> dict:
         feats = {
             "cust_txn_count_10m": int(values[0]),
@@ -410,7 +485,11 @@ class FeatureExtractor:
         }
         if int(values[8]) == 0:
             self._cold_start_ratio(feats, amount, history)
-        feats.update(self._sequence.features(wire))
+        feats.update(
+            sequence_features
+            if sequence_features is not None
+            else self._sequence.features(wire)
+        )
         return feats
 
     def _features_rust(self, wire: dict, history: list | None) -> dict:
@@ -513,9 +592,16 @@ class FeatureExtractor:
             amount,
             int(wire["mcc"]),
         )
-        feats = self._rust_values_to_features(wire, history, amount, values)
-        self._sequence.observe(wire)
-        return feats
+        sequence_features = self._sequence.features_and_observe(
+            wire, now=now, amount=amount
+        )
+        return self._rust_values_to_features(
+            wire,
+            history,
+            amount,
+            values,
+            sequence_features=sequence_features,
+        )
 
     def observe(self, wire: dict) -> None:
         now = _ts(wire)
