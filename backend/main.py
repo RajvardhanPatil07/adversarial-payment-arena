@@ -52,7 +52,12 @@ class ArenaStack:
     """One simulated issuer world, defense engine and running cost ledger."""
 
     def __init__(self) -> None:
-        self.env = PaymentEnvironment(n_customers=1000, seed=42)
+        self.env = PaymentEnvironment(
+            n_customers=1000,
+            seed=42,
+            event_stream_maxlen=50_000,
+            gate_rejects_maxlen=10_000,
+        )
         self.engine = DecisionEngine(
             environment=self.env,
             scorer=VelocityScorer(DEFAULT_MODEL_PATH),
@@ -227,7 +232,7 @@ async def health():
             "iforest": stack.engine.novelty.model_source,
         },
         "feature_backend": stack.engine.scorer.extractor.backend,
-        "events_seen": len(stack.env.event_stream),
+        "events_seen": stack.env.events_seen_total,
         "costs": stack.cost_summary(),
     }
 
