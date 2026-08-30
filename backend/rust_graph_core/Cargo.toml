@@ -1,0 +1,18 @@
+[package]
+name = "arena-graph-core"
+version = "0.1.0"
+edition = "2021"
+description = "Rust evidence-weighted graph-risk state for Adversarial Payment Arena"
+license = "MIT"
+
+[lib]
+name = "arena_graph_core"
+crate-type = ["cdylib"]
+
+[dependencies]
+pyo3 = { version = "=0.29.2", features = ["abi3-py39"] }
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
+strip = "symbols"
