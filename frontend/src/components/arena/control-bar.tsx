@@ -28,15 +28,17 @@ export function ControlBar({
   turbo,
   onTurboChange,
   onLaunch,
+  onGuidedDemo,
 }: {
   conn: ConnState;
   running: boolean;
   turbo: boolean;
   onTurboChange: (v: boolean) => void;
   onLaunch: (attackFile: string, size: number) => void;
+  onGuidedDemo: () => void;
 }) {
   const [attacks, setAttacks] = useState<string[]>([]);
-  const [selected, setSelected] = useState("attack_1");
+  const [selected, setSelected] = useState("attack_2_synthetic_mule_ring");
   const [size, setSize] = useState(25);
   const [spec, setSpec] = useState<LoadAttackResponse | null>(null);
   const [models, setModels] = useState<{ xgb: string; iforest: string } | null>(null);
@@ -68,7 +70,7 @@ export function ControlBar({
           disabled={running}
           className="h-8 rounded-md border border-zinc-700 bg-zinc-900 px-2 font-mono text-xs text-zinc-200"
         >
-          {(attacks.length > 0 ? attacks : ["attack_1"]).map((a) => (
+          {(attacks.length > 0 ? attacks : ["attack_2_synthetic_mule_ring"]).map((a) => (
             <option key={a} value={a}>{a}</option>
           ))}
         </select>
@@ -94,8 +96,17 @@ export function ControlBar({
         <Button
           size="sm"
           disabled={running || conn !== "open"}
+          onClick={onGuidedDemo}
+          className="ml-auto bg-emerald-700 font-mono text-xs font-bold tracking-wider text-white hover:bg-emerald-600"
+        >
+          ▶ GUIDED DEMO
+        </Button>
+
+        <Button
+          size="sm"
+          disabled={running || conn !== "open"}
           onClick={() => onLaunch(selected, size)}
-          className="ml-auto bg-red-600 font-mono text-xs font-bold tracking-wider text-white hover:bg-red-500"
+          className="bg-red-600 font-mono text-xs font-bold tracking-wider text-white hover:bg-red-500"
         >
           {running ? "CAMPAIGN LIVE…" : "▶ LAUNCH CAMPAIGN"}
         </Button>

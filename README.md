@@ -2,6 +2,27 @@
 
 A full-stack, closed-loop adversarial simulation and real-time defense testbed for GenAI-driven payment fraud. Built for the **Mastercard Innovation Challenge**.
 
+> **The thesis in one line:** a closed-loop red team *without* a fidelity gate is an attack
+> surface, not a feature — folding a low-fidelity generator's escapes back into training makes
+> every dashboard number improve while recall on **real** fraud falls. A label-free fidelity
+> gate, computable *before* retraining, removes that failure mode. This repo doesn't assert it;
+> it measures it, and every number below is regenerable with `make reproduce`.
+
+[![CI](https://github.com/RajvardhanPatil07/adversarial-payment-arena/actions/workflows/ci.yml/badge.svg)](https://github.com/RajvardhanPatil07/adversarial-payment-arena/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
+### Five-minute judge path
+1. **Live fight** — run the stack (or open the deployed URL) and press **▶ GUIDED DEMO**: a synthetic
+   mule ring is built in front of you and the narration advances only on real events (gate verdicts,
+   graph ring detection, declines, final cost).
+2. **The scissor** — open **/evidence**: an ungated closed loop loses **−35.8 pts** of real-fraud recall
+   while gaining **+86 pts** on its own synthetic attacks; the same loop with the fidelity gate on loses
+   **−0.5 pts**. That gap is the whole argument.
+3. **Verify** — `make reproduce` regenerates every figure in `artifacts/` with a provenance stamp
+   (git SHA, seeds, command), mapped claim-by-claim in [`artifacts/claim_ledger.json`](artifacts/claim_ledger.json).
+
+A deeper walkthrough for evaluators lives in [`docs/JUDGES.md`](docs/JUDGES.md).
+
 ---
 
 ## Architecture Overview
@@ -56,16 +77,45 @@ The arena simulates an active fight between an autonomous **LLM Red-Team Attacke
 - **Graph Intelligence (NetworkX):** Real-time entity-resolution graph tracking shared infrastructure across unrelated accounts to uncover mule rings.
 - **Asymmetric Cost Matrix:** Dynamically weighs False Negatives (fraud loss) vs False Positives (customer insult cost) to optimize net business impact.
 
-### 3. Reproducible Headline: does generator fidelity determine transfer?
+### 3. Reproducible Headline: the closed-loop fidelity scissor
 
-- **Research question:** when you train a fraud detector on *synthetic* red-team data, does the **fidelity** of the generator decide whether that data **helps or hurts** the detector on real fraud?
-- **Design:** a pre-registered three-arm ablation (`A0` real-only baseline · `A1` independent-marginal synthetic · `A2` Gaussian-copula synthetic), everything else held constant — same real rows, same augmentation budget, same detector, thresholds pinned at **1% FPR** on a disjoint legitimate split, evaluated on held-out real fraud over seeds `[11, 23, 37]` with bootstrap CIs.
-- **Result (every number below is emitted by `make reproduce` into `artifacts/`):**
-  - **Fidelity separates the two generators decisively.** C2ST AUC **0.881 (copula) vs 0.970 (independent)**; rank-dependence error **1.16 vs 2.32** (Frobenius). Lower is more realistic — `0.5` C2ST would be indistinguishable-from-real, `1.0` trivially fake. Crucially the *marginal* fit is matched across arms (mean JSD 0.038 vs 0.038), so the entire gap is **joint structure**, which is the one variable under test.
-  - **Fidelity predicts transfer harm, monotonically.** Both synthetic arms cost recall versus the real-only baseline, but the higher-fidelity generator costs **~3× less**: Δrecall **−0.006** (copula, CI `[−0.007, −0.003]`) vs **−0.014** (independent, CI `[−0.023, −0.007]`). The copula wins in **all three seeds**, and both arms beat the published parametric comparator we pin against (C2ST 0.980, Δrecall −0.038).
-  - **The honest negative is the contribution.** Augmentation never turned *positive* here: the real-only baseline already sits at **0.999 recall** on this corpus, so there is no headroom left to win. We report that ceiling instead of manufacturing a positive delta by handicapping the baseline. What generalises is the **ordering** — fidelity is measurable *before* deployment (C2ST/Frobenius need no fraud labels) and it ranks transfer harm *after*. That is precisely what a pre-registered **fidelity gate** buys an issuer: the ability to reject a red-team generator that would degrade a live detector, before it ever touches one.
-  - **Economics:** at a 1.3% production base rate and 1% FPR the stack nets **≈ ₹230.6M per million authorisations** — and wrongly-declined legitimate payments are **the majority of all cost incurred (≈ 53%)**, which is exactly why the cost matrix is asymmetric.
-- **No unverifiable hero numbers.** Every figure in this README is reachable from `make reproduce`, lands in `artifacts/*.json` with a provenance stamp (git SHA, seeds, command), and is mapped claim-by-claim in [`artifacts/claim_ledger.json`](artifacts/claim_ledger.json) / the `/evidence` page. A separate zero-day holdout (`make zero-day`) stress-tests an unseen attack family.
+- **Research question:** closing an adversarial red-team loop is not, by itself, evidence that the
+  loop makes a fraud detector better on real fraud. Whether it helps or hurts depends on the
+  *fidelity* of the attack generator — and a label-free fidelity gate is what keeps a low-fidelity
+  generator from degrading a live detector.
+
+- **The scissor (every number emitted by `make reproduce` into `artifacts/closed_loop.json`):** an
+  **ungated** loop trained on a low-fidelity generator's escapes loses **−35.8 pts** of recall on
+  held-out real fraud while *gaining* **+86 pts** on the generator's own attacks — the vanity metric
+  and the real metric move in opposite directions. The **same loop with the fidelity gate on** loses
+  **−0.5 pts**: the gate refuses the escape batches that cause the scissor, using only a label-free
+  measurement computable before retraining (**+35.3 pts** of recall protected).
+
+  ![The fidelity scissor: gated vs ungated closed loop](docs/closed_loop.png)
+
+- **Fidelity separates the generators, decisively.** C2ST AUC **0.873 (copula) vs 0.964
+  (independent)** (0.5 = indistinguishable from real, 1.0 = trivially fake); rank-dependence error
+  **0.795 vs 2.47** (Frobenius, lower = more realistic). The *marginal* fit is matched across arms
+  (mean JSD 0.020 vs 0.021), so the entire gap is **joint structure** — the one variable under test.
+
+- **The honest ceiling is part of the result.** On this corpus the unaugmented baseline already sits
+  at **0.996 recall**, so the three-arm transfer ablation is at a ceiling: both synthetic arms show
+  ~0 delta this run and the *ordering* of transfer harm is not observable. We report that ceiling
+  instead of manufacturing a positive delta by handicapping the baseline. What generalises is the
+  *relationship* — fidelity is measurable before deployment (C2ST / Frobenius need no fraud labels)
+  and the closed loop shows it ranking real-fraud harm after. That is precisely what a pre-registered
+  fidelity gate buys an issuer.
+
+- **Economics:** at a 1.3% production base rate and 1% FPR the stack nets **≈ ₹229.3M (₹22.9Cr) per
+  million authorisations** — and wrongly-declined legitimate payments are **the majority of all cost
+  incurred (≈ 60%)**, which is exactly why the cost matrix is asymmetric. Precision at that base rate
+  is reported honestly at **48.8%**, and the four-layer stack scores inline at **p99 15.1 ms** against
+  a 100 ms authorisation budget.
+
+- **No unverifiable hero numbers.** Every figure in this README is reachable from `make reproduce`,
+  lands in `artifacts/*.json` with a provenance stamp (git SHA, seeds, command), and is mapped
+  claim-by-claim in [`artifacts/claim_ledger.json`](artifacts/claim_ledger.json) / the `/evidence`
+  page. A separate zero-day holdout (`make zero-day`) stress-tests an unseen attack family.
 
 ### 4. Interactive SOC Command Center
 - **Next.js 16 + React 19 + Tailwind CSS v4** interface.
@@ -74,14 +124,35 @@ The arena simulates an active fight between an autonomous **LLM Red-Team Attacke
 
 ---
 
-## Attack Specifications
+## Attack Specifications — 14 Executable Attack Families
 
-| Attack Spec | Vector | Target | Tell / Fingerprint |
+The repository maps a 22-scenario GenAI fraud taxonomy
+([`docs/ATTACK_TAXONOMY.md`](docs/ATTACK_TAXONOMY.md)); fourteen of the twenty-two
+are executable. Each has a YAML spec, a generator admitted only after passing the
+Plausibility Gate, and an individual detection measurement in
+[`artifacts/family_coverage.json`](artifacts/family_coverage.json):
+
+| Spec | Attack | Taxon | What it defeats |
 |---|---|---|---|
-| **ATTACK 1** | Voice-Clone IVR ATO | CNP / High-Value Electronics | Phone-channel credential reset followed by rapid CNP drain |
-| **ATTACK 2** | Synthetic Mule Ring | Contactless / Physical Tap | Shared device ID & egress IP across distinct customer profiles |
-| **ATTACK 3** | Compromised Merchant Checkout | ECOM / Stored Credential | Per-card normality with abnormal customer convergence at single MID |
-| **ATTACK 4 (Zero-Day)** | Automated CNP Card Testing | ECOM / Low-Value Tickets | High-cadence micro-transactions across hundreds of cards via bot egress |
+| ATTACK_1 | MFA Reset via Voice Cloning (IVR takeover) | T-03 | device binding / step-up trust |
+| ATTACK_2 | Synthetic Mule Ring Cash-Out | T-01 | per-account monitoring (shared device) |
+| ATTACK_3 | Compromised Merchant Checkout Burst | T-18 | per-card normality |
+| ATTACK_4 | CNP Card-Testing Velocity Burst | T-08 | fixed velocity rules |
+| ATTACK_5 | AI-Personalised APP Scam (authorised push) | T-12 | every stolen-credential control |
+| ATTACK_6 | VPA-Rental Mule Network (fan-in) | T-14 | per-account monitoring (shared payee) |
+| ATTACK_7 | Synchronised Burst Cash-Out | T-17 | the independence assumption |
+| ATTACK_8 | Learned Threshold Structuring | T-09 | static amount thresholds |
+| ATTACK_9 | Real-time OTP-Relay Vishing | T-05 | 3DS pass treated as proof of presence |
+| ATTACK_10 | 3DS Exemption-Band Abuse | T-06 | RBA exemption policy + velocity counters |
+| ATTACK_11 | Delegated Agent Scope Expansion | T-19 | device binding + one-time consent |
+| ATTACK_12 | Geo-Velocity Spoof with Generated Itinerary | T-11 | impossible-travel (adjacent-pair) rules |
+| ATTACK_13 | Fake Merchant Shell Bust-Out (acquiring side) | T-04 | merchant onboarding document review |
+| ATTACK_14 | Adversarial Decision-Boundary Probing | T-20 | the deployed scorer itself (oracle) |
+
+Per-family recall, leave-one-family-out zero-day generalisation, and which defense
+layer catches each family: `make coverage`. The eight remaining taxonomy rows name
+their fields and target signals, so each is an afternoon of work, not a research
+question.
 
 ---
 
@@ -165,6 +236,22 @@ pnpm dev
 
 Open [http://localhost:3000](http://localhost:3000) to view the SOC dashboard.
 
+### 3. Deploy as a single URL (recommended for judging)
+
+The `Dockerfile` builds the UI to static assets and serves them from the same FastAPI origin as the
+WebSocket — one URL, one process, no CORS or mixed-content surface. A judge opens one link and the
+whole arena works. Deploy to whichever platform you have an account on:
+
+```bash
+# Fly.io (keeps one warm instance so the first click is instant)
+fly launch --no-deploy --copy-config && fly deploy && fly open
+
+# or Render
+# use the provided render.yaml blueprint
+```
+
+The same image runs locally for a rehearsal: `docker build -t arena . && docker run -p 8000:8000 arena`.
+
 ---
 
 ## Running Campaigns & Experiments
@@ -185,6 +272,23 @@ make reproduce        # calibration + fidelity + transfer ablation -> artifacts/
 ```bash
 make zero-day         # or: python backend/experiments/zero_day_holdout.py
 ```
+
+---
+
+## How this compares
+
+| | This repo | Published comparable submission | Commercial vendor category | Typical hackathon demo |
+|---|---|---|---|---|
+| Red-team visible end-to-end | Yes — attacker reasoning, gate verdicts, decisions, cost, live | Partial | No (black-box) | Rarely |
+| Measures closed-loop harm on *real* fraud | Yes — the scissor, gated vs ungated | Reported a **−3.8 pt** real-recall loss from ungated hardening (C2ST 0.980) | Not published | Not measured |
+| Fidelity gate before retraining | Yes, label-free | Concluded a learned generative model was needed | Proprietary | Absent |
+| Every headline number reproducible | `make reproduce` + claim ledger | Partial | No | Unverifiable hero numbers |
+| Honest negatives reported | Yes (recall ceiling stated plainly) | — | No incentive | No incentive |
+
+The transfer ablation and zero-day holdout figures, for reference:
+
+![Three-arm transfer ablation](docs/transfer_ledger.png)
+![Zero-day holdout: unsupervised layers hold the line on an unseen attack family](docs/zero_day_results.png)
 
 ---
 

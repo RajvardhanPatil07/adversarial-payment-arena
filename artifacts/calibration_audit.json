@@ -1,8 +1,8 @@
 {
   "provenance": {
     "schema_version": "1.0.0",
-    "generated_at": "2026-08-29T14:31:11.255892+00:00",
-    "git_sha": "dba323f",
+    "generated_at": "2026-08-30T10:56:01.390843+00:00",
+    "git_sha": "52061f0",
     "python": "3.12.13",
     "platform": "macOS-26.6.2-arm64-arm-64bit",
     "seeds": [
@@ -34,30 +34,30 @@
     "fpr_budget_0.001": {
       "target_fpr": 0.001,
       "realised_test_fpr": {
-        "mean": 0.0011111111111111111,
-        "lo": 0.0006666666666666666,
-        "hi": 0.002,
+        "mean": 0.0006666666666666666,
+        "lo": 0.0,
+        "hi": 0.0013333333333333333,
         "n": 3,
         "method": "nonparametric bootstrap, 2000 resamples"
       },
       "recall_on_held_out_fraud": {
-        "mean": 0.0589,
-        "lo": 0.0267,
-        "hi": 0.1033,
+        "mean": 0.007766666666666667,
+        "lo": 0.0,
+        "hi": 0.0233,
         "n": 3,
         "method": "nonparametric bootstrap, 2000 resamples"
       },
       "calibration_gap_pct_points": {
-        "mean": -0.022333333333333334,
+        "mean": 0.0,
         "lo": -0.067,
         "hi": 0.067,
         "n": 3,
         "method": "nonparametric bootstrap, 2000 resamples"
       },
       "precision_at_production_prevalence": {
-        "mean": 0.43343333333333334,
-        "lo": 0.1494,
-        "hi": 0.6712000000000001,
+        "mean": 0.062433333333333334,
+        "lo": 0.0,
+        "hi": 0.1873,
         "n": 3,
         "method": "nonparametric bootstrap, 2000 resamples"
       }
@@ -65,30 +65,30 @@
     "fpr_budget_0.005": {
       "target_fpr": 0.005,
       "realised_test_fpr": {
-        "mean": 0.005999999999999999,
-        "lo": 0.004,
-        "hi": 0.008666666666666666,
+        "mean": 0.0044444444444444444,
+        "lo": 0.0026666666666666666,
+        "hi": 0.006666666666666667,
         "n": 3,
         "method": "nonparametric bootstrap, 2000 resamples"
       },
       "recall_on_held_out_fraud": {
-        "mean": 0.5499999999999999,
-        "lo": 0.38999999999999996,
-        "hi": 0.69,
+        "mean": 0.37223333333333336,
+        "lo": 0.32,
+        "hi": 0.43,
         "n": 3,
         "method": "nonparametric bootstrap, 2000 resamples"
       },
       "calibration_gap_pct_points": {
-        "mean": 0.06666666666666667,
-        "lo": -0.133,
-        "hi": 0.333,
+        "mean": -0.022333333333333334,
+        "lo": -0.20000000000000004,
+        "hi": 0.20000000000000004,
         "n": 3,
         "method": "nonparametric bootstrap, 2000 resamples"
       },
       "precision_at_production_prevalence": {
-        "mean": 0.5522,
-        "lo": 0.4642,
-        "hi": 0.6302,
+        "mean": 0.5395666666666666,
+        "lo": 0.4201,
+        "hi": 0.6125,
         "n": 3,
         "method": "nonparametric bootstrap, 2000 resamples"
       }
@@ -96,30 +96,30 @@
     "fpr_budget_0.01": {
       "target_fpr": 0.01,
       "realised_test_fpr": {
-        "mean": 0.012444444444444445,
-        "lo": 0.009333333333333334,
-        "hi": 0.014666666666666666,
+        "mean": 0.011555555555555555,
+        "lo": 0.011333333333333334,
+        "hi": 0.012000000000000002,
         "n": 3,
         "method": "nonparametric bootstrap, 2000 resamples"
       },
       "recall_on_held_out_fraud": {
-        "mean": 0.8377666666666667,
-        "lo": 0.79,
-        "hi": 0.8633000000000001,
+        "mean": 0.8266666666666667,
+        "lo": 0.6967,
+        "hi": 0.9033000000000001,
         "n": 3,
         "method": "nonparametric bootstrap, 2000 resamples"
       },
       "calibration_gap_pct_points": {
-        "mean": 0.24433333333333337,
-        "lo": -0.067,
-        "hi": 0.467,
+        "mean": 0.15533333333333335,
+        "lo": 0.133,
+        "hi": 0.20000000000000004,
         "n": 3,
         "method": "nonparametric bootstrap, 2000 resamples"
       },
       "precision_at_production_prevalence": {
-        "mean": 0.4744,
-        "lo": 0.4366999999999999,
-        "hi": 0.5272,
+        "mean": 0.48363333333333336,
+        "lo": 0.4474,
+        "hi": 0.5056,
         "n": 3,
         "method": "nonparametric bootstrap, 2000 resamples"
       }
@@ -127,30 +127,30 @@
     "fpr_budget_0.02": {
       "target_fpr": 0.02,
       "realised_test_fpr": {
-        "mean": 0.024444444444444446,
-        "lo": 0.021333333333333333,
-        "hi": 0.029333333333333333,
+        "mean": 0.02288888888888889,
+        "lo": 0.022000000000000002,
+        "hi": 0.023333333333333334,
         "n": 3,
         "method": "nonparametric bootstrap, 2000 resamples"
       },
       "recall_on_held_out_fraud": {
-        "mean": 0.8911333333333333,
-        "lo": 0.8667000000000001,
-        "hi": 0.9067,
+        "mean": 0.9310999999999999,
+        "lo": 0.9,
+        "hi": 0.96,
         "n": 3,
         "method": "nonparametric bootstrap, 2000 resamples"
       },
       "calibration_gap_pct_points": {
-        "mean": 0.4443333333333334,
-        "lo": 0.133,
-        "hi": 0.9330000000000002,
+        "mean": 0.2886666666666667,
+        "lo": 0.20000000000000004,
+        "hi": 0.333,
         "n": 3,
         "method": "nonparametric bootstrap, 2000 resamples"
       },
       "precision_at_production_prevalence": {
-        "mean": 0.32713333333333333,
-        "lo": 0.2893,
-        "hi": 0.3572,
+        "mean": 0.3489333333333333,
+        "lo": 0.3451,
+        "hi": 0.3515,
         "n": 3,
         "method": "nonparametric bootstrap, 2000 resamples"
       }
@@ -158,30 +158,30 @@
     "fpr_budget_0.05": {
       "target_fpr": 0.05,
       "realised_test_fpr": {
-        "mean": 0.049999999999999996,
-        "lo": 0.048666666666666664,
-        "hi": 0.050666666666666665,
+        "mean": 0.0651111111111111,
+        "lo": 0.06133333333333333,
+        "hi": 0.068,
         "n": 3,
         "method": "nonparametric bootstrap, 2000 resamples"
       },
       "recall_on_held_out_fraud": {
-        "mean": 0.9711333333333334,
-        "lo": 0.9467,
-        "hi": 0.9899999999999999,
+        "mean": 0.9911333333333333,
+        "lo": 0.9867,
+        "hi": 1.0,
         "n": 3,
         "method": "nonparametric bootstrap, 2000 resamples"
       },
       "calibration_gap_pct_points": {
-        "mean": 0.00033333333333333365,
-        "lo": -0.133,
-        "hi": 0.067,
+        "mean": 1.511,
+        "lo": 1.133,
+        "hi": 1.8,
         "n": 3,
         "method": "nonparametric bootstrap, 2000 resamples"
       },
       "precision_at_production_prevalence": {
-        "mean": 0.20373333333333332,
-        "lo": 0.2025,
-        "hi": 0.2047,
+        "mean": 0.16723333333333334,
+        "lo": 0.1604,
+        "hi": 0.17679999999999998,
         "n": 3,
         "method": "nonparametric bootstrap, 2000 resamples"
       }
@@ -199,64 +199,64 @@
       },
       "operating_points": [
         {
-          "threshold": 0.2511462487775727,
+          "threshold": 0.6638889054119235,
           "target_fpr": 0.001,
-          "validation_fpr": 0.0013333333333333333,
+          "validation_fpr": 0.0006666666666666666,
           "validation_rows": 1500,
-          "test_fpr": 0.0006666666666666666,
+          "test_fpr": 0.0,
           "test_rows": 1500,
           "threshold_source": "validation split (disjoint from test)",
-          "recall_on_held_out_fraud": 0.1033,
+          "recall_on_held_out_fraud": 0.0,
           "calibration_gap_pct_points": -0.067,
-          "precision_at_production_prevalence": 0.6712
+          "precision_at_production_prevalence": 0.0
         },
         {
-          "threshold": 0.11012188749426786,
+          "threshold": 0.14829460312558262,
           "target_fpr": 0.005,
-          "validation_fpr": 0.005333333333333333,
+          "validation_fpr": 0.004666666666666667,
           "validation_rows": 1500,
-          "test_fpr": 0.005333333333333333,
+          "test_fpr": 0.004,
           "test_rows": 1500,
           "threshold_source": "validation split (disjoint from test)",
-          "recall_on_held_out_fraud": 0.69,
-          "calibration_gap_pct_points": 0.0,
-          "precision_at_production_prevalence": 0.6302
+          "recall_on_held_out_fraud": 0.43,
+          "calibration_gap_pct_points": -0.067,
+          "precision_at_production_prevalence": 0.5861
         },
         {
-          "threshold": 0.059081432170600225,
+          "threshold": 0.08141045512407255,
           "target_fpr": 0.01,
           "validation_fpr": 0.01,
           "validation_rows": 1500,
-          "test_fpr": 0.014666666666666666,
+          "test_fpr": 0.011333333333333334,
           "test_rows": 1500,
           "threshold_source": "validation split (disjoint from test)",
-          "recall_on_held_out_fraud": 0.8633,
-          "calibration_gap_pct_points": 0.467,
-          "precision_at_production_prevalence": 0.4367
+          "recall_on_held_out_fraud": 0.88,
+          "calibration_gap_pct_points": 0.133,
+          "precision_at_production_prevalence": 0.5056
         },
         {
-          "threshold": 0.03247723363327304,
+          "threshold": 0.04902266015974537,
           "target_fpr": 0.02,
           "validation_fpr": 0.02,
           "validation_rows": 1500,
-          "test_fpr": 0.021333333333333333,
+          "test_fpr": 0.023333333333333334,
           "test_rows": 1500,
           "threshold_source": "validation split (disjoint from test)",
-          "recall_on_held_out_fraud": 0.9,
-          "calibration_gap_pct_points": 0.133,
-          "precision_at_production_prevalence": 0.3572
+          "recall_on_held_out_fraud": 0.96,
+          "calibration_gap_pct_points": 0.333,
+          "precision_at_production_prevalence": 0.3515
         },
         {
-          "threshold": 0.009859259671430178,
+          "threshold": 0.012897697227656456,
           "target_fpr": 0.05,
           "validation_fpr": 0.05,
           "validation_rows": 1500,
-          "test_fpr": 0.050666666666666665,
+          "test_fpr": 0.06133333333333333,
           "test_rows": 1500,
           "threshold_source": "validation split (disjoint from test)",
-          "recall_on_held_out_fraud": 0.99,
-          "calibration_gap_pct_points": 0.067,
-          "precision_at_production_prevalence": 0.2047
+          "recall_on_held_out_fraud": 1.0,
+          "calibration_gap_pct_points": 1.133,
+          "precision_at_production_prevalence": 0.1768
         }
       ]
     },
@@ -271,64 +271,64 @@
       },
       "operating_points": [
         {
-          "threshold": 0.25110785625094006,
+          "threshold": 0.28996838575681516,
           "target_fpr": 0.001,
-          "validation_fpr": 0.0013333333333333333,
+          "validation_fpr": 0.0006666666666666666,
           "validation_rows": 1500,
-          "test_fpr": 0.002,
+          "test_fpr": 0.0013333333333333333,
           "test_rows": 1500,
           "threshold_source": "validation split (disjoint from test)",
-          "recall_on_held_out_fraud": 0.0267,
+          "recall_on_held_out_fraud": 0.0233,
           "calibration_gap_pct_points": 0.067,
-          "precision_at_production_prevalence": 0.1494
+          "precision_at_production_prevalence": 0.1873
         },
         {
-          "threshold": 0.11151986062520583,
+          "threshold": 0.14639397644199395,
           "target_fpr": 0.005,
-          "validation_fpr": 0.005333333333333333,
+          "validation_fpr": 0.004666666666666667,
           "validation_rows": 1500,
-          "test_fpr": 0.008666666666666666,
+          "test_fpr": 0.006666666666666667,
           "test_rows": 1500,
           "threshold_source": "validation split (disjoint from test)",
-          "recall_on_held_out_fraud": 0.57,
-          "calibration_gap_pct_points": 0.333,
-          "precision_at_production_prevalence": 0.4642
+          "recall_on_held_out_fraud": 0.3667,
+          "calibration_gap_pct_points": 0.2,
+          "precision_at_production_prevalence": 0.4201
         },
         {
-          "threshold": 0.07217901789873996,
+          "threshold": 0.05957187549849408,
           "target_fpr": 0.01,
           "validation_fpr": 0.01,
           "validation_rows": 1500,
-          "test_fpr": 0.013333333333333334,
+          "test_fpr": 0.012,
           "test_rows": 1500,
           "threshold_source": "validation split (disjoint from test)",
-          "recall_on_held_out_fraud": 0.86,
-          "calibration_gap_pct_points": 0.333,
-          "precision_at_production_prevalence": 0.4593
+          "recall_on_held_out_fraud": 0.9033,
+          "calibration_gap_pct_points": 0.2,
+          "precision_at_production_prevalence": 0.4979
         },
         {
-          "threshold": 0.03649638889993382,
+          "threshold": 0.029571299730511928,
           "target_fpr": 0.02,
           "validation_fpr": 0.02,
           "validation_rows": 1500,
-          "test_fpr": 0.029333333333333333,
+          "test_fpr": 0.023333333333333334,
           "test_rows": 1500,
           "threshold_source": "validation split (disjoint from test)",
-          "recall_on_held_out_fraud": 0.9067,
-          "calibration_gap_pct_points": 0.933,
-          "precision_at_production_prevalence": 0.2893
+          "recall_on_held_out_fraud": 0.9333,
+          "calibration_gap_pct_points": 0.333,
+          "precision_at_production_prevalence": 0.3451
         },
         {
-          "threshold": 0.0161456763485713,
+          "threshold": 0.006613513069209272,
           "target_fpr": 0.05,
           "validation_fpr": 0.05,
           "validation_rows": 1500,
-          "test_fpr": 0.048666666666666664,
+          "test_fpr": 0.068,
           "test_rows": 1500,
           "threshold_source": "validation split (disjoint from test)",
-          "recall_on_held_out_fraud": 0.9467,
-          "calibration_gap_pct_points": -0.133,
-          "precision_at_production_prevalence": 0.204
+          "recall_on_held_out_fraud": 0.9867,
+          "calibration_gap_pct_points": 1.8,
+          "precision_at_production_prevalence": 0.1604
         }
       ]
     },
@@ -343,64 +343,64 @@
       },
       "operating_points": [
         {
-          "threshold": 0.3209923024359551,
+          "threshold": 0.6072298272204525,
           "target_fpr": 0.001,
-          "validation_fpr": 0.0013333333333333333,
+          "validation_fpr": 0.0006666666666666666,
           "validation_rows": 1500,
           "test_fpr": 0.0006666666666666666,
           "test_rows": 1500,
           "threshold_source": "validation split (disjoint from test)",
-          "recall_on_held_out_fraud": 0.0467,
-          "calibration_gap_pct_points": -0.067,
-          "precision_at_production_prevalence": 0.4797
+          "recall_on_held_out_fraud": 0.0,
+          "calibration_gap_pct_points": 0.0,
+          "precision_at_production_prevalence": 0.0
         },
         {
-          "threshold": 0.14586297422287423,
+          "threshold": 0.15919919636450686,
           "target_fpr": 0.005,
-          "validation_fpr": 0.005333333333333333,
+          "validation_fpr": 0.004666666666666667,
           "validation_rows": 1500,
-          "test_fpr": 0.004,
+          "test_fpr": 0.0026666666666666666,
           "test_rows": 1500,
           "threshold_source": "validation split (disjoint from test)",
-          "recall_on_held_out_fraud": 0.39,
-          "calibration_gap_pct_points": -0.133,
-          "precision_at_production_prevalence": 0.5622
+          "recall_on_held_out_fraud": 0.32,
+          "calibration_gap_pct_points": -0.2,
+          "precision_at_production_prevalence": 0.6125
         },
         {
-          "threshold": 0.07575389690651185,
+          "threshold": 0.0725970126824308,
           "target_fpr": 0.01,
           "validation_fpr": 0.01,
           "validation_rows": 1500,
-          "test_fpr": 0.009333333333333334,
+          "test_fpr": 0.011333333333333334,
           "test_rows": 1500,
           "threshold_source": "validation split (disjoint from test)",
-          "recall_on_held_out_fraud": 0.79,
-          "calibration_gap_pct_points": -0.067,
-          "precision_at_production_prevalence": 0.5272
+          "recall_on_held_out_fraud": 0.6967,
+          "calibration_gap_pct_points": 0.133,
+          "precision_at_production_prevalence": 0.4474
         },
         {
-          "threshold": 0.03946752540375254,
+          "threshold": 0.033135543780496816,
           "target_fpr": 0.02,
           "validation_fpr": 0.02,
           "validation_rows": 1500,
-          "test_fpr": 0.02266666666666667,
+          "test_fpr": 0.022,
           "test_rows": 1500,
           "threshold_source": "validation split (disjoint from test)",
-          "recall_on_held_out_fraud": 0.8667,
-          "calibration_gap_pct_points": 0.267,
-          "precision_at_production_prevalence": 0.3349
+          "recall_on_held_out_fraud": 0.9,
+          "calibration_gap_pct_points": 0.2,
+          "precision_at_production_prevalence": 0.3502
         },
         {
-          "threshold": 0.009938940062770029,
+          "threshold": 0.01,
           "target_fpr": 0.05,
           "validation_fpr": 0.05,
           "validation_rows": 1500,
-          "test_fpr": 0.050666666666666665,
+          "test_fpr": 0.066,
           "test_rows": 1500,
           "threshold_source": "validation split (disjoint from test)",
-          "recall_on_held_out_fraud": 0.9767,
-          "calibration_gap_pct_points": 0.067,
-          "precision_at_production_prevalence": 0.2025
+          "recall_on_held_out_fraud": 0.9867,
+          "calibration_gap_pct_points": 1.6,
+          "precision_at_production_prevalence": 0.1645
         }
       ]
     }
@@ -408,85 +408,85 @@
   "prevalence_and_cost_sweep": [
     {
       "prevalence": 0.5,
-      "precision": 0.985363,
-      "true_alerts_per_million": 418883.3,
-      "false_alerts_per_million": 6222.2,
-      "missed_frauds_per_million": 81116.7,
-      "net_benefit_inr_per_million": 6108301275.0,
-      "insult_cost_inr_per_million": 2644350.0
+      "precision": 0.986214,
+      "true_alerts_per_million": 413333.3,
+      "false_alerts_per_million": 5777.8,
+      "missed_frauds_per_million": 86666.7,
+      "net_benefit_inr_per_million": 5897049405.0,
+      "insult_cost_inr_per_million": 2455650.0
     },
     {
       "prevalence": 0.1,
-      "precision": 0.882076,
-      "true_alerts_per_million": 83776.7,
-      "false_alerts_per_million": 11200.0,
-      "missed_frauds_per_million": 16223.3,
-      "net_benefit_inr_per_million": 1216498585.0,
-      "insult_cost_inr_per_million": 4760000.0
+      "precision": 0.888252,
+      "true_alerts_per_million": 82666.7,
+      "false_alerts_per_million": 10400.0,
+      "missed_frauds_per_million": 17333.3,
+      "net_benefit_inr_per_million": 1174618035.0,
+      "insult_cost_inr_per_million": 4420000.0
     },
     {
       "prevalence": 0.05,
-      "precision": 0.77989,
-      "true_alerts_per_million": 41888.3,
-      "false_alerts_per_million": 11822.2,
-      "missed_frauds_per_million": 8111.7,
-      "net_benefit_inr_per_million": 604994800.0,
-      "insult_cost_inr_per_million": 5024350.0
+      "precision": 0.790144,
+      "true_alerts_per_million": 41333.3,
+      "false_alerts_per_million": 10977.8,
+      "missed_frauds_per_million": 8666.7,
+      "net_benefit_inr_per_million": 584285405.0,
+      "insult_cost_inr_per_million": 4665650.0
     },
     {
       "prevalence": 0.013,
-      "precision": 0.469972,
-      "true_alerts_per_million": 10891.0,
-      "false_alerts_per_million": 12282.7,
-      "missed_frauds_per_million": 2109.0,
-      "net_benefit_inr_per_million": 152514395.0,
-      "insult_cost_inr_per_million": 5220275.0
+      "precision": 0.485133,
+      "true_alerts_per_million": 10746.7,
+      "false_alerts_per_million": 11405.3,
+      "missed_frauds_per_million": 2253.3,
+      "net_benefit_inr_per_million": 147483835.0,
+      "insult_cost_inr_per_million": 4847125.0
     },
     {
       "prevalence": 0.005,
-      "precision": 0.25278,
-      "true_alerts_per_million": 4188.8,
-      "false_alerts_per_million": 12382.2,
-      "missed_frauds_per_million": 811.2,
-      "net_benefit_inr_per_million": 54683205.0,
-      "insult_cost_inr_per_million": 5262350.0
+      "precision": 0.26443,
+      "true_alerts_per_million": 4133.3,
+      "false_alerts_per_million": 11497.8,
+      "missed_frauds_per_million": 866.7,
+      "net_benefit_inr_per_million": 53009005.0,
+      "insult_cost_inr_per_million": 4886650.0
     },
     {
       "prevalence": 0.001,
-      "precision": 0.063133,
-      "true_alerts_per_million": 837.8,
-      "false_alerts_per_million": 12432.0,
-      "missed_frauds_per_million": 162.2,
-      "net_benefit_inr_per_million": 5767350.0,
-      "insult_cost_inr_per_million": 5283600.0
+      "precision": 0.066825,
+      "true_alerts_per_million": 826.7,
+      "false_alerts_per_million": 11544.0,
+      "missed_frauds_per_million": 173.3,
+      "net_benefit_inr_per_million": 5809955.0,
+      "insult_cost_inr_per_million": 4906200.0
     }
   ],
   "headline": {
     "recall_at_1pct_fpr": {
-      "mean": 0.8377666666666667,
-      "lo": 0.79,
-      "hi": 0.8633000000000001,
+      "mean": 0.8266666666666667,
+      "lo": 0.6967,
+      "hi": 0.9033000000000001,
       "n": 3,
       "method": "nonparametric bootstrap, 2000 resamples"
     },
     "realised_fpr": {
-      "mean": 0.012444444444444445,
-      "lo": 0.009333333333333334,
-      "hi": 0.014666666666666666,
+      "mean": 0.011555555555555555,
+      "lo": 0.011333333333333334,
+      "hi": 0.012000000000000002,
       "n": 3,
       "method": "nonparametric bootstrap, 2000 resamples"
     },
     "calibration_gap": {
-      "mean": 0.24433333333333337,
-      "lo": -0.067,
-      "hi": 0.467,
+      "mean": 0.15533333333333335,
+      "lo": 0.133,
+      "hi": 0.20000000000000004,
       "n": 3,
       "method": "nonparametric bootstrap, 2000 resamples"
     },
     "precision_at_production_prevalence": {
-      "mean": 0.4744,
-      "lo": 0.4366999999999999,
-      "hi": 0.5272,
+      "mean": 0.48363333333333336,
+      "lo": 0.4474,
+      "hi": 0.5056,
       "n": 3,
       "method": "nonparametric bootstrap, 2000 resamples"
     }

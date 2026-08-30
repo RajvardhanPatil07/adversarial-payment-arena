@@ -1,8 +1,8 @@
 {
   "provenance": {
     "schema_version": "1.0.0",
-    "generated_at": "2026-08-29T14:31:20.271573+00:00",
-    "git_sha": "dba323f",
+    "generated_at": "2026-08-30T10:56:12.085542+00:00",
+    "git_sha": "52061f0",
     "python": "3.12.13",
     "platform": "macOS-26.6.2-arm64-arm-64bit",
     "seeds": [
@@ -22,80 +22,80 @@
   "acceptance_gate": {
     "metric": "gaussian_copula C2ST AUC",
     "threshold": 0.8,
-    "observed": 0.9175,
+    "observed": 0.905,
     "cleared": false,
     "policy": "the observed value is published whether or not the gate is cleared"
   },
   "aggregated": {
     "independent_marginal": {
       "c2st_auc": {
-        "mean": 0.9766333333333334,
-        "lo": 0.9699,
-        "hi": 0.9821,
+        "mean": 0.9779666666666667,
+        "lo": 0.9762,
+        "hi": 0.9794,
         "n": 3,
         "method": "nonparametric bootstrap, 2000 resamples"
       },
       "mean_jsd": {
-        "mean": 0.02812366666666667,
-        "lo": 0.023744,
-        "hi": 0.034977,
+        "mean": 0.021119666666666665,
+        "lo": 0.02078,
+        "hi": 0.021366,
         "n": 3,
         "method": "nonparametric bootstrap, 2000 resamples"
       },
       "mean_tvd": {
-        "mean": 0.02814833333333333,
-        "lo": 0.021778000000000002,
-        "hi": 0.034,
+        "mean": 0.035852,
+        "lo": 0.016889,
+        "hi": 0.055556,
         "n": 3,
         "method": "nonparametric bootstrap, 2000 resamples"
       },
       "correlation_frobenius_diff": {
-        "mean": 2.3919333333333337,
-        "lo": 2.1771,
-        "hi": 2.5225,
+        "mean": 2.4696,
+        "lo": 2.4217,
+        "hi": 2.5118,
         "n": 3,
         "method": "nonparametric bootstrap, 2000 resamples"
       },
       "tstr_ratio": {
-        "mean": 0.9844,
-        "lo": 0.9765,
-        "hi": 0.9899999999999999,
+        "mean": 0.9933333333333333,
+        "lo": 0.9833,
+        "hi": 1.0,
         "n": 3,
         "method": "nonparametric bootstrap, 2000 resamples"
       }
     },
     "gaussian_copula": {
       "c2st_auc": {
-        "mean": 0.9174666666666665,
-        "lo": 0.9113000000000001,
-        "hi": 0.9234,
+        "mean": 0.9050333333333334,
+        "lo": 0.8904,
+        "hi": 0.9204,
         "n": 3,
         "method": "nonparametric bootstrap, 2000 resamples"
       },
       "mean_jsd": {
-        "mean": 0.023926666666666666,
-        "lo": 0.020058,
-        "hi": 0.026819,
+        "mean": 0.019939333333333333,
+        "lo": 0.017825,
+        "hi": 0.02208,
         "n": 3,
         "method": "nonparametric bootstrap, 2000 resamples"
       },
       "mean_tvd": {
-        "mean": 0.043777666666666666,
-        "lo": 0.034,
-        "hi": 0.05000000000000001,
+        "mean": 0.02940733333333333,
+        "lo": 0.021333,
+        "hi": 0.040445,
         "n": 3,
         "method": "nonparametric bootstrap, 2000 resamples"
       },
       "correlation_frobenius_diff": {
-        "mean": 1.1490666666666665,
-        "lo": 1.0209,
-        "hi": 1.2367,
+        "mean": 0.7952666666666667,
+        "lo": 0.6865,
+        "hi": 0.8549000000000001,
         "n": 3,
         "method": "nonparametric bootstrap, 2000 resamples"
       },
       "tstr_ratio": {
-        "mean": 0.9988666666666667,
-        "lo": 0.9966,
+        "mean": 0.9977666666666667,
+        "lo": 0.9933,
         "hi": 1.0,
         "n": 3,
         "method": "nonparametric bootstrap, 2000 resamples"
@@ -110,22 +110,22 @@
           "n_real": 300,
           "n_synthetic": 750,
           "c2st": {
-            "c2st_auc": 0.9821,
+            "c2st_auc": 0.9783,
             "per_fold": [
-              0.9823,
-              0.9784,
-              0.9856
+              0.9822,
+              0.9806,
+              0.9722
             ],
             "target": 0.5,
             "passes": false,
             "interpretation": "0.50 = indistinguishable from real; 1.00 = trivially separable"
           },
           "marginals": {
-            "mean_jsd": 0.023744,
-            "mean_tvd": 0.034
+            "mean_jsd": 0.021213,
+            "mean_tvd": 0.016889
           },
           "joint": {
-            "correlation_frobenius_diff": 2.1771,
+            "correlation_frobenius_diff": 2.5118,
             "target": 0.0,
             "matrix_dim": 8,
             "interpretation": "0.0 = identical rank-dependence structure"
@@ -133,15 +133,15 @@
           "per_column": {
             "log_amount": {
               "type": "numeric",
-              "jsd": 0.062484
+              "jsd": 0.040254
             },
             "hour_sin": {
               "type": "numeric",
-              "jsd": 0.047268
+              "jsd": 0.068328
             },
             "hour_cos": {
               "type": "numeric",
-              "jsd": 0.05721
+              "jsd": 0.058321
             },
             "dow": {
               "type": "numeric",
@@ -149,7 +149,7 @@
             },
             "mcc_num": {
               "type": "numeric",
-              "jsd": 0.013887
+              "jsd": 0.001529
             },
             "pos_entry_mode": {
               "type": "categorical",
@@ -158,32 +158,32 @@
             },
             "three_ds_status": {
               "type": "categorical",
-              "jsd": 0.001127,
-              "tvd": 0.030667
+              "jsd": 0.000116,
+              "tvd": 0.012667
             },
             "mcc_group": {
               "type": "categorical",
-              "jsd": 0.007566,
-              "tvd": 0.051333
+              "jsd": 0.000747,
+              "tvd": 0.018
             }
           },
           "tstr": {
             "target_fpr": 0.01,
-            "tstr_ratio": 0.99,
+            "tstr_ratio": 1.0,
             "detail": {
               "train_on_real": {
-                "threshold": 0.146682,
+                "threshold": 0.137371,
                 "recall": 1.0,
-                "fpr": 0.016,
-                "roc_auc": 0.9997,
-                "pr_auc": 0.9987
+                "fpr": 0.0152,
+                "roc_auc": 0.9995,
+                "pr_auc": 0.9974
               },
               "train_on_synthetic": {
-                "threshold": 0.377125,
-                "recall": 0.99,
-                "fpr": 0.0088,
-                "roc_auc": 0.999,
-                "pr_auc": 0.9956
+                "threshold": 0.266749,
+                "recall": 1.0,
+                "fpr": 0.0152,
+                "roc_auc": 0.9982,
+                "pr_auc": 0.988
               }
             },
             "interpretation": "ratio 1.0 = synthetic data as useful as real data for training"
@@ -193,22 +193,22 @@
           "n_real": 300,
           "n_synthetic": 750,
           "c2st": {
-            "c2st_auc": 0.9234,
+            "c2st_auc": 0.8904,
             "per_fold": [
-              0.9115,
-              0.9206,
-              0.9379
+              0.8951,
+              0.9039,
+              0.8721
             ],
             "target": 0.5,
             "passes": false,
             "interpretation": "0.50 = indistinguishable from real; 1.00 = trivially separable"
           },
           "marginals": {
-            "mean_jsd": 0.024903,
-            "mean_tvd": 0.05
+            "mean_jsd": 0.019913,
+            "mean_tvd": 0.026444
           },
           "joint": {
-            "correlation_frobenius_diff": 1.1896,
+            "correlation_frobenius_diff": 0.8444,
             "target": 0.0,
             "matrix_dim": 8,
             "interpretation": "0.0 = identical rank-dependence structure"
@@ -216,15 +216,15 @@
           "per_column": {
             "log_amount": {
               "type": "numeric",
-              "jsd": 0.058689
+              "jsd": 0.045712
             },
             "hour_sin": {
               "type": "numeric",
-              "jsd": 0.040465
+              "jsd": 0.044089
             },
             "hour_cos": {
               "type": "numeric",
-              "jsd": 0.064041
+              "jsd": 0.061988
             },
             "dow": {
               "type": "numeric",
@@ -232,22 +232,22 @@
             },
             "mcc_num": {
               "type": "numeric",
-              "jsd": 0.017967
+              "jsd": 0.003302
             },
             "pos_entry_mode": {
               "type": "categorical",
-              "jsd": 0.000535,
-              "tvd": 0.025333
+              "jsd": 0.001168,
+              "tvd": 0.037333
             },
             "three_ds_status": {
               "type": "categorical",
-              "jsd": 0.002873,
-              "tvd": 0.048
+              "jsd": 1.5e-05,
+              "tvd": 0.004
             },
             "mcc_group": {
               "type": "categorical",
-              "jsd": 0.014658,
-              "tvd": 0.076667
+              "jsd": 0.003028,
+              "tvd": 0.038
             }
           },
           "tstr": {
@@ -255,18 +255,18 @@
             "tstr_ratio": 1.0,
             "detail": {
               "train_on_real": {
-                "threshold": 0.146682,
+                "threshold": 0.137371,
                 "recall": 1.0,
-                "fpr": 0.016,
-                "roc_auc": 0.9997,
-                "pr_auc": 0.9987
+                "fpr": 0.0152,
+                "roc_auc": 0.9995,
+                "pr_auc": 0.9974
               },
               "train_on_synthetic": {
-                "threshold": 0.267444,
+                "threshold": 0.267304,
                 "recall": 1.0,
-                "fpr": 0.0104,
+                "fpr": 0.012,
                 "roc_auc": 0.9991,
-                "pr_auc": 0.996
+                "pr_auc": 0.9957
               }
             },
             "interpretation": "ratio 1.0 = synthetic data as useful as real data for training"
@@ -281,22 +281,22 @@
           "n_real": 300,
           "n_synthetic": 750,
           "c2st": {
-            "c2st_auc": 0.9699,
+            "c2st_auc": 0.9794,
             "per_fold": [
-              0.9628,
-              0.9705,
-              0.9766
+              0.9775,
+              0.9788,
+              0.982
             ],
             "target": 0.5,
             "passes": false,
             "interpretation": "0.50 = indistinguishable from real; 1.00 = trivially separable"
           },
           "marginals": {
-            "mean_jsd": 0.02565,
-            "mean_tvd": 0.028667
+            "mean_jsd": 0.02078,
+            "mean_tvd": 0.035111
           },
           "joint": {
-            "correlation_frobenius_diff": 2.5225,
+            "correlation_frobenius_diff": 2.4753,
             "target": 0.0,
             "matrix_dim": 8,
             "interpretation": "0.0 = identical rank-dependence structure"
@@ -304,15 +304,15 @@
           "per_column": {
             "log_amount": {
               "type": "numeric",
-              "jsd": 0.038969
+              "jsd": 0.040624
             },
             "hour_sin": {
               "type": "numeric",
-              "jsd": 0.068357
+              "jsd": 0.056808
             },
             "hour_cos": {
               "type": "numeric",
-              "jsd": 0.08468
+              "jsd": 0.058052
             },
             "dow": {
               "type": "numeric",
@@ -320,7 +320,7 @@
             },
             "mcc_num": {
               "type": "numeric",
-              "jsd": 0.007313
+              "jsd": 0.001858
             },
             "pos_entry_mode": {
               "type": "categorical",
@@ -329,32 +329,32 @@
             },
             "three_ds_status": {
               "type": "categorical",
-              "jsd": 0.005452,
-              "tvd": 0.062667
+              "jsd": 0.008447,
+              "tvd": 0.08
             },
             "mcc_group": {
               "type": "categorical",
-              "jsd": 1e-06,
-              "tvd": 0.000667
+              "jsd": 2.2e-05,
+              "tvd": 0.002667
             }
           },
           "tstr": {
             "target_fpr": 0.01,
-            "tstr_ratio": 0.9867,
+            "tstr_ratio": 0.9833,
             "detail": {
               "train_on_real": {
-                "threshold": 0.151047,
+                "threshold": 0.159727,
                 "recall": 1.0,
-                "fpr": 0.0224,
-                "roc_auc": 0.9996,
-                "pr_auc": 0.9982
+                "fpr": 0.0112,
+                "roc_auc": 0.9997,
+                "pr_auc": 0.9989
               },
               "train_on_synthetic": {
-                "threshold": 0.304982,
-                "recall": 0.9867,
-                "fpr": 0.0176,
-                "roc_auc": 0.998,
-                "pr_auc": 0.9906
+                "threshold": 0.3827,
+                "recall": 0.9833,
+                "fpr": 0.0088,
+                "roc_auc": 0.999,
+                "pr_auc": 0.9958
               }
             },
             "interpretation": "ratio 1.0 = synthetic data as useful as real data for training"
@@ -364,22 +364,22 @@
           "n_real": 300,
           "n_synthetic": 750,
           "c2st": {
-            "c2st_auc": 0.9113,
+            "c2st_auc": 0.9204,
             "per_fold": [
-              0.9099,
-              0.8799,
-              0.9442
+              0.904,
+              0.9221,
+              0.935
             ],
             "target": 0.5,
             "passes": false,
             "interpretation": "0.50 = indistinguishable from real; 1.00 = trivially separable"
           },
           "marginals": {
-            "mean_jsd": 0.020058,
-            "mean_tvd": 0.034
+            "mean_jsd": 0.017825,
+            "mean_tvd": 0.021333
           },
           "joint": {
-            "correlation_frobenius_diff": 1.2367,
+            "correlation_frobenius_diff": 0.8549,
             "target": 0.0,
             "matrix_dim": 8,
             "interpretation": "0.0 = identical rank-dependence structure"
@@ -387,15 +387,15 @@
           "per_column": {
             "log_amount": {
               "type": "numeric",
-              "jsd": 0.039595
+              "jsd": 0.051772
             },
             "hour_sin": {
               "type": "numeric",
-              "jsd": 0.033214
+              "jsd": 0.026581
             },
             "hour_cos": {
               "type": "numeric",
-              "jsd": 0.070495
+              "jsd": 0.059654
             },
             "dow": {
               "type": "numeric",
@@ -403,41 +403,41 @@
             },
             "mcc_num": {
               "type": "numeric",
-              "jsd": 0.00528
+              "jsd": 0.000463
             },
             "pos_entry_mode": {
               "type": "categorical",
-              "jsd": 0.000101,
-              "tvd": 0.010667
+              "jsd": 8e-06,
+              "tvd": 0.002667
             },
             "three_ds_status": {
               "type": "categorical",
-              "jsd": 0.011712,
-              "tvd": 0.086667
+              "jsd": 0.004029,
+              "tvd": 0.056
             },
             "mcc_group": {
               "type": "categorical",
-              "jsd": 6.9e-05,
-              "tvd": 0.004667
+              "jsd": 9.5e-05,
+              "tvd": 0.005333
             }
           },
           "tstr": {
             "target_fpr": 0.01,
-            "tstr_ratio": 1.0,
+            "tstr_ratio": 0.9933,
             "detail": {
               "train_on_real": {
-                "threshold": 0.151047,
+                "threshold": 0.159727,
                 "recall": 1.0,
-                "fpr": 0.0224,
-                "roc_auc": 0.9996,
-                "pr_auc": 0.9982
+                "fpr": 0.0112,
+                "roc_auc": 0.9997,
+                "pr_auc": 0.9989
               },
               "train_on_synthetic": {
-                "threshold": 0.317751,
-                "recall": 1.0,
-                "fpr": 0.0136,
-                "roc_auc": 0.9992,
-                "pr_auc": 0.9963
+                "threshold": 0.32443,
+                "recall": 0.9933,
+                "fpr": 0.0096,
+                "roc_auc": 0.9994,
+                "pr_auc": 0.9972
               }
             },
             "interpretation": "ratio 1.0 = synthetic data as useful as real data for training"
@@ -452,22 +452,22 @@
           "n_real": 300,
           "n_synthetic": 750,
           "c2st": {
-            "c2st_auc": 0.9779,
+            "c2st_auc": 0.9762,
             "per_fold": [
-              0.976,
-              0.9735,
-              0.9843
+              0.9761,
+              0.9763,
+              0.9762
             ],
             "target": 0.5,
             "passes": false,
             "interpretation": "0.50 = indistinguishable from real; 1.00 = trivially separable"
           },
           "marginals": {
-            "mean_jsd": 0.034977,
-            "mean_tvd": 0.021778
+            "mean_jsd": 0.021366,
+            "mean_tvd": 0.055556
           },
           "joint": {
-            "correlation_frobenius_diff": 2.4762,
+            "correlation_frobenius_diff": 2.4217,
             "target": 0.0,
             "matrix_dim": 8,
             "interpretation": "0.0 = identical rank-dependence structure"
@@ -475,15 +475,15 @@
           "per_column": {
             "log_amount": {
               "type": "numeric",
-              "jsd": 0.069267
+              "jsd": 0.049591
             },
             "hour_sin": {
               "type": "numeric",
-              "jsd": 0.092458
+              "jsd": 0.04503
             },
             "hour_cos": {
               "type": "numeric",
-              "jsd": 0.108878
+              "jsd": 0.060002
             },
             "dow": {
               "type": "numeric",
@@ -491,7 +491,7 @@
             },
             "mcc_num": {
               "type": "numeric",
-              "jsd": 0.006689
+              "jsd": 0.001832
             },
             "pos_entry_mode": {
               "type": "categorical",
@@ -500,32 +500,32 @@
             },
             "three_ds_status": {
               "type": "categorical",
-              "jsd": 0.002059,
-              "tvd": 0.038667
+              "jsd": 0.013919,
+              "tvd": 0.138
             },
             "mcc_group": {
               "type": "categorical",
-              "jsd": 0.000152,
-              "tvd": 0.008
+              "jsd": 0.000241,
+              "tvd": 0.01
             }
           },
           "tstr": {
             "target_fpr": 0.01,
-            "tstr_ratio": 0.9765,
+            "tstr_ratio": 0.9967,
             "detail": {
               "train_on_real": {
-                "threshold": 0.111853,
-                "recall": 0.9967,
-                "fpr": 0.0144,
-                "roc_auc": 0.9997,
-                "pr_auc": 0.9987
+                "threshold": 0.130877,
+                "recall": 1.0,
+                "fpr": 0.0096,
+                "roc_auc": 0.9999,
+                "pr_auc": 0.9998
               },
               "train_on_synthetic": {
-                "threshold": 0.298929,
-                "recall": 0.9733,
-                "fpr": 0.008,
-                "roc_auc": 0.9992,
-                "pr_auc": 0.9967
+                "threshold": 0.300676,
+                "recall": 0.9967,
+                "fpr": 0.0152,
+                "roc_auc": 0.9994,
+                "pr_auc": 0.9972
               }
             },
             "interpretation": "ratio 1.0 = synthetic data as useful as real data for training"
@@ -535,22 +535,22 @@
           "n_real": 300,
           "n_synthetic": 750,
           "c2st": {
-            "c2st_auc": 0.9177,
+            "c2st_auc": 0.9043,
             "per_fold": [
-              0.9274,
-              0.8892,
-              0.9366
+              0.9265,
+              0.881,
+              0.9055
             ],
             "target": 0.5,
             "passes": false,
             "interpretation": "0.50 = indistinguishable from real; 1.00 = trivially separable"
           },
           "marginals": {
-            "mean_jsd": 0.026819,
-            "mean_tvd": 0.047333
+            "mean_jsd": 0.02208,
+            "mean_tvd": 0.040445
           },
           "joint": {
-            "correlation_frobenius_diff": 1.0209,
+            "correlation_frobenius_diff": 0.6865,
             "target": 0.0,
             "matrix_dim": 8,
             "interpretation": "0.0 = identical rank-dependence structure"
@@ -558,15 +558,15 @@
           "per_column": {
             "log_amount": {
               "type": "numeric",
-              "jsd": 0.06566
+              "jsd": 0.043403
             },
             "hour_sin": {
               "type": "numeric",
-              "jsd": 0.049319
+              "jsd": 0.046407
             },
             "hour_cos": {
               "type": "numeric",
-              "jsd": 0.08853
+              "jsd": 0.075607
             },
             "dow": {
               "type": "numeric",
@@ -574,41 +574,41 @@
             },
             "mcc_num": {
               "type": "numeric",
-              "jsd": 0.001166
+              "jsd": 0.00491
             },
             "pos_entry_mode": {
               "type": "categorical",
-              "jsd": 0.000717,
-              "tvd": 0.029333
+              "jsd": 0.00076,
+              "tvd": 0.030667
             },
             "three_ds_status": {
               "type": "categorical",
-              "jsd": 0.009097,
-              "tvd": 0.107333
+              "jsd": 0.003759,
+              "tvd": 0.062
             },
             "mcc_group": {
               "type": "categorical",
-              "jsd": 6.7e-05,
-              "tvd": 0.005333
+              "jsd": 0.001798,
+              "tvd": 0.028667
             }
           },
           "tstr": {
             "target_fpr": 0.01,
-            "tstr_ratio": 0.9966,
+            "tstr_ratio": 1.0,
             "detail": {
               "train_on_real": {
-                "threshold": 0.111853,
-                "recall": 0.9967,
-                "fpr": 0.0144,
-                "roc_auc": 0.9997,
-                "pr_auc": 0.9987
+                "threshold": 0.130877,
+                "recall": 1.0,
+                "fpr": 0.0096,
+                "roc_auc": 0.9999,
+                "pr_auc": 0.9998
               },
               "train_on_synthetic": {
-                "threshold": 0.236251,
-                "recall": 0.9933,
+                "threshold": 0.292321,
+                "recall": 1.0,
                 "fpr": 0.0144,
                 "roc_auc": 0.9994,
-                "pr_auc": 0.9976
+                "pr_auc": 0.9974
               }
             },
             "interpretation": "ratio 1.0 = synthetic data as useful as real data for training"

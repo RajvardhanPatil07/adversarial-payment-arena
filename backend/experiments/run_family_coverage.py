@@ -20,7 +20,7 @@ trained on is not evidence of generalisation. A family withheld from training
 and still caught tells you the architecture -- not the training set -- is doing
 the work.
 
-Design note: the eight families were chosen so that each defeats a DIFFERENT
+Design note: the fourteen families were chosen so that each defeats a DIFFERENT
 defensive signal. That is what breadth should mean.
 
   ATTACK_1  voice-clone ATO           defeats device binding
@@ -31,6 +31,12 @@ defensive signal. That is what breadth should mean.
   ATTACK_6  VPA-rental mule (T-14)    defeats per-account monitoring (shared payee)
   ATTACK_7  synchronised burst (T-17) defeats the independence assumption
   ATTACK_8  learned structuring (T-09) defeats static amount thresholds
+  ATTACK_9  OTP-relay vishing (T-05)  defeats 3DS pass as proof of presence
+  ATTACK_10 exemption-band (T-06)     defeats RBA exemption policy + velocity
+  ATTACK_11 agentic scope drift (T-19) defeats device binding + one-time consent
+  ATTACK_12 geo-velocity (T-11)       defeats impossible-travel (adjacent-pair) rules
+  ATTACK_13 merchant bust-out (T-04)  defeats merchant onboarding doc review
+  ATTACK_14 boundary probing (T-20)   defeats the deployed scorer itself (oracle)
 
 Reproduce
 ---------
@@ -76,6 +82,12 @@ FAMILIES = [
     "ATTACK_6_VPA_RENTAL_MULE",
     "ATTACK_7_SYNCHRONISED_BURST_CASHOUT",
     "ATTACK_8_LEARNED_THRESHOLD_STRUCTURING",
+    "ATTACK_9_OTP_RELAY_VISHING",
+    "ATTACK_10_EXEMPTION_BAND_ABUSE",
+    "ATTACK_11_AGENTIC_SCOPE_EXPANSION",
+    "ATTACK_12_GEO_VELOCITY_ITINERARY",
+    "ATTACK_13_MERCHANT_BUSTOUT",
+    "ATTACK_14_ADVERSARIAL_BOUNDARY_PROBE",
 ]
 
 SHORT = {
@@ -87,6 +99,12 @@ SHORT = {
     "ATTACK_6_VPA_RENTAL_MULE": "T-14 VPA mule fan-in (India)",
     "ATTACK_7_SYNCHRONISED_BURST_CASHOUT": "T-17 synchronised burst (India)",
     "ATTACK_8_LEARNED_THRESHOLD_STRUCTURING": "T-09 learned structuring",
+    "ATTACK_9_OTP_RELAY_VISHING": "T-05 OTP-relay vishing",
+    "ATTACK_10_EXEMPTION_BAND_ABUSE": "T-06 3DS exemption-band",
+    "ATTACK_11_AGENTIC_SCOPE_EXPANSION": "T-19 agentic scope drift",
+    "ATTACK_12_GEO_VELOCITY_ITINERARY": "T-11 geo-velocity itinerary",
+    "ATTACK_13_MERCHANT_BUSTOUT": "T-04 merchant bust-out",
+    "ATTACK_14_ADVERSARIAL_BOUNDARY_PROBE": "T-20 boundary probing",
 }
 
 DEFEATS = {
@@ -98,6 +116,12 @@ DEFEATS = {
     "ATTACK_6_VPA_RENTAL_MULE": "per-account monitoring (shared payee)",
     "ATTACK_7_SYNCHRONISED_BURST_CASHOUT": "the independence assumption",
     "ATTACK_8_LEARNED_THRESHOLD_STRUCTURING": "static amount thresholds",
+    "ATTACK_9_OTP_RELAY_VISHING": "3DS pass as proof of presence",
+    "ATTACK_10_EXEMPTION_BAND_ABUSE": "RBA exemption policy + velocity counters",
+    "ATTACK_11_AGENTIC_SCOPE_EXPANSION": "device binding + one-time consent",
+    "ATTACK_12_GEO_VELOCITY_ITINERARY": "impossible-travel (adjacent-pair) rules",
+    "ATTACK_13_MERCHANT_BUSTOUT": "merchant onboarding doc review (acquirer)",
+    "ATTACK_14_ADVERSARIAL_BOUNDARY_PROBE": "the deployed scorer itself (oracle)",
 }
 
 TRAIN_PER_FAMILY = 110
@@ -209,7 +233,7 @@ def _plot(trained: Dict[str, object], zero_day: Dict[str, object], fpr: Dict[str
     ax.set_xlabel("recall (non-APPROVE) at a pinned operating point")
     ax.axvline(1.0, color="#d1d5db", lw=1, ls=":")
     ax.set_title(
-        "Per-family detection: 8 executable families, each defeating a different control\n"
+        f"Per-family detection: {len(FAMILIES)} executable families, each defeating a different control\n"
         f"legit FPR {fpr['mean']:.2%} · {len(SEEDS)} seeds · bootstrap 95% CI",
         fontsize=11.4, fontweight="bold",
     )

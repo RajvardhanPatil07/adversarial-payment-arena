@@ -15,6 +15,7 @@
 import { useEffect, useState } from "react";
 
 import { backendHttpUrl } from "@/lib/backend";
+import { HardeningLab } from "@/app/evidence/hardening-lab";
 
 // Resolved through lib/backend.ts so this page cannot drift onto a different
 // env var than the WebSocket dashboard (previously it read two of its own).
@@ -336,6 +337,8 @@ export default function EvidencePage() {
                 </div>
               </div>
             </section>
+
+            <HardeningLab />
 
             <h2 style={styles.h2}>Claim ledger</h2>
             <p style={styles.sub}>

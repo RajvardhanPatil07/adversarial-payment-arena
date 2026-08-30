@@ -1,0 +1,1420 @@
+{
+  "provenance": {
+    "schema_version": "1.0.0",
+    "generated_at": "2026-08-30T12:01:02.803514+00:00",
+    "git_sha": "52061f0",
+    "python": "3.12.13",
+    "platform": "macOS-26.6.2-arm64-arm-64bit",
+    "seeds": [
+      11,
+      23,
+      37
+    ],
+    "command": "python backend/experiments/run_family_coverage.py"
+  },
+  "experiment": "per_family_detection_and_zero_day_generalisation",
+  "question": "For every attack family this repository can actually GENERATE, is it detected -- and is it still detected when it is withheld from supervised training?",
+  "protocol": {
+    "seeds": [
+      11,
+      23,
+      37
+    ],
+    "families": [
+      "ATTACK_1_MFA_RESET_VOICE_CLONE",
+      "ATTACK_2_SYNTHETIC_MULE_RING",
+      "ATTACK_3_PROMPT_INJECTED_MERCHANT",
+      "ATTACK_4_CNP_HIGH_VELOCITY",
+      "ATTACK_5_APP_SCAM_PERSONALISED",
+      "ATTACK_6_VPA_RENTAL_MULE",
+      "ATTACK_7_SYNCHRONISED_BURST_CASHOUT",
+      "ATTACK_8_LEARNED_THRESHOLD_STRUCTURING",
+      "ATTACK_9_OTP_RELAY_VISHING",
+      "ATTACK_10_EXEMPTION_BAND_ABUSE",
+      "ATTACK_11_AGENTIC_SCOPE_EXPANSION",
+      "ATTACK_12_GEO_VELOCITY_ITINERARY",
+      "ATTACK_13_MERCHANT_BUSTOUT",
+      "ATTACK_14_ADVERSARIAL_BOUNDARY_PROBE"
+    ],
+    "train_rows_per_family": 110,
+    "eval_rows_per_family": 45,
+    "n_legit_train": 4200,
+    "n_legit_eval": 1100,
+    "conditions": {
+      "A": "all families present in supervised training",
+      "B": "the measured family is WITHHELD from supervised training (leave-one-family-out)"
+    },
+    "recall_definition": "share of family transactions receiving a non-APPROVE decision",
+    "layer_attribution": "overlapping; a transaction can be flagged by several layers"
+  },
+  "families_defeat": {
+    "ATTACK_1_MFA_RESET_VOICE_CLONE": "device binding / step-up trust",
+    "ATTACK_2_SYNTHETIC_MULE_RING": "per-account monitoring (shared device)",
+    "ATTACK_3_PROMPT_INJECTED_MERCHANT": "per-card normality",
+    "ATTACK_4_CNP_HIGH_VELOCITY": "fixed velocity rules",
+    "ATTACK_5_APP_SCAM_PERSONALISED": "every stolen-credential control",
+    "ATTACK_6_VPA_RENTAL_MULE": "per-account monitoring (shared payee)",
+    "ATTACK_7_SYNCHRONISED_BURST_CASHOUT": "the independence assumption",
+    "ATTACK_8_LEARNED_THRESHOLD_STRUCTURING": "static amount thresholds",
+    "ATTACK_9_OTP_RELAY_VISHING": "3DS pass as proof of presence",
+    "ATTACK_10_EXEMPTION_BAND_ABUSE": "RBA exemption policy + velocity counters",
+    "ATTACK_11_AGENTIC_SCOPE_EXPANSION": "device binding + one-time consent",
+    "ATTACK_12_GEO_VELOCITY_ITINERARY": "impossible-travel (adjacent-pair) rules",
+    "ATTACK_13_MERCHANT_BUSTOUT": "merchant onboarding doc review (acquirer)",
+    "ATTACK_14_ADVERSARIAL_BOUNDARY_PROBE": "the deployed scorer itself (oracle)"
+  },
+  "summary": {
+    "executable_families": 14,
+    "mean_recall_family_in_training": 0.909,
+    "mean_recall_family_withheld_zero_day": 0.8408,
+    "legit_fpr": {
+      "mean": 0.070909,
+      "lo": 0.022727,
+      "hi": 0.118182,
+      "n": 3
+    },
+    "weakest_family_when_withheld": {
+      "family": "ATTACK_13_MERCHANT_BUSTOUT",
+      "label": "T-04 merchant bust-out",
+      "recall": 0.644467,
+      "defeats": "merchant onboarding doc review (acquirer)"
+    },
+    "reading": "Recall on a family the supervised model TRAINED on is not evidence of generalisation. The withheld column is: it is measured with that family absent from supervised training, so whatever catches it is architecture (unsupervised novelty + entity graph), not memorisation."
+  },
+  "family_in_training": {
+    "ATTACK_1_MFA_RESET_VOICE_CLONE": {
+      "recall": {
+        "mean": 0.963,
+        "lo": 0.9556,
+        "hi": 0.9778,
+        "n": 3
+      },
+      "decline_rate": {
+        "mean": 0.8,
+        "lo": 0.6667,
+        "hi": 0.9111,
+        "n": 3
+      },
+      "n_per_seed": [
+        45,
+        45,
+        45
+      ],
+      "defeats": "device binding / step-up trust",
+      "label": "T-03 voice-clone ATO"
+    },
+    "ATTACK_2_SYNTHETIC_MULE_RING": {
+      "recall": {
+        "mean": 0.925933,
+        "lo": 0.8444,
+        "hi": 0.9778,
+        "n": 3
+      },
+      "decline_rate": {
+        "mean": 0.6815,
+        "lo": 0.4667,
+        "hi": 0.8,
+        "n": 3
+      },
+      "n_per_seed": [
+        45,
+        45,
+        45
+      ],
+      "defeats": "per-account monitoring (shared device)",
+      "label": "T-01 synthetic mule ring"
+    },
+    "ATTACK_3_PROMPT_INJECTED_MERCHANT": {
+      "recall": {
+        "mean": 0.9852,
+        "lo": 0.9556,
+        "hi": 1.0,
+        "n": 3
+      },
+      "decline_rate": {
+        "mean": 0.837033,
+        "lo": 0.5778,
+        "hi": 1.0,
+        "n": 3
+      },
+      "n_per_seed": [
+        45,
+        45,
+        45
+      ],
+      "defeats": "per-card normality",
+      "label": "T-18 merchant compromise"
+    },
+    "ATTACK_4_CNP_HIGH_VELOCITY": {
+      "recall": {
+        "mean": 0.9778,
+        "lo": 0.9556,
+        "hi": 1.0,
+        "n": 3
+      },
+      "decline_rate": {
+        "mean": 0.881467,
+        "lo": 0.8,
+        "hi": 0.9333,
+        "n": 3
+      },
+      "n_per_seed": [
+        45,
+        45,
+        45
+      ],
+      "defeats": "fixed velocity rules",
+      "label": "T-08 CNP card testing"
+    },
+    "ATTACK_5_APP_SCAM_PERSONALISED": {
+      "recall": {
+        "mean": 0.881467,
+        "lo": 0.8444,
+        "hi": 0.9333,
+        "n": 3
+      },
+      "decline_rate": {
+        "mean": 0.777767,
+        "lo": 0.6889,
+        "hi": 0.9111,
+        "n": 3
+      },
+      "n_per_seed": [
+        45,
+        45,
+        45
+      ],
+      "defeats": "every stolen-credential control",
+      "label": "T-12 APP scam (India)"
+    },
+    "ATTACK_6_VPA_RENTAL_MULE": {
+      "recall": {
+        "mean": 0.911133,
+        "lo": 0.8667,
+        "hi": 0.9778,
+        "n": 3
+      },
+      "decline_rate": {
+        "mean": 0.725933,
+        "lo": 0.5556,
+        "hi": 0.9778,
+        "n": 3
+      },
+      "n_per_seed": [
+        45,
+        45,
+        45
+      ],
+      "defeats": "per-account monitoring (shared payee)",
+      "label": "T-14 VPA mule fan-in (India)"
+    },
+    "ATTACK_7_SYNCHRONISED_BURST_CASHOUT": {
+      "recall": {
+        "mean": 0.9852,
+        "lo": 0.9556,
+        "hi": 1.0,
+        "n": 3
+      },
+      "decline_rate": {
+        "mean": 0.970367,
+        "lo": 0.9111,
+        "hi": 1.0,
+        "n": 3
+      },
+      "n_per_seed": [
+        45,
+        45,
+        45
+      ],
+      "defeats": "the independence assumption",
+      "label": "T-17 synchronised burst (India)"
+    },
+    "ATTACK_8_LEARNED_THRESHOLD_STRUCTURING": {
+      "recall": {
+        "mean": 0.948167,
+        "lo": 0.8889,
+        "hi": 0.9778,
+        "n": 3
+      },
+      "decline_rate": {
+        "mean": 0.844467,
+        "lo": 0.7556,
+        "hi": 0.9111,
+        "n": 3
+      },
+      "n_per_seed": [
+        45,
+        45,
+        45
+      ],
+      "defeats": "static amount thresholds",
+      "label": "T-09 learned structuring"
+    },
+    "ATTACK_9_OTP_RELAY_VISHING": {
+      "recall": {
+        "mean": 0.925933,
+        "lo": 0.8,
+        "hi": 1.0,
+        "n": 3
+      },
+      "decline_rate": {
+        "mean": 0.8148,
+        "lo": 0.7333,
+        "hi": 0.9333,
+        "n": 3
+      },
+      "n_per_seed": [
+        45,
+        45,
+        45
+      ],
+      "defeats": "3DS pass as proof of presence",
+      "label": "T-05 OTP-relay vishing"
+    },
+    "ATTACK_10_EXEMPTION_BAND_ABUSE": {
+      "recall": {
+        "mean": 0.8963,
+        "lo": 0.8444,
+        "hi": 0.9556,
+        "n": 3
+      },
+      "decline_rate": {
+        "mean": 0.866667,
+        "lo": 0.8,
+        "hi": 0.9556,
+        "n": 3
+      },
+      "n_per_seed": [
+        45,
+        45,
+        45
+      ],
+      "defeats": "RBA exemption policy + velocity counters",
+      "label": "T-06 3DS exemption-band"
+    },
+    "ATTACK_11_AGENTIC_SCOPE_EXPANSION": {
+      "recall": {
+        "mean": 0.799967,
+        "lo": 0.6222,
+        "hi": 0.9333,
+        "n": 3
+      },
+      "decline_rate": {
+        "mean": 0.777767,
+        "lo": 0.6,
+        "hi": 0.9111,
+        "n": 3
+      },
+      "n_per_seed": [
+        45,
+        45,
+        45
+      ],
+      "defeats": "device binding + one-time consent",
+      "label": "T-19 agentic scope drift"
+    },
+    "ATTACK_12_GEO_VELOCITY_ITINERARY": {
+      "recall": {
+        "mean": 0.9185,
+        "lo": 0.8222,
+        "hi": 1.0,
+        "n": 3
+      },
+      "decline_rate": {
+        "mean": 0.9111,
+        "lo": 0.8222,
+        "hi": 1.0,
+        "n": 3
+      },
+      "n_per_seed": [
+        45,
+        45,
+        45
+      ],
+      "defeats": "impossible-travel (adjacent-pair) rules",
+      "label": "T-11 geo-velocity itinerary"
+    },
+    "ATTACK_13_MERCHANT_BUSTOUT": {
+      "recall": {
+        "mean": 0.681467,
+        "lo": 0.6,
+        "hi": 0.8,
+        "n": 3
+      },
+      "decline_rate": {
+        "mean": 0.4963,
+        "lo": 0.2889,
+        "hi": 0.6444,
+        "n": 3
+      },
+      "n_per_seed": [
+        45,
+        45,
+        45
+      ],
+      "defeats": "merchant onboarding doc review (acquirer)",
+      "label": "T-04 merchant bust-out"
+    },
+    "ATTACK_14_ADVERSARIAL_BOUNDARY_PROBE": {
+      "recall": {
+        "mean": 0.925933,
+        "lo": 0.8667,
+        "hi": 0.9778,
+        "n": 3
+      },
+      "decline_rate": {
+        "mean": 0.851833,
+        "lo": 0.7333,
+        "hi": 0.9333,
+        "n": 3
+      },
+      "n_per_seed": [
+        45,
+        45,
+        45
+      ],
+      "defeats": "the deployed scorer itself (oracle)",
+      "label": "T-20 boundary probing"
+    }
+  },
+  "family_withheld_zero_day": {
+    "ATTACK_1_MFA_RESET_VOICE_CLONE": {
+      "recall": {
+        "mean": 0.963,
+        "lo": 0.9556,
+        "hi": 0.9778,
+        "n": 3
+      },
+      "decline_rate": {
+        "mean": 0.8074,
+        "lo": 0.6667,
+        "hi": 0.9333,
+        "n": 3
+      },
+      "layer_hits": {
+        "graph_topology": {
+          "mean": 0.422233,
+          "lo": 0.3111,
+          "hi": 0.4889,
+          "n": 3
+        },
+        "supervised_xgb": {
+          "mean": 0.614833,
+          "lo": 0.5556,
+          "hi": 0.6667,
+          "n": 3
+        },
+        "unsupervised_iforest": {
+          "mean": 0.5111,
+          "lo": 0.4222,
+          "hi": 0.6667,
+          "n": 3
+        }
+      },
+      "legit_fpr_same_run": {
+        "mean": 0.071212,
+        "lo": 0.023636,
+        "hi": 0.118182,
+        "n": 3
+      },
+      "defeats": "device binding / step-up trust",
+      "label": "T-03 voice-clone ATO"
+    },
+    "ATTACK_2_SYNTHETIC_MULE_RING": {
+      "recall": {
+        "mean": 0.8815,
+        "lo": 0.6667,
+        "hi": 1.0,
+        "n": 3
+      },
+      "decline_rate": {
+        "mean": 0.674067,
+        "lo": 0.2222,
+        "hi": 1.0,
+        "n": 3
+      },
+      "layer_hits": {
+        "graph_topology": {
+          "mean": 0.259233,
+          "lo": 0.2222,
+          "hi": 0.3111,
+          "n": 3
+        },
+        "supervised_xgb": {
+          "mean": 0.5704,
+          "lo": 0.0,
+          "hi": 0.9556,
+          "n": 3
+        },
+        "unsupervised_iforest": {
+          "mean": 0.266633,
+          "lo": 0.2222,
+          "hi": 0.3333,
+          "n": 3
+        }
+      },
+      "legit_fpr_same_run": {
+        "mean": 0.07303,
+        "lo": 0.022727,
+        "hi": 0.12,
+        "n": 3
+      },
+      "defeats": "per-account monitoring (shared device)",
+      "label": "T-01 synthetic mule ring"
+    },
+    "ATTACK_3_PROMPT_INJECTED_MERCHANT": {
+      "recall": {
+        "mean": 0.733333,
+        "lo": 0.3333,
+        "hi": 1.0,
+        "n": 3
+      },
+      "decline_rate": {
+        "mean": 0.518533,
+        "lo": 0.2,
+        "hi": 1.0,
+        "n": 3
+      },
+      "layer_hits": {
+        "graph_topology": {
+          "mean": 0.244433,
+          "lo": 0.2,
+          "hi": 0.3111,
+          "n": 3
+        },
+        "supervised_xgb": {
+          "mean": 0.370367,
+          "lo": 0.0,
+          "hi": 1.0,
+          "n": 3
+        },
+        "unsupervised_iforest": {
+          "mean": 0.059233,
+          "lo": 0.0,
+          "hi": 0.1333,
+          "n": 3
+        }
+      },
+      "legit_fpr_same_run": {
+        "mean": 0.074242,
+        "lo": 0.021818,
+        "hi": 0.12,
+        "n": 3
+      },
+      "defeats": "per-card normality",
+      "label": "T-18 merchant compromise"
+    },
+    "ATTACK_4_CNP_HIGH_VELOCITY": {
+      "recall": {
+        "mean": 0.955567,
+        "lo": 0.9111,
+        "hi": 0.9778,
+        "n": 3
+      },
+      "decline_rate": {
+        "mean": 0.792567,
+        "lo": 0.5333,
+        "hi": 0.9333,
+        "n": 3
+      },
+      "layer_hits": {
+        "graph_topology": {
+          "mean": 0.540733,
+          "lo": 0.5333,
+          "hi": 0.5556,
+          "n": 3
+        },
+        "supervised_xgb": {
+          "mean": 0.525933,
+          "lo": 0.0,
+          "hi": 0.8,
+          "n": 3
+        },
+        "unsupervised_iforest": {
+          "mean": 0.5111,
+          "lo": 0.4444,
+          "hi": 0.5556,
+          "n": 3
+        }
+      },
+      "legit_fpr_same_run": {
+        "mean": 0.073333,
+        "lo": 0.022727,
+        "hi": 0.119091,
+        "n": 3
+      },
+      "defeats": "fixed velocity rules",
+      "label": "T-08 CNP card testing"
+    },
+    "ATTACK_5_APP_SCAM_PERSONALISED": {
+      "recall": {
+        "mean": 0.733333,
+        "lo": 0.5556,
+        "hi": 0.9111,
+        "n": 3
+      },
+      "decline_rate": {
+        "mean": 0.674067,
+        "lo": 0.4889,
+        "hi": 0.8444,
+        "n": 3
+      },
+      "layer_hits": {
+        "graph_topology": {
+          "mean": 0.4148,
+          "lo": 0.3333,
+          "hi": 0.4889,
+          "n": 3
+        },
+        "supervised_xgb": {
+          "mean": 0.3926,
+          "lo": 0.2222,
+          "hi": 0.4889,
+          "n": 3
+        },
+        "unsupervised_iforest": {
+          "mean": 0.044433,
+          "lo": 0.0,
+          "hi": 0.0889,
+          "n": 3
+        }
+      },
+      "legit_fpr_same_run": {
+        "mean": 0.07303,
+        "lo": 0.022727,
+        "hi": 0.118182,
+        "n": 3
+      },
+      "defeats": "every stolen-credential control",
+      "label": "T-12 APP scam (India)"
+    },
+    "ATTACK_6_VPA_RENTAL_MULE": {
+      "recall": {
+        "mean": 0.6963,
+        "lo": 0.3111,
+        "hi": 0.9556,
+        "n": 3
+      },
+      "decline_rate": {
+        "mean": 0.451833,
+        "lo": 0.2444,
+        "hi": 0.6444,
+        "n": 3
+      },
+      "layer_hits": {
+        "graph_topology": {
+          "mean": 0.3111,
+          "lo": 0.2444,
+          "hi": 0.3556,
+          "n": 3
+        },
+        "supervised_xgb": {
+          "mean": 0.170367,
+          "lo": 0.0,
+          "hi": 0.4667,
+          "n": 3
+        },
+        "unsupervised_iforest": {
+          "mean": 0.051833,
+          "lo": 0.0444,
+          "hi": 0.0667,
+          "n": 3
+        }
+      },
+      "legit_fpr_same_run": {
+        "mean": 0.071515,
+        "lo": 0.022727,
+        "hi": 0.118182,
+        "n": 3
+      },
+      "defeats": "per-account monitoring (shared payee)",
+      "label": "T-14 VPA mule fan-in (India)"
+    },
+    "ATTACK_7_SYNCHRONISED_BURST_CASHOUT": {
+      "recall": {
+        "mean": 0.8741,
+        "lo": 0.6667,
+        "hi": 1.0,
+        "n": 3
+      },
+      "decline_rate": {
+        "mean": 0.837033,
+        "lo": 0.6,
+        "hi": 1.0,
+        "n": 3
+      },
+      "layer_hits": {
+        "graph_topology": {
+          "mean": 0.437033,
+          "lo": 0.4,
+          "hi": 0.4667,
+          "n": 3
+        },
+        "supervised_xgb": {
+          "mean": 0.733333,
+          "lo": 0.2889,
+          "hi": 1.0,
+          "n": 3
+        }
+      },
+      "legit_fpr_same_run": {
+        "mean": 0.071212,
+        "lo": 0.021818,
+        "hi": 0.118182,
+        "n": 3
+      },
+      "defeats": "the independence assumption",
+      "label": "T-17 synchronised burst (India)"
+    },
+    "ATTACK_8_LEARNED_THRESHOLD_STRUCTURING": {
+      "recall": {
+        "mean": 0.8963,
+        "lo": 0.8667,
+        "hi": 0.9111,
+        "n": 3
+      },
+      "decline_rate": {
+        "mean": 0.8148,
+        "lo": 0.7556,
+        "hi": 0.8444,
+        "n": 3
+      },
+      "layer_hits": {
+        "graph_topology": {
+          "mean": 0.518533,
+          "lo": 0.4,
+          "hi": 0.6889,
+          "n": 3
+        },
+        "supervised_xgb": {
+          "mean": 0.562967,
+          "lo": 0.4889,
+          "hi": 0.7111,
+          "n": 3
+        },
+        "unsupervised_iforest": {
+          "mean": 0.037033,
+          "lo": 0.0,
+          "hi": 0.0667,
+          "n": 3
+        }
+      },
+      "legit_fpr_same_run": {
+        "mean": 0.073939,
+        "lo": 0.021818,
+        "hi": 0.12,
+        "n": 3
+      },
+      "defeats": "static amount thresholds",
+      "label": "T-09 learned structuring"
+    },
+    "ATTACK_9_OTP_RELAY_VISHING": {
+      "recall": {
+        "mean": 0.8889,
+        "lo": 0.8222,
+        "hi": 0.9778,
+        "n": 3
+      },
+      "decline_rate": {
+        "mean": 0.688867,
+        "lo": 0.4444,
+        "hi": 0.8889,
+        "n": 3
+      },
+      "layer_hits": {
+        "graph_topology": {
+          "mean": 0.340733,
+          "lo": 0.2889,
+          "hi": 0.4,
+          "n": 3
+        },
+        "supervised_xgb": {
+          "mean": 0.459267,
+          "lo": 0.1778,
+          "hi": 0.6,
+          "n": 3
+        },
+        "unsupervised_iforest": {
+          "mean": 0.348133,
+          "lo": 0.2889,
+          "hi": 0.4444,
+          "n": 3
+        }
+      },
+      "legit_fpr_same_run": {
+        "mean": 0.073333,
+        "lo": 0.024545,
+        "hi": 0.118182,
+        "n": 3
+      },
+      "defeats": "3DS pass as proof of presence",
+      "label": "T-05 OTP-relay vishing"
+    },
+    "ATTACK_10_EXEMPTION_BAND_ABUSE": {
+      "recall": {
+        "mean": 0.933367,
+        "lo": 0.8667,
+        "hi": 0.9778,
+        "n": 3
+      },
+      "decline_rate": {
+        "mean": 0.8963,
+        "lo": 0.8444,
+        "hi": 0.9556,
+        "n": 3
+      },
+      "layer_hits": {
+        "graph_topology": {
+          "mean": 0.5852,
+          "lo": 0.5111,
+          "hi": 0.6667,
+          "n": 3
+        },
+        "supervised_xgb": {
+          "mean": 0.585167,
+          "lo": 0.5333,
+          "hi": 0.6222,
+          "n": 3
+        }
+      },
+      "legit_fpr_same_run": {
+        "mean": 0.070303,
+        "lo": 0.022727,
+        "hi": 0.117273,
+        "n": 3
+      },
+      "defeats": "RBA exemption policy + velocity counters",
+      "label": "T-06 3DS exemption-band"
+    },
+    "ATTACK_11_AGENTIC_SCOPE_EXPANSION": {
+      "recall": {
+        "mean": 0.792567,
+        "lo": 0.6222,
+        "hi": 0.9111,
+        "n": 3
+      },
+      "decline_rate": {
+        "mean": 0.711133,
+        "lo": 0.4889,
+        "hi": 0.8667,
+        "n": 3
+      },
+      "layer_hits": {
+        "graph_topology": {
+          "mean": 0.399967,
+          "lo": 0.1111,
+          "hi": 0.6444,
+          "n": 3
+        },
+        "supervised_xgb": {
+          "mean": 0.4963,
+          "lo": 0.4,
+          "hi": 0.6889,
+          "n": 3
+        }
+      },
+      "legit_fpr_same_run": {
+        "mean": 0.070303,
+        "lo": 0.022727,
+        "hi": 0.116364,
+        "n": 3
+      },
+      "defeats": "device binding + one-time consent",
+      "label": "T-19 agentic scope drift"
+    },
+    "ATTACK_12_GEO_VELOCITY_ITINERARY": {
+      "recall": {
+        "mean": 0.8815,
+        "lo": 0.8222,
+        "hi": 0.9556,
+        "n": 3
+      },
+      "decline_rate": {
+        "mean": 0.8815,
+        "lo": 0.8222,
+        "hi": 0.9556,
+        "n": 3
+      },
+      "layer_hits": {
+        "graph_topology": {
+          "mean": 0.511133,
+          "lo": 0.3556,
+          "hi": 0.6889,
+          "n": 3
+        },
+        "supervised_xgb": {
+          "mean": 0.8074,
+          "lo": 0.6889,
+          "hi": 0.9111,
+          "n": 3
+        }
+      },
+      "legit_fpr_same_run": {
+        "mean": 0.071515,
+        "lo": 0.021818,
+        "hi": 0.119091,
+        "n": 3
+      },
+      "defeats": "impossible-travel (adjacent-pair) rules",
+      "label": "T-11 geo-velocity itinerary"
+    },
+    "ATTACK_13_MERCHANT_BUSTOUT": {
+      "recall": {
+        "mean": 0.644467,
+        "lo": 0.5556,
+        "hi": 0.7556,
+        "n": 3
+      },
+      "decline_rate": {
+        "mean": 0.437033,
+        "lo": 0.2667,
+        "hi": 0.6444,
+        "n": 3
+      },
+      "layer_hits": {
+        "graph_topology": {
+          "mean": 0.2741,
+          "lo": 0.2667,
+          "hi": 0.2889,
+          "n": 3
+        },
+        "supervised_xgb": {
+          "mean": 0.229633,
+          "lo": 0.0,
+          "hi": 0.5333,
+          "n": 3
+        },
+        "unsupervised_iforest": {
+          "mean": 0.037033,
+          "lo": 0.0,
+          "hi": 0.0889,
+          "n": 3
+        }
+      },
+      "legit_fpr_same_run": {
+        "mean": 0.070909,
+        "lo": 0.022727,
+        "hi": 0.117273,
+        "n": 3
+      },
+      "defeats": "merchant onboarding doc review (acquirer)",
+      "label": "T-04 merchant bust-out"
+    },
+    "ATTACK_14_ADVERSARIAL_BOUNDARY_PROBE": {
+      "recall": {
+        "mean": 0.8963,
+        "lo": 0.8,
+        "hi": 0.9556,
+        "n": 3
+      },
+      "decline_rate": {
+        "mean": 0.8074,
+        "lo": 0.7333,
+        "hi": 0.8667,
+        "n": 3
+      },
+      "layer_hits": {
+        "graph_topology": {
+          "mean": 0.474067,
+          "lo": 0.4,
+          "hi": 0.5111,
+          "n": 3
+        },
+        "supervised_xgb": {
+          "mean": 0.5852,
+          "lo": 0.5111,
+          "hi": 0.6889,
+          "n": 3
+        },
+        "unsupervised_iforest": {
+          "mean": 0.1111,
+          "lo": 0.0,
+          "hi": 0.2444,
+          "n": 3
+        }
+      },
+      "legit_fpr_same_run": {
+        "mean": 0.070606,
+        "lo": 0.022727,
+        "hi": 0.117273,
+        "n": 3
+      },
+      "defeats": "the deployed scorer itself (oracle)",
+      "label": "T-20 boundary probing"
+    }
+  },
+  "per_seed_all_in": [
+    {
+      "seed": 11,
+      "withheld": null,
+      "legit_fpr": 0.022727272727272728,
+      "families": {
+        "ATTACK_1_MFA_RESET_VOICE_CLONE": {
+          "n": 45,
+          "recall": 0.9556,
+          "decline_rate": 0.8222,
+          "layer_hits": {
+            "unsupervised_iforest": 0.4,
+            "graph_topology": 0.4889,
+            "supervised_xgb": 0.6222
+          },
+          "in_training": true
+        },
+        "ATTACK_2_SYNTHETIC_MULE_RING": {
+          "n": 45,
+          "recall": 0.9556,
+          "decline_rate": 0.7778,
+          "layer_hits": {
+            "supervised_xgb": 0.6667,
+            "unsupervised_iforest": 0.2444,
+            "graph_topology": 0.2222
+          },
+          "in_training": true
+        },
+        "ATTACK_3_PROMPT_INJECTED_MERCHANT": {
+          "n": 45,
+          "recall": 1.0,
+          "decline_rate": 0.9333,
+          "layer_hits": {
+            "supervised_xgb": 0.8444,
+            "graph_topology": 0.2
+          },
+          "in_training": true
+        },
+        "ATTACK_4_CNP_HIGH_VELOCITY": {
+          "n": 45,
+          "recall": 0.9778,
+          "decline_rate": 0.9111,
+          "layer_hits": {
+            "supervised_xgb": 0.7111,
+            "unsupervised_iforest": 0.5556,
+            "graph_topology": 0.5333
+          },
+          "in_training": true
+        },
+        "ATTACK_5_APP_SCAM_PERSONALISED": {
+          "n": 45,
+          "recall": 0.8444,
+          "decline_rate": 0.7333,
+          "layer_hits": {
+            "supervised_xgb": 0.5556,
+            "graph_topology": 0.3333
+          },
+          "in_training": true
+        },
+        "ATTACK_6_VPA_RENTAL_MULE": {
+          "n": 45,
+          "recall": 0.9778,
+          "decline_rate": 0.9778,
+          "layer_hits": {
+            "supervised_xgb": 0.8,
+            "unsupervised_iforest": 0.0667,
+            "graph_topology": 0.2444
+          },
+          "in_training": true
+        },
+        "ATTACK_7_SYNCHRONISED_BURST_CASHOUT": {
+          "n": 45,
+          "recall": 1.0,
+          "decline_rate": 1.0,
+          "layer_hits": {
+            "supervised_xgb": 0.8667,
+            "graph_topology": 0.4
+          },
+          "in_training": true
+        },
+        "ATTACK_8_LEARNED_THRESHOLD_STRUCTURING": {
+          "n": 45,
+          "recall": 0.9778,
+          "decline_rate": 0.9111,
+          "layer_hits": {
+            "supervised_xgb": 0.7556,
+            "graph_topology": 0.6889
+          },
+          "in_training": true
+        },
+        "ATTACK_9_OTP_RELAY_VISHING": {
+          "n": 45,
+          "recall": 1.0,
+          "decline_rate": 0.9333,
+          "layer_hits": {
+            "supervised_xgb": 0.6667,
+            "unsupervised_iforest": 0.2889,
+            "graph_topology": 0.4
+          },
+          "in_training": true
+        },
+        "ATTACK_10_EXEMPTION_BAND_ABUSE": {
+          "n": 45,
+          "recall": 0.9556,
+          "decline_rate": 0.9556,
+          "layer_hits": {
+            "graph_topology": 0.6667,
+            "supervised_xgb": 0.6889
+          },
+          "in_training": true
+        },
+        "ATTACK_11_AGENTIC_SCOPE_EXPANSION": {
+          "n": 45,
+          "recall": 0.9333,
+          "decline_rate": 0.9111,
+          "layer_hits": {
+            "supervised_xgb": 0.8,
+            "graph_topology": 0.4444
+          },
+          "in_training": true
+        },
+        "ATTACK_12_GEO_VELOCITY_ITINERARY": {
+          "n": 45,
+          "recall": 0.9333,
+          "decline_rate": 0.9111,
+          "layer_hits": {
+            "graph_topology": 0.4889,
+            "supervised_xgb": 0.8444
+          },
+          "in_training": true
+        },
+        "ATTACK_13_MERCHANT_BUSTOUT": {
+          "n": 45,
+          "recall": 0.6444,
+          "decline_rate": 0.5556,
+          "layer_hits": {
+            "graph_topology": 0.2667,
+            "supervised_xgb": 0.2667,
+            "unsupervised_iforest": 0.0222
+          },
+          "in_training": true
+        },
+        "ATTACK_14_ADVERSARIAL_BOUNDARY_PROBE": {
+          "n": 45,
+          "recall": 0.9778,
+          "decline_rate": 0.8889,
+          "layer_hits": {
+            "supervised_xgb": 0.7333,
+            "unsupervised_iforest": 0.0889,
+            "graph_topology": 0.4
+          },
+          "in_training": true
+        }
+      }
+    },
+    {
+      "seed": 23,
+      "withheld": null,
+      "legit_fpr": 0.07181818181818182,
+      "families": {
+        "ATTACK_1_MFA_RESET_VOICE_CLONE": {
+          "n": 45,
+          "recall": 0.9778,
+          "decline_rate": 0.9111,
+          "layer_hits": {
+            "graph_topology": 0.4667,
+            "unsupervised_iforest": 0.4444,
+            "supervised_xgb": 0.6222
+          },
+          "in_training": true
+        },
+        "ATTACK_2_SYNTHETIC_MULE_RING": {
+          "n": 45,
+          "recall": 0.8444,
+          "decline_rate": 0.4667,
+          "layer_hits": {
+            "unsupervised_iforest": 0.2444,
+            "supervised_xgb": 0.1778,
+            "graph_topology": 0.2444
+          },
+          "in_training": true
+        },
+        "ATTACK_3_PROMPT_INJECTED_MERCHANT": {
+          "n": 45,
+          "recall": 0.9556,
+          "decline_rate": 0.5778,
+          "layer_hits": {
+            "graph_topology": 0.2222,
+            "supervised_xgb": 0.1556,
+            "unsupervised_iforest": 0.0444
+          },
+          "in_training": true
+        },
+        "ATTACK_4_CNP_HIGH_VELOCITY": {
+          "n": 45,
+          "recall": 1.0,
+          "decline_rate": 0.8,
+          "layer_hits": {
+            "supervised_xgb": 0.5778,
+            "graph_topology": 0.5333,
+            "unsupervised_iforest": 0.5333
+          },
+          "in_training": true
+        },
+        "ATTACK_5_APP_SCAM_PERSONALISED": {
+          "n": 45,
+          "recall": 0.8667,
+          "decline_rate": 0.6889,
+          "layer_hits": {
+            "supervised_xgb": 0.5333,
+            "graph_topology": 0.4222,
+            "unsupervised_iforest": 0.0444
+          },
+          "in_training": true
+        },
+        "ATTACK_6_VPA_RENTAL_MULE": {
+          "n": 45,
+          "recall": 0.8889,
+          "decline_rate": 0.5556,
+          "layer_hits": {
+            "graph_topology": 0.3556,
+            "supervised_xgb": 0.1556,
+            "unsupervised_iforest": 0.0444
+          },
+          "in_training": true
+        },
+        "ATTACK_7_SYNCHRONISED_BURST_CASHOUT": {
+          "n": 45,
+          "recall": 1.0,
+          "decline_rate": 1.0,
+          "layer_hits": {
+            "supervised_xgb": 1.0,
+            "graph_topology": 0.4444
+          },
+          "in_training": true
+        },
+        "ATTACK_8_LEARNED_THRESHOLD_STRUCTURING": {
+          "n": 45,
+          "recall": 0.9778,
+          "decline_rate": 0.8667,
+          "layer_hits": {
+            "supervised_xgb": 0.8,
+            "unsupervised_iforest": 0.0667,
+            "graph_topology": 0.4
+          },
+          "in_training": true
+        },
+        "ATTACK_9_OTP_RELAY_VISHING": {
+          "n": 45,
+          "recall": 0.8,
+          "decline_rate": 0.7778,
+          "layer_hits": {
+            "supervised_xgb": 0.5556,
+            "unsupervised_iforest": 0.3111,
+            "graph_topology": 0.2889
+          },
+          "in_training": true
+        },
+        "ATTACK_10_EXEMPTION_BAND_ABUSE": {
+          "n": 45,
+          "recall": 0.8444,
+          "decline_rate": 0.8,
+          "layer_hits": {
+            "supervised_xgb": 0.5333,
+            "graph_topology": 0.5111
+          },
+          "in_training": true
+        },
+        "ATTACK_11_AGENTIC_SCOPE_EXPANSION": {
+          "n": 45,
+          "recall": 0.8444,
+          "decline_rate": 0.8222,
+          "layer_hits": {
+            "graph_topology": 0.6444,
+            "supervised_xgb": 0.6444
+          },
+          "in_training": true
+        },
+        "ATTACK_12_GEO_VELOCITY_ITINERARY": {
+          "n": 45,
+          "recall": 1.0,
+          "decline_rate": 1.0,
+          "layer_hits": {
+            "supervised_xgb": 0.9333,
+            "graph_topology": 0.3556
+          },
+          "in_training": true
+        },
+        "ATTACK_13_MERCHANT_BUSTOUT": {
+          "n": 45,
+          "recall": 0.6,
+          "decline_rate": 0.2889,
+          "layer_hits": {
+            "graph_topology": 0.2667,
+            "supervised_xgb": 0.0222
+          },
+          "in_training": true
+        },
+        "ATTACK_14_ADVERSARIAL_BOUNDARY_PROBE": {
+          "n": 45,
+          "recall": 0.9333,
+          "decline_rate": 0.9333,
+          "layer_hits": {
+            "graph_topology": 0.5111,
+            "supervised_xgb": 0.5778
+          },
+          "in_training": true
+        }
+      }
+    },
+    {
+      "seed": 37,
+      "withheld": null,
+      "legit_fpr": 0.11818181818181818,
+      "families": {
+        "ATTACK_1_MFA_RESET_VOICE_CLONE": {
+          "n": 45,
+          "recall": 0.9556,
+          "decline_rate": 0.6667,
+          "layer_hits": {
+            "supervised_xgb": 0.5556,
+            "unsupervised_iforest": 0.6667,
+            "graph_topology": 0.3111
+          },
+          "in_training": true
+        },
+        "ATTACK_2_SYNTHETIC_MULE_RING": {
+          "n": 45,
+          "recall": 0.9778,
+          "decline_rate": 0.8,
+          "layer_hits": {
+            "unsupervised_iforest": 0.3556,
+            "graph_topology": 0.3111,
+            "supervised_xgb": 0.7556
+          },
+          "in_training": true
+        },
+        "ATTACK_3_PROMPT_INJECTED_MERCHANT": {
+          "n": 45,
+          "recall": 1.0,
+          "decline_rate": 1.0,
+          "layer_hits": {
+            "supervised_xgb": 1.0,
+            "graph_topology": 0.3111,
+            "unsupervised_iforest": 0.1778
+          },
+          "in_training": true
+        },
+        "ATTACK_4_CNP_HIGH_VELOCITY": {
+          "n": 45,
+          "recall": 0.9556,
+          "decline_rate": 0.9333,
+          "layer_hits": {
+            "supervised_xgb": 0.7778,
+            "unsupervised_iforest": 0.4444,
+            "graph_topology": 0.5556
+          },
+          "in_training": true
+        },
+        "ATTACK_5_APP_SCAM_PERSONALISED": {
+          "n": 45,
+          "recall": 0.9333,
+          "decline_rate": 0.9111,
+          "layer_hits": {
+            "supervised_xgb": 0.5556,
+            "unsupervised_iforest": 0.0889,
+            "graph_topology": 0.4889
+          },
+          "in_training": true
+        },
+        "ATTACK_6_VPA_RENTAL_MULE": {
+          "n": 45,
+          "recall": 0.8667,
+          "decline_rate": 0.6444,
+          "layer_hits": {
+            "supervised_xgb": 0.4889,
+            "graph_topology": 0.3333,
+            "unsupervised_iforest": 0.0444
+          },
+          "in_training": true
+        },
+        "ATTACK_7_SYNCHRONISED_BURST_CASHOUT": {
+          "n": 45,
+          "recall": 0.9556,
+          "decline_rate": 0.9111,
+          "layer_hits": {
+            "supervised_xgb": 0.9111,
+            "graph_topology": 0.4667
+          },
+          "in_training": true
+        },
+        "ATTACK_8_LEARNED_THRESHOLD_STRUCTURING": {
+          "n": 45,
+          "recall": 0.8889,
+          "decline_rate": 0.7556,
+          "layer_hits": {
+            "supervised_xgb": 0.4889,
+            "unsupervised_iforest": 0.0444,
+            "graph_topology": 0.4667
+          },
+          "in_training": true
+        },
+        "ATTACK_9_OTP_RELAY_VISHING": {
+          "n": 45,
+          "recall": 0.9778,
+          "decline_rate": 0.7333,
+          "layer_hits": {
+            "supervised_xgb": 0.6,
+            "unsupervised_iforest": 0.4444,
+            "graph_topology": 0.3333
+          },
+          "in_training": true
+        },
+        "ATTACK_10_EXEMPTION_BAND_ABUSE": {
+          "n": 45,
+          "recall": 0.8889,
+          "decline_rate": 0.8444,
+          "layer_hits": {
+            "supervised_xgb": 0.6,
+            "graph_topology": 0.5778
+          },
+          "in_training": true
+        },
+        "ATTACK_11_AGENTIC_SCOPE_EXPANSION": {
+          "n": 45,
+          "recall": 0.6222,
+          "decline_rate": 0.6,
+          "layer_hits": {
+            "supervised_xgb": 0.5111,
+            "graph_topology": 0.1111
+          },
+          "in_training": true
+        },
+        "ATTACK_12_GEO_VELOCITY_ITINERARY": {
+          "n": 45,
+          "recall": 0.8222,
+          "decline_rate": 0.8222,
+          "layer_hits": {
+            "graph_topology": 0.6889,
+            "supervised_xgb": 0.6889
+          },
+          "in_training": true
+        },
+        "ATTACK_13_MERCHANT_BUSTOUT": {
+          "n": 45,
+          "recall": 0.8,
+          "decline_rate": 0.6444,
+          "layer_hits": {
+            "supervised_xgb": 0.5333,
+            "graph_topology": 0.2889,
+            "unsupervised_iforest": 0.0889
+          },
+          "in_training": true
+        },
+        "ATTACK_14_ADVERSARIAL_BOUNDARY_PROBE": {
+          "n": 45,
+          "recall": 0.8667,
+          "decline_rate": 0.7333,
+          "layer_hits": {
+            "supervised_xgb": 0.5556,
+            "graph_topology": 0.5111,
+            "unsupervised_iforest": 0.2444
+          },
+          "in_training": true
+        }
+      }
+    }
+  ],
+  "boundaries": [
+    "Synthetic environment: absolute recall figures are directional, the ARCHITECTURAL claim is the point.",
+    "Leave-one-family-out withholds the family from SUPERVISED training only; the unsupervised layers are trained on legitimate traffic alone by design.",
+    "Layer attribution overlaps: shares do not sum to recall.",
+    "Three seeds; every number is a seed-level mean with a nonparametric bootstrap CI."
+  ]
+}

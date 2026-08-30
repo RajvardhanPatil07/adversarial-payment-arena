@@ -377,7 +377,7 @@ def criterion_map(doc: Document) -> None:
     table(doc,
           ["Criterion", "Evidence", "Where"],
           [["Diversity of attacks identified",
-            "22-scenario taxonomy across 5 attack surfaces; 8 executable, each defeating a different control class",
+            "22-scenario taxonomy across 5 attack surfaces; 14 executable, each individually measured and each defeating a different control class",
             "docs/ATTACK_TAXONOMY.md, artifacts/family_coverage.json"],
            ["Fidelity of attacks in simulation",
             "5 fidelity measures per generator, including the ones our own generator FAILS; a 3-check Plausibility Gate on every generated payload",
@@ -406,32 +406,37 @@ def pillar_identify(doc: Document, cov: dict | None) -> None:
 
     doc.add_heading("What is executable, stated exactly", level=2)
     rich(doc, [
-        ("8 of the 22 are executable today", {"bold": True}),
+        ("14 of the 22 are executable today", {"bold": True}),
         (". We report that ratio rather than claiming 22 implemented attacks. The "
-         "remaining 14 rows each already name their fields and their target signal, "
+         "remaining 8 rows each already name their fields and their target signal, "
          "which is why adding one is an afternoon rather than a research project.", {}),
     ], space_after=8)
 
     para(doc,
-         "The four families added most recently were chosen so that coverage breadth "
-         "is not eight variations of velocity abuse. Each defeats a structurally "
-         "different control:",
+         "The six families added most recently extend breadth beyond velocity abuse "
+         "and beyond the issuing side. Each defeats a structurally different control:",
          space_after=4)
     table(doc,
-          ["Family", "India relevance", "Control it defeats"],
-          [["T-12 AI-personalised APP scam",
-            "UPI push-payment scams; the dominant complaint category on real-time rails",
-            "Everything premised on a STOLEN credential. The victim's own device, own account, and a passed 3DS challenge."],
-           ["T-14 VPA-rental mule (fan-in)",
-            "Rented VPAs are the standard cash-out layer for scam proceeds",
-            "Per-account monitoring. No single node crosses a threshold; only beneficiary convergence is visible."],
-           ["T-17 Synchronised burst cash-out",
-            "Coordinated mule waves inside one detection window",
-            "The independence assumption between accounts. Nothing is shared but time."],
-           ["T-09 Learned threshold structuring",
-            "Adaptive probing of per-issuer review limits",
-            "Static amount thresholds, including round-number heuristics."]],
-          widths=[1.55, 2.15, 2.6], font=8.5)
+          ["Family", "Surface", "Control it defeats"],
+          [["T-05 OTP-relay vishing",
+            "Authentication challenges",
+            "Treating a passed 3DS challenge as proof of cardholder presence -- the pass is legitimate, the device is not."],
+           ["T-06 3DS exemption-band abuse",
+            "Issuer RBA policy",
+            "Frictionless-exemption logic and velocity counters: every transaction is individually unremarkable by design."],
+           ["T-19 Delegated-agent scope expansion",
+            "Agentic commerce",
+            "Device binding and one-time delegation consent -- the device stays trusted while the mandate drifts."],
+           ["T-11 Geo-velocity with generated itinerary",
+            "Travel rules",
+            "Impossible-travel rules that only compare adjacent pairs; each hop is individually feasible."],
+           ["T-04 Merchant shell bust-out",
+            "Acquiring side",
+            "Merchant onboarding document review; the detection signal is merchant-centric, not card-centric."],
+           ["T-20 Decision-boundary probing",
+            "Model layer",
+            "The deployed scorer itself, treated as an oracle to map and then stay just inside."]],
+          widths=[1.55, 1.5, 3.25], font=8.5)
 
     doc.add_heading("Executable means gate-admitted, not merely generated", level=2)
     para(doc,
@@ -457,21 +462,36 @@ def pillar_identify(doc: Document, cov: dict | None) -> None:
         return
 
     doc.add_heading("Per-family detection, measured", level=2)
-    per = cov.get("headline", {}).get("per_family", []) or cov.get("per_family", [])
-    if per:
+    trained = cov.get("family_in_training", {}) or {}
+    zero_day = cov.get("family_withheld_zero_day", {}) or {}
+    if trained and zero_day:
+        s = cov.get("summary", {}) or {}
+        if s:
+            para(doc,
+                 f"Across all {s.get('executable_families', '?')} executable families: mean recall "
+                 f"{num(s.get('mean_recall_family_in_training'), 3)} when the family is in training vs "
+                 f"{num(s.get('mean_recall_family_withheld_zero_day'), 3)} when it is withheld from "
+                 f"supervised training entirely (zero-day), at a pinned 1% legitimate FPR.",
+                 space_after=6)
         rows = []
-        for f in per:
+        for fam in trained:
+            zd = zero_day.get(fam, {}) or {}
+            layers = ", ".join(
+                k.replace("_", " ")
+                for k, v in (zd.get("layer_hits", {}) or {}).items()
+                if (v or {}).get("mean", 0.0) > 0.0
+            ) or "--"
             rows.append([
-                str(f.get("family", f.get("short", "?"))),
-                num(f.get("recall_all_in", f.get("recall")), 3),
-                num(f.get("recall_zero_day", f.get("zero_day_recall")), 3),
-                str(f.get("layers", f.get("layer", "--"))),
+                str(trained[fam].get("label", fam)),
+                num((trained[fam].get("recall", {}) or {}).get("mean"), 3),
+                num((zd.get("recall", {}) or {}).get("mean"), 3),
+                layers,
             ])
         table(doc,
-              ["Family", "Recall (trained)", "Recall (zero-day)", "Layer(s) firing"],
-              rows, widths=[2.1, 1.15, 1.2, 1.85], font=8.5)
+              ["Family", "Recall (trained)", "Recall (zero-day)", "Layer(s) firing (zero-day)"],
+              rows, widths=[2.0, 1.1, 1.15, 2.05], font=8.5)
         caption(doc,
-                "Zero-day column: the family is removed from training entirely "
+                "Zero-day column: the family is removed from supervised training entirely "
                 "(leave-one-family-out), so it measures generalisation to an attack "
                 "type never seen -- not memorisation.")
     figure(doc, "family_coverage.png", 6.3,
@@ -545,7 +565,7 @@ def pillar_generate(doc: Document, fid: dict | None) -> None:
             def g(key):
                 v = m.get(key)
                 return num(v.get("mean"), 4) if isinstance(v, dict) else num(v, 4)
-            rows.append([gen, g("c2st_auc"), g("jsd"), g("correlation_frobenius"),
+            rows.append([gen, g("c2st_auc"), g("mean_jsd"), g("correlation_frobenius_diff"),
                          g("tstr_ratio")])
         if rows:
             table(doc,
@@ -703,13 +723,15 @@ def feasibility(doc: Document, lat: dict | None) -> None:
              "rather label an estimate as an estimate than present it as a benchmark.",
              space_after=8)
     else:
-        head = lat.get("headline", lat.get("overall", {}))
-        budget = lat.get("inline_budget_ms", 100.0)
+        head = lat.get("overall", lat.get("headline", {}))
+        budget = (lat.get("protocol") or {}).get("inline_budget_ms",
+                 lat.get("inline_budget_ms", 100.0))
         rows = []
-        for k in ("p50", "p90", "p95", "p99", "p99_9"):
+        for k, label in (("p50_ms", "p50"), ("p90_ms", "p90"), ("p95_ms", "p95"),
+                         ("p99_ms", "p99"), ("p999_ms", "p99.9")):
             v = head.get(k) if isinstance(head, dict) else None
             if v is not None:
-                rows.append([k.replace("_", "."), f"{float(v):.2f} ms",
+                rows.append([label, f"{float(v):.2f} ms",
                              "within budget" if float(v) <= float(budget) else "OVER BUDGET"])
         if rows:
             table(doc, ["Percentile", "Latency", f"vs {budget} ms budget"], rows,

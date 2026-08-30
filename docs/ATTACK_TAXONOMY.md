@@ -22,14 +22,14 @@ codes and rewrites its own amount-and-MCC policy between attempts is not.
 | T-01 | **Synthetic identity bust-out** **[CODE]** | Generated coherent identity histories that survive KYC document checks and age gracefully before the bust | `customer_id` novelty, thin velocity history, escalating `amount` | history-length and account-age heuristics |
 | T-02 | **Deepfake liveness injection** **[SPEC]** | Video and voice synthesis defeats selfie-liveness at onboarding and at step-up | `device_id` churn, `three_ds_status` = Y obtained fraudulently | biometric step-up as a terminal control |
 | T-03 | **Voice-clone MFA reset** **[CODE]** | Cloned cardholder voice passes call-centre verification, resetting credentials before any transaction | `device_id` new, `ip_country` mismatch, post-reset burst | device-binding and step-up trust |
-| T-04 | **AI-assisted document forgery for merchant onboarding** **[SPEC]** | Generated registration and bank-proof documents onboard a fake merchant fast | new `merchant_id` with immediate high-ticket inflow | merchant vetting at acquiring |
+| T-04 | **AI-assisted document forgery for merchant onboarding** **[CODE]** | Generated registration and bank-proof documents onboard a fake merchant fast | new `merchant_id` with immediate high-ticket inflow | merchant vetting at acquiring |
 
 ## Layer 2 - Authentication and authorisation
 
 | ID | Scenario | What GenAI changed | Fields moved | Signal it defeats |
 |---|---|---|---|---|
-| T-05 | **OTP-relay vishing at scale** **[SPEC]** | Conversational agents run thousands of simultaneous, personalised OTP-extraction calls | `three_ds_status` = Y with anomalous `device_id` | treating a passed 3DS challenge as proof of cardholder presence |
-| T-06 | **3DS frictionless-flow abuse** **[SPEC]** | Attacks are shaped to stay inside the risk-based-authentication exemption band | `amount` just below step-up thresholds, `three_ds_status` = A | threshold-based step-up policy |
+| T-05 | **OTP-relay vishing at scale** **[CODE]** | Conversational agents run thousands of simultaneous, personalised OTP-extraction calls | `three_ds_status` = Y with anomalous `device_id` | treating a passed 3DS challenge as proof of cardholder presence |
+| T-06 | **3DS frictionless-flow abuse** **[CODE]** | Attacks are shaped to stay inside the risk-based-authentication exemption band | `amount` just below step-up thresholds, `three_ds_status` = A | threshold-based step-up policy |
 | T-07 | **Session hijack and drain** **[SPEC]** | Automated post-hijack behaviour that imitates the victim's own transaction rhythm | same `device_id`, altered beneficiary and `mcc` | device-consistency signals |
 
 ## Layer 3 - Card-not-present and transaction shaping
@@ -39,7 +39,7 @@ codes and rewrites its own amount-and-MCC policy between attempts is not.
 | T-08 | **Adaptive card-testing swarm** **[CODE]** | The agent reads decline reason codes and rewrites amount, MCC and cadence policy between attempts | small `amount`, `pos_entry_mode` = ECOM, `three_ds_status` = N, high velocity | fixed velocity rules |
 | T-09 | **Amount structuring below review thresholds** **[CODE]** | Learned, per-issuer estimation of the review threshold rather than a guessed round number | `amount` clustered just under limits, low `amount_round_frac` | static amount thresholds |
 | T-10 | **MCC laundering** **[SPEC]** | Category selection optimised against the issuer's own observed decline surface | `mcc` shifted to low-risk bands, mismatched `ip_country` | MCC risk weighting |
-| T-11 | **Geo-velocity spoof with plausible travel** **[SPEC]** | Generated itineraries that make impossible travel look like a real trip | `ip_country` sequence, `hour_sin`/`hour_cos` shift | impossible-travel rules |
+| T-11 | **Geo-velocity spoof with plausible travel** **[CODE]** | Generated itineraries that make impossible travel look like a real trip | `ip_country` sequence, `hour_sin`/`hour_cos` shift | impossible-travel rules |
 
 ## Layer 4 - Real-time rails and UPI-era patterns (India-first)
 
@@ -57,8 +57,8 @@ codes and rewrites its own amount-and-MCC policy between attempts is not.
 | ID | Scenario | What GenAI changed | Fields moved | Signal it defeats |
 |---|---|---|---|---|
 | T-18 | **Prompt-injected merchant / agentic checkout hijack** **[CODE]** | A poisoned merchant catalogue or page redirects an AI shopping agent's checkout | agent-driven `merchant_id`, unusual `mcc` for the cardholder | the assumption that the buyer is a human making a choice |
-| T-19 | **Agent scope expansion** **[SPEC]** | A delegated payment agent drifts beyond its mandate through intent manipulation | repeated authorised payments, rising `amount`, stable device | consent captured once at delegation time |
-| T-20 | **GenAI collusive merchant ring** **[SPEC]** | Coordinated fake merchants and fake customers generate mutually reinforcing transaction history | dense bipartite merchant-customer topology | reputation built from transaction volume |
+| T-19 | **Agent scope expansion** **[CODE]** | A delegated payment agent drifts beyond its mandate through intent manipulation | repeated authorised payments, rising `amount`, stable device | consent captured once at delegation time |
+| T-20 | **GenAI collusive merchant ring** **[CODE]** | Coordinated fake merchants and fake customers generate mutually reinforcing transaction history | dense bipartite merchant-customer topology | reputation built from transaction volume |
 | T-21 | **Synthetic-evidence refund and chargeback abuse** **[SPEC]** | Generated receipts, photos and delivery evidence win disputes | post-authorisation, dispute-layer | manual evidence review |
 | T-22 | **Model-layer attack: poisoning the feedback loop** **[SPEC]** | Attacks crafted to be *labelled* wrongly, corrupting the retraining set itself | mislabelled escapes entering the hardening corpus | closed-loop retraining without label provenance |
 
@@ -82,17 +82,17 @@ A closed loop without a fidelity gate is an attack surface, not a feature.
 | | Count |
 |---|---|
 | Scenarios mapped | 22 |
-| Executable specs today **[CODE]** | 8 |
+| Executable specs today **[CODE]** | 14 |
 | Layers covered | 5 |
 | India-specific real-time-rail scenarios | 6 (T-12 to T-17) |
 
-**Stated honestly:** eight of twenty-two are executable. Claiming twenty-two
+**Stated honestly:** fourteen of twenty-two are executable. Claiming twenty-two
 *implemented* attacks would be the kind of number this repository is built to
 argue against. The taxonomy's value is that each unimplemented row already
 names its fields and its target signal, so each is an afternoon of work rather
 than a research question.
 
-Executable does not mean "generates rows". Each of the eight is measured, and
+Executable does not mean "generates rows". Each of the fourteen is measured, and
 each was admitted only after passing the Plausibility Gate's economic,
 metadata-coherence and rail-feasibility checks -- so a family cannot be counted
 by writing a YAML file that produces physically impossible traffic. ATTACK_6
@@ -107,9 +107,15 @@ regression test in `tests/test_attack_specs.py`.
 
 Per-family detection recall, leave-one-family-out zero-day generalisation, and
 which defense layer fires for each family are reported in
-`artifacts/family_coverage.json` (`make coverage`). The four newest families
-were chosen for a specific reason: each defeats a *different* control, so
-coverage breadth is not eight variations of velocity abuse.
+`artifacts/family_coverage.json` (`make coverage`). The families were chosen
+for a specific reason: each defeats a *different* control, so coverage breadth
+is not fourteen variations of velocity abuse. The six newest families extend
+the map beyond the issuing side: OTP-relay defeats the 3DS challenge itself,
+exemption-band abuse targets the issuer's RBA policy, agentic scope drift and
+itinerant geo-velocity target delegated-authorisation and travel logic, the
+merchant bust-out attacks the *acquiring* side, and decision-boundary probing
+attacks the deployed scorer directly — the model-layer surface this repository's
+own closed-loop result is about.
 
 | Family | Defeats |
 |---|---|
@@ -117,6 +123,12 @@ coverage breadth is not eight variations of velocity abuse.
 | T-14 VPA-rental mule (fan-in) | per-account monitoring: no single node exceeds a threshold; only beneficiary convergence is visible |
 | T-17 synchronised burst cash-out | the independence assumption between accounts -- nothing is shared but time |
 | T-09 learned threshold structuring | static amount thresholds, including the round-number heuristics that catch naive structuring |
+| T-05 OTP-relay vishing | treating a passed 3DS challenge as proof of cardholder presence |
+| T-06 3DS exemption-band abuse | the issuer's frictionless-exemption policy and the velocity counters that never see a burst |
+| T-19 agentic scope expansion | device binding and one-time delegation consent -- the device is trusted, the mandate drifts |
+| T-11 geo-velocity itinerary | impossible-travel rules that only compare adjacent transaction pairs |
+| T-04 merchant shell bust-out | merchant onboarding document review -- the signal is merchant-centric, not card-centric |
+| T-20 decision-boundary probing | the deployed scorer itself, treated as an oracle to be mapped and then stayed inside |
 
 Adding one is mechanical: write the YAML against `schemas/attack.AttackSpec`,
 add a synthesizer function to `data/corpus_builder._SYNTHESIZERS`, then rerun
