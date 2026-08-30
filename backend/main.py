@@ -126,7 +126,11 @@ def _edge_objs(nx_graph, pairs) -> list[dict]:
 
 
 def resolve_attack_path(name: str) -> Path:
-    """Resolve a spec name strictly inside ``attack_specs/``."""
+    """Resolve a spec name strictly inside ``attack_specs/``.
+
+    Prefix matching is performed on whole underscore-delimited segments so
+    ``attack_1`` does not accidentally match ``attack_10`` through ``attack_14``.
+    """
     name = name.strip().removesuffix(".yaml")
     if not _SAFE_SPEC_NAME.match(name):
         raise HTTPException(status_code=400, detail=f"unsafe spec name: {name!r}")
@@ -135,9 +139,20 @@ def resolve_attack_path(name: str) -> Path:
     if exact.exists():
         return exact
 
-    matches = [path for path in SPECS_DIR.glob("*.yaml") if path.stem.startswith(name)]
+    wanted = name.split("_")
+    matches = [
+        path
+        for path in SPECS_DIR.glob("*.yaml")
+        if path.stem.split("_")[: len(wanted)] == wanted
+    ]
     if len(matches) == 1:
         return matches[0]
+    if len(matches) > 1:
+        options = ", ".join(sorted(path.stem for path in matches))
+        raise HTTPException(
+            status_code=400,
+            detail=f"ambiguous attack spec {name!r}; candidates: {options}",
+        )
     raise HTTPException(status_code=404, detail=f"no unique attack spec for {name!r}")
 
 
@@ -192,9 +207,6 @@ async def pump_campaign(
     feedback_mode: str = "gray",
 ) -> None:
     """Drive one adaptive campaign and attach discovery/containment evidence."""
-    # Live LLMs consume feedback directly from their conversation. Wrap the
-    # deterministic no-key client so it also mutates its next move based on the
-    # feedback turn instead of merely displaying a closed-loop event.
     make_feedback_aware_if_offline(agent)
     containment = CampaignContainment(agent.spec.spec_id)
     try:
@@ -527,14 +539,26 @@ async def ws_endpoint(ws: WebSocket):
         return
 
 
-def _mount_static_ui(application: FastAPI) -> None:
+def _resolve_static_dir() -> Path | None:
     configured = os.getenv("SERVE_STATIC_DIR", "").strip()
-    if not configured:
-        return
+    if configured:
+        return Path(configured)
+    here = Path(__file__).resolve().parent
+    for candidate in (
+        here.parent / "frontend_dist",
+        here.parent / "frontend" / "out",
+    ):
+        if (candidate / "index.html").is_file():
+            return candidate
+    return None
 
-    dist = Path(configured)
+
+def _mount_static_ui(application: FastAPI) -> None:
+    dist = _resolve_static_dir()
+    if dist is None:
+        return
     if not dist.is_dir():
-        print(f"[arena] SERVE_STATIC_DIR={configured!r} is not a directory -- UI not mounted")
+        print(f"[arena] static dir {str(dist)!r} is not a directory -- UI not mounted")
         return
 
     from fastapi.staticfiles import StaticFiles
