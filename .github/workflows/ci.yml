@@ -10,6 +10,12 @@ on:
 permissions:
   contents: read
 
+# Scale validation can run for hours. A newer commit makes an older result
+# inapplicable to the PR head, so do not burn runners on superseded 100M jobs.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   backend-python:
     name: Backend (Python fallback)
