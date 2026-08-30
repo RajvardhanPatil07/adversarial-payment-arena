@@ -16,6 +16,12 @@ Only payload generation, model loading, WebSocket/UI serialization and LLM
 attack generation are outside the measured interval. Payloads are generated in
 bounded chunks so 100M-event runs do not require 100M Python dictionaries in
 memory at once.
+
+This is deliberately a throughput stress profile. The synthetic population is
+compressed into a one-hour event-time window to exercise rolling state and graph
+updates at high intensity, so its decision/FPR/cost mix is diagnostic telemetry,
+not representative fraud-quality evidence. Quality claims belong to the separate
+held-out/calibrated evaluation suite and model sweep.
 """
 
 from __future__ import annotations
@@ -35,6 +41,7 @@ from schemas.payment import PaymentMessage
 
 BASE_TIME = datetime(2026, 8, 30, 4, 0, tzinfo=timezone.utc)
 ONE_HOUR_US = 3_600_000_000
+HUNDRED_MILLION_PER_HOUR_TPS = 100_000_000 / 3600.0
 
 
 def _ipv4(first_octet: int, value: int) -> str:
@@ -212,9 +219,17 @@ def main() -> None:
     wall_seconds = time.perf_counter() - wall_started
     measured_seconds = prepare_seconds + model_and_fusion_seconds + cost_seconds
     throughput = analyzed_rows / measured_seconds
-    target_tps = args.events / 3600.0
+    requested_run_tps = args.events / 3600.0
+    target_100m_tps = HUNDRED_MILLION_PER_HOUR_TPS
 
     result = {
+        "benchmark_profile": "synthetic-throughput-stress",
+        "quality_metrics_representative": False,
+        "quality_metrics_note": (
+            "Decision/anomaly/cost counts are stress diagnostics only because the "
+            "synthetic population is compressed into a one-hour event-time span. "
+            "Use held-out calibrated evaluation/model-sweep results for fraud-quality claims."
+        ),
         "scope": (
             "Pydantic validation + Plausibility Gate/enrichment/history + "
             "Rust rolling features + Rust evidence-weighted graph risk + "
@@ -235,13 +250,16 @@ def main() -> None:
         "xgb_model": engine.scorer.model_source,
         "iforest_model": engine.novelty.model_source,
         "synthetic_event_time_span_seconds": 3600,
-        "target_100m_per_hour_tps": round(target_tps, 2),
+        "target_requested_events_per_hour_tps": round(requested_run_tps, 2),
+        "target_100m_per_hour_tps": round(target_100m_tps, 2),
         "measured_analysis_seconds": round(measured_seconds, 6),
         "wall_seconds_including_payload_generation": round(wall_seconds, 6),
         "transactions_per_second": round(throughput, 2),
         "projected_transactions_per_hour_at_measured_rate": round(throughput * 3600),
-        "headroom_vs_requested_hourly_rate": round(throughput / target_tps, 3),
-        "meets_requested_one_hour_target": bool(measured_seconds <= 3600.0),
+        "headroom_vs_requested_hourly_rate": round(throughput / requested_run_tps, 3),
+        "headroom_vs_100m_hourly_rate": round(throughput / target_100m_tps, 3),
+        "meets_requested_one_hour_target": bool(throughput >= requested_run_tps),
+        "meets_100m_per_hour_target": bool(throughput >= target_100m_tps),
         "stage_seconds": {
             "schema_gate_enrichment_feature_graph_prepare": round(prepare_seconds, 6),
             "xgb_iforest_and_decision_fusion": round(model_and_fusion_seconds, 6),
