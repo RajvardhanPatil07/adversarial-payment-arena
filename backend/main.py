@@ -1,9 +1,9 @@
 """FastAPI control plane for the Adversarial Payment Arena.
 
-REST exposes health, registry, attack-spec, graph, emerging-threat and evidence
-endpoints. The WebSocket endpoint streams campaign events, decisions, cost
-updates, threat fingerprints and incremental graph changes. Ambient legitimate
-traffic shares the same in-memory issuer/decision state.
+REST exposes health, registry, attack-spec, graph, emerging-threat, shadow-model
+and evidence endpoints. The WebSocket endpoint streams campaign events,
+decisions, defender feedback, threat fingerprints, shadow comparisons, cost
+updates and incremental graph changes.
 """
 
 from __future__ import annotations
@@ -25,11 +25,13 @@ from pydantic import BaseModel, Field
 from agents.attacker import RATE_LIMIT_SLEEP_S, AttackerAgent
 from api.evidence import router as evidence_router
 from data.legit_generator import build_legit_payload
+from defense.challenger import ShadowChallenger
 from defense.decision import DecisionEngine
 from defense.novelty import NoveltyDetector
 from defense.realtime import DEFAULT_MODEL_PATH, VelocityScorer
 from defense.threat_miner import ThreatMiner
 from environment.payment_stack import PaymentEnvironment
+from evidence.containment import CampaignContainment
 from schemas.attack import load_attack_spec
 from schemas.payment import PaymentMessage
 
@@ -50,6 +52,13 @@ DEFAULT_ORIGINS = [
 ]
 
 
+def _env_enabled(name: str, default: bool = True) -> bool:
+    raw = os.getenv(name)
+    if raw is None:
+        return default
+    return raw.strip().lower() not in {"0", "false", "no", "off"}
+
+
 class ArenaStack:
     """One simulated issuer world, defense engine and running evidence state."""
 
@@ -66,6 +75,11 @@ class ArenaStack:
             novelty=NoveltyDetector(),
         )
         self.threat_miner = ThreatMiner()
+        self.challenger = ShadowChallenger()
+        self.challenger_enabled = _env_enabled("ENABLE_SHADOW_CHALLENGER", True)
+        if not self.challenger_enabled:
+            self.challenger.training_metrics = {"status": "disabled"}
+        self.last_containment: dict | None = None
         self.costs = DecisionEngine._new_cost_totals()
         self.campaign_lock = asyncio.Lock()
         self._pending_graph_edges: set[tuple[str, str]] = set()
@@ -79,6 +93,11 @@ class ArenaStack:
     def observe_threat(self, record: dict) -> dict | None:
         return self.threat_miner.observe(record)
 
+    def compare_shadow(self, record: dict, truth: str) -> dict | None:
+        if not self.challenger_enabled:
+            return None
+        return self.challenger.observe(record, truth)
+
     def queue_graph_edges(self, pairs) -> None:
         for a, b in pairs:
             self._pending_graph_edges.add((min(a, b), max(a, b)))
@@ -90,7 +109,7 @@ class ArenaStack:
 
 
 def _node_obj(graph, node_id: str) -> dict:
-    del graph  # retained in the signature for compatibility with existing callers
+    del graph
     return {
         "id": node_id,
         "type": NODE_TYPE.get(node_id.split(":", 1)[0], "unknown"),
@@ -122,7 +141,6 @@ def resolve_attack_path(name: str) -> Path:
 
 
 def _coarse_signal_families(record: dict) -> list[str]:
-    """Translate internal reasons into realistic gray-box feedback."""
     families: list[str] = []
     reasons = record.get("reasons", ())
     if any(str(reason).startswith("ring_detected") for reason in reasons):
@@ -172,15 +190,22 @@ async def pump_campaign(
     emit,
     feedback_mode: str = "gray",
 ) -> None:
-    """Drive one genuinely closed-loop campaign.
-
-    Each accepted generated payload is scored immediately. The observed
-    defender outcome is appended to the attacker's conversation before the
-    generator advances to the next transaction slot. Suspicious decisions are
-    also fed to the online threat miner; clustering never reads simulator truth.
-    """
+    """Drive one adaptive campaign and attach discovery/containment evidence."""
+    containment = CampaignContainment(agent.spec.spec_id)
     try:
-        async for event in agent.run_campaign(campaign_size=campaign_size):
+        async for original_event in agent.run_campaign(campaign_size=campaign_size):
+            event = original_event
+            if event["type"] == "campaign_summary":
+                summary = containment.summary()
+                stack.last_containment = summary
+                event = {
+                    **event,
+                    "data": {**event["data"], "containment": summary},
+                }
+                await emit(event)
+                await emit({"type": "containment_summary", "data": summary})
+                continue
+
             await emit(event)
             if event["type"] != "payload_generated":
                 continue
@@ -188,12 +213,15 @@ async def pump_campaign(
             payload_wire: dict = event["data"]
             record = stack.engine.decide(PaymentMessage.model_validate(payload_wire))
             truth = "attack" if payload_wire.get("stolen_resource") else "legit"
+            txn_index = event.get("txn_index")
             stack.apply_cost(record, truth)
             stack.queue_graph_edges(record.get("graph_new_edges", ()))
+            if truth != "legit":
+                containment.observe(record, txn_index)
 
             await emit({
                 "type": "defense_decision",
-                "txn_index": event.get("txn_index"),
+                "txn_index": txn_index,
                 "decision": record["decision"],
                 "reasons": record["reasons"],
                 "scores": record["scores"],
@@ -202,19 +230,27 @@ async def pump_campaign(
 
             fingerprint = stack.observe_threat(record)
             if fingerprint is not None:
+                if truth != "legit":
+                    containment.mark_emerging_threat(fingerprint, txn_index)
                 await emit({
                     "type": "emerging_threat",
-                    "txn_index": event.get("txn_index"),
+                    "txn_index": txn_index,
                     "data": fingerprint,
                 })
 
-            # Close the adversarial loop. The attacker owns its conversation;
-            # the next normal model turn consumes this real defender feedback.
-            feedback = _defender_feedback(record, event.get("txn_index"), feedback_mode)
+            comparison = stack.compare_shadow(record, truth)
+            if comparison is not None:
+                await emit({
+                    "type": "shadow_comparison",
+                    "txn_index": txn_index,
+                    "data": comparison,
+                })
+
+            feedback = _defender_feedback(record, txn_index, feedback_mode)
             agent._user_say(feedback["prompt"])
             await emit({
                 "type": "defender_feedback",
-                "txn_index": event.get("txn_index"),
+                "txn_index": txn_index,
                 "mode": feedback["mode"],
                 "decision": feedback["decision"],
                 "signal_families": feedback["signal_families"],
@@ -233,13 +269,30 @@ async def pump_campaign(
                 })
     except WebSocketDisconnect:
         raise
-    except Exception as exc:  # surface engine/provider failures to the client
+    except Exception as exc:
         import traceback
 
         await emit({
             "type": "error",
             "data": f"Campaign error: {exc}\n{traceback.format_exc()[-600:]}",
         })
+
+
+async def _train_shadow_challenger(stack: ArenaStack) -> None:
+    if not stack.challenger_enabled:
+        return
+    stack.challenger.training_metrics = {"status": "training", "name": stack.challenger.name}
+    try:
+        metrics = await asyncio.to_thread(stack.challenger.train_default)
+        print(f"[arena] shadow challenger ready: {metrics}")
+    except Exception as exc:
+        stack.challenger.ready = False
+        stack.challenger.training_metrics = {
+            "status": "error",
+            "name": stack.challenger.name,
+            "error": repr(exc),
+        }
+        print(f"[arena] shadow challenger training failed: {exc!r}")
 
 
 @asynccontextmanager
@@ -249,18 +302,24 @@ async def lifespan(app: FastAPI):
     print(
         f"[arena] models loaded: xgb={stack.engine.scorer.model_source} "
         f"iforest={stack.engine.novelty.model_source} "
-        f"features={stack.engine.scorer.extractor.backend}"
+        f"features={stack.engine.scorer.extractor.backend} "
+        f"graph={stack.engine.graph.backend}"
     )
     ambient = asyncio.create_task(_ambient_legit_drip(stack))
+    challenger_task = asyncio.create_task(_train_shadow_challenger(stack))
     try:
         yield
     finally:
         ambient.cancel()
         with suppress(asyncio.CancelledError):
             await ambient
+        if not challenger_task.done():
+            challenger_task.cancel()
+        with suppress(asyncio.CancelledError):
+            await challenger_task
 
 
-app = FastAPI(title="Adversarial Payment Arena", version="0.9.0", lifespan=lifespan)
+app = FastAPI(title="Adversarial Payment Arena", version="1.0.0", lifespan=lifespan)
 
 
 def _origins() -> list[str]:
@@ -292,6 +351,7 @@ async def _ambient_legit_drip(stack: ArenaStack) -> None:
                 record = stack.engine.decide(message)
                 stack.apply_cost(record, "legit")
                 stack.observe_threat(record)
+                stack.compare_shadow(record, "legit")
                 stack.queue_graph_edges(record.get("graph_new_edges", ()))
         except Exception as exc:
             print(f"[ambient] skipped txn: {exc!r}")
@@ -311,8 +371,11 @@ async def health():
             "iforest": stack.engine.novelty.model_source,
         },
         "feature_backend": stack.engine.scorer.extractor.backend,
+        "graph_backend": stack.engine.graph.backend,
+        "graph_state_sizes": stack.engine.graph.risk_state_sizes(),
         "events_seen": stack.env.events_seen_total,
         "threat_miner": stack.threat_miner.diagnostics(),
+        "challenger": stack.challenger.snapshot(),
         "costs": stack.cost_summary(),
     }
 
@@ -335,6 +398,18 @@ async def threats(include_candidates: bool = False):
         "diagnostics": stack.threat_miner.diagnostics(),
         "threats": stack.threat_miner.snapshot(include_candidates=include_candidates),
     }
+
+
+@app.get("/api/challenger")
+async def challenger_status():
+    stack: ArenaStack = app.state.stack
+    return stack.challenger.snapshot()
+
+
+@app.get("/api/containment/last")
+async def last_containment():
+    stack: ArenaStack = app.state.stack
+    return {"containment": stack.last_containment}
 
 
 @app.post("/api/load_attack")
@@ -433,6 +508,7 @@ async def ws_endpoint(ws: WebSocket):
                     "size": size,
                     "attack_file": path.name,
                     "feedback_mode": feedback_mode,
+                    "challenger_shadow_only": True,
                 })
                 await pump_campaign(
                     stack,
