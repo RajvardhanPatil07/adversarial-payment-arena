@@ -1,0 +1,50 @@
+# ATTACK 14 — Adversarial Decision-Boundary Probing  [T-20]
+# Taxon: model-layer attack. The target is the DEFENDER ITSELF.
+#
+# What GenAI changed: an agent can now run systematic query-based reconnaissance
+# against a deployed scorer, treating approve/decline/step-up outcomes as an
+# oracle. That is a model-extraction attack applied to fraud scoring: probe
+# cheaply along one feature axis at a time, locate the boundary, then place the
+# real value-extracting transaction just inside the approved region.
+#
+# Why this is the most important family in the taxonomy for THIS repository:
+# it is the family that closes the loop. It attacks the very artefact the
+# 'Defend' pillar produces, which means a red-team lab that cannot generate it
+# cannot claim to have stress-tested its own defence.
+
+spec_id: ATTACK_14_ADVERSARIAL_BOUNDARY_PROBE
+attack_name: "Adversarial Decision-Boundary Probing (model-layer)"
+taxon: model_attack
+
+description: >
+  A two-phase campaign. Phase one issues a spread of deliberately cheap probe
+  authorisations that sweep amount and rail metadata to map where the scorer
+  flips, treating each outcome as an oracle response. Phase two exploits the
+  mapped boundary: a small number of high-value transactions placed just inside
+  the approved region, wearing the metadata profile the probes established as
+  safe.
+
+preconditions: >
+  Low-cost card credentials the attacker is willing to burn on reconnaissance,
+  plus observable authorisation outcomes to learn from — the oracle only needs
+  approve versus decline, not scores.
+
+economic_model:
+  acquisition_cost_usd: 30         # fullz bundle; probes are the real cost
+  expected_payoff_usd: 2800
+  breakeven_txns: 3
+
+constraints:
+  stolen_resource: fullz
+  pos_entry_modes: [ECOM]
+  preferred_three_ds: [N, A]
+  target_verticals: [ecommerce, electronics]
+  min_amount_usd: 35               # probe phase sits low, just over the $30 floor
+  max_amount_usd: 2900             # exploit phase sits high
+
+evasion_notes: >
+  Defeats any static scorer treated as a black box with observable outcomes.
+  Detection requires recognising RECONNAISSANCE as its own signal — a burst of
+  low-value declines from one origin followed by a high-value approval attempt
+  wearing the profile that survived. A per-transaction scorer sees the exploit
+  transaction as ordinary; only the probe-then-exploit sequence gives it away.

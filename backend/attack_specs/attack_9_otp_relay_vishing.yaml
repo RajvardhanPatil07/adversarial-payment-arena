@@ -1,0 +1,47 @@
+# ATTACK 9 — Real-time OTP-Relay Vishing at Scale  [T-05]
+# Taxon: authentication bypass / social engineering against the challenge itself.
+#
+# What GenAI changed: OTP-relay is old, but it was rate-limited by human
+# callers. A conversational agent runs thousands of SIMULTANEOUS, personalised
+# extraction calls, holding the victim on the line for the 60-90 seconds an OTP
+# stays valid and reading the code straight into the merchant checkout.
+#
+# Why it matters architecturally: the resulting authorisation carries
+# `3ds_status = Y`. It is a PASSED challenge. Every control that treats a 3DS
+# pass as proof of cardholder presence — and most liability models do — is
+# structurally blind here. The residue is that the pass arrives from a device
+# the cardholder has never used.
+
+spec_id: ATTACK_9_OTP_RELAY_VISHING
+attack_name: "Real-time OTP-Relay Vishing (3DS pass on a foreign device)"
+taxon: authentication_bypass
+
+description: >
+  A generative voice agent keeps the cardholder talking while the operator
+  drives a checkout on their own hardware. The victim reads out the step-up
+  code; the authorisation completes with a legitimately passed 3DS challenge
+  from an unrecognised device, minutes after first sight of that device.
+
+preconditions: >
+  Harvested card credentials, a spoofed caller identity, a conversational
+  agent able to sustain a plausible bank-fraud-team pretext, and an SMS/OTP
+  relay path fast enough to use the code inside its validity window.
+
+economic_model:
+  acquisition_cost_usd: 60         # OTP intercept / relay tooling per target
+  expected_payoff_usd: 1900
+  breakeven_txns: 2
+
+constraints:
+  stolen_resource: otp_intercept
+  pos_entry_modes: [ECOM]
+  preferred_three_ds: [Y]          # the challenge is PASSED, fraudulently
+  target_verticals: [electronics, ecommerce]
+  min_amount_usd: 120              # must clear the $60 relay-tooling floor
+  max_amount_usd: 1800
+
+evasion_notes: >
+  Defeats step-up authentication as a terminal control: the step-up succeeded.
+  Detection cannot rely on 3DS outcome and must fall back to device novelty
+  against the customer's bound set, plus the very short interval between first
+  device sighting and first high-value spend.

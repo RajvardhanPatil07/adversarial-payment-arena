@@ -1,0 +1,48 @@
+# ATTACK 13 — Fake Merchant Shell Onboarding and Bust-Out  [T-04]
+# Taxon: acquiring-side fraud. The victim is the ACQUIRER, not a cardholder.
+#
+# What GenAI changed: merchant onboarding is a document-review process, and
+# generated registration papers, bank proofs and web presence now survive that
+# review at scale and at near-zero cost. The shell then behaves impeccably
+# through its first settlement cycles to build a processing history, and busts
+# out with a high-ticket wave immediately before funds are clawed back.
+#
+# Why this family is included: every other family in this repository attacks
+# the issuing side. This one attacks the acquiring side, which means the
+# defensive signal is merchant-centric rather than card-centric — a genuinely
+# different detection surface.
+
+spec_id: ATTACK_13_MERCHANT_BUSTOUT
+attack_name: "Fake Merchant Shell Bust-Out (acquiring-side)"
+taxon: merchant_fraud
+
+description: >
+  A shell merchant onboarded on generated documentation ramps quietly, then
+  busts out: a dense wave of high-value authorisations across many unrelated
+  cardholders converges on one young merchant ID inside a short window, after
+  which the entity disappears before settlement reconciles.
+
+preconditions: >
+  Generated incorporation and bank-proof documents sufficient to clear
+  onboarding, a payment-facilitator or acquirer relationship, and card data or
+  complicit cardholders to push volume through the shell.
+
+economic_model:
+  acquisition_cost_usd: 500        # cost of standing up a credible shell MID
+  expected_payoff_usd: 9000        # one bust-out wave before clawback
+  breakeven_txns: 4
+
+constraints:
+  stolen_resource: compromised_merchant
+  pos_entry_modes: [ECOM]
+  preferred_three_ds: [Y, N]
+  target_verticals: [ecommerce, electronics]
+  min_amount_usd: 520              # must clear the $500 shell-MID floor
+  max_amount_usd: 3400
+
+evasion_notes: >
+  Defeats cardholder-centric monitoring entirely: each card may be transacting
+  for the first and only time at this merchant, so no per-card signal exists.
+  Detection is merchant-side — ticket-size distribution against the merchant's
+  own short history, and an implausible count of distinct cardholders per unit
+  time for an entity of that age.

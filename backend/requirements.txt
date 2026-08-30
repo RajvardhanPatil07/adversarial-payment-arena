@@ -4,7 +4,11 @@ websockets>=13.0
 pydantic>=2.9
 faker>=33.0
 pyyaml>=6.0
-scikit-learn>=1.6
+# PINNED, not floated. The Isolation Forest is shipped as a joblib pickle, and
+# sklearn refuses to guarantee cross-version unpickling: a float here made a
+# fresh clone emit InconsistentVersionWarning ("may lead to invalid results")
+# on every boot, next to the defense stack, in front of a judge.
+scikit-learn==1.6.1
 xgboost>=2.1
 networkx>=3.4
 openai>=1.60
