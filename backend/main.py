@@ -23,6 +23,7 @@ from faker import Faker
 from pydantic import BaseModel, Field
 
 from agents.attacker import RATE_LIMIT_SLEEP_S, AttackerAgent
+from agents.feedback_adapter import make_feedback_aware_if_offline
 from api.evidence import router as evidence_router
 from data.legit_generator import build_legit_payload
 from defense.challenger import ShadowChallenger
@@ -191,6 +192,10 @@ async def pump_campaign(
     feedback_mode: str = "gray",
 ) -> None:
     """Drive one adaptive campaign and attach discovery/containment evidence."""
+    # Live LLMs consume feedback directly from their conversation. Wrap the
+    # deterministic no-key client so it also mutates its next move based on the
+    # feedback turn instead of merely displaying a closed-loop event.
+    make_feedback_aware_if_offline(agent)
     containment = CampaignContainment(agent.spec.spec_id)
     try:
         async for original_event in agent.run_campaign(campaign_size=campaign_size):
