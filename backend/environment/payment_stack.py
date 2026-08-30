@@ -255,11 +255,15 @@ class PaymentEnvironment:
       * merchant registry (20 merchants)
       * customer profiles (1000 by default)
       * per-customer accepted-transaction ledgers (bounded to last 100)
-      * global event stream (accepted + rejected) consumed later by the
-        defense stack and streamed to the dashboard
+      * accepted/rejected event retention for replay/UI diagnostics
       * running balances (informational; funds sufficiency is NOT a gate
         check — declines are the defense stack's job, and conflating them
         would pollute the FPR budget measurement)
+
+    ``event_stream_maxlen`` and ``gate_rejects_maxlen`` are optional retention
+    bounds for production/scale runs. ``None`` preserves the historical full
+    in-memory stream used by experiments. Total counters are maintained either
+    way, so observability does not depend on retained-history size.
     """
 
     def __init__(
@@ -267,7 +271,14 @@ class PaymentEnvironment:
         n_customers: int = 1000,
         seed: int = 42,
         history_size: int = 100,
+        event_stream_maxlen: int | None = None,
+        gate_rejects_maxlen: int | None = None,
     ) -> None:
+        if event_stream_maxlen is not None and event_stream_maxlen < 1:
+            raise ValueError("event_stream_maxlen must be >= 1 or None")
+        if gate_rejects_maxlen is not None and gate_rejects_maxlen < 1:
+            raise ValueError("gate_rejects_maxlen must be >= 1 or None")
+
         self.rng = random.Random(seed)
         self.merchant_registry = build_merchant_registry()
         self.customers = build_customer_profiles(n_customers, seed=seed)
@@ -276,8 +287,18 @@ class PaymentEnvironment:
         self._customer_ledgers: dict[str, deque] = {
             cid: deque(maxlen=history_size) for cid in self.customers
         }
-        self.event_stream: list[dict] = []          # everything, accepted or not
-        self.gate_rejects: list[dict] = []          # convenience slice for stats
+        self.event_stream = (
+            deque(maxlen=event_stream_maxlen)
+            if event_stream_maxlen is not None
+            else []
+        )
+        self.gate_rejects = (
+            deque(maxlen=gate_rejects_maxlen)
+            if gate_rejects_maxlen is not None
+            else []
+        )
+        self.events_seen_total = 0
+        self.gate_rejects_total = 0
 
     # ------------------------------------------------------------------ #
     # Ingest path
@@ -317,10 +338,12 @@ class PaymentEnvironment:
         accepted = reason is None
         internal_event = self._enrich(payload, accepted, reason or REASON_OK, flags)
 
+        self.events_seen_total += 1
         self.event_stream.append(internal_event)
         if accepted:
             self._post_acceptance(payload, internal_event)
         else:
+            self.gate_rejects_total += 1
             self.gate_rejects.append(internal_event)
 
         return {"accepted": accepted, "reason": internal_event["gate_reason"], "internal_event": internal_event}
@@ -330,7 +353,7 @@ class PaymentEnvironment:
     # ------------------------------------------------------------------ #
 
     def get_customer_history(self, customer_id: str) -> list[dict]:
-        """Last <=100 ACCEPTED transactions for a customer (issuer posting view)."""
+        """Return the retained ACCEPTED transaction history for a customer."""
         return list(self._customer_ledgers.get(customer_id, ()))
 
     # ------------------------------------------------------------------ #
