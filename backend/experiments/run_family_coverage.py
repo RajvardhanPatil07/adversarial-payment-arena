@@ -240,6 +240,10 @@ def _ledger_with_existing() -> ClaimLedger:
         seen = set()
         for entry in prior:
             key = entry.get("claim")
+            # This experiment fully regenerates its own claims each run; drop any
+            # prior family_coverage claims so superseded wordings do not persist.
+            if entry.get("artifact") == "artifacts/family_coverage.json":
+                continue
             if key and key not in seen:
                 seen.add(key)
                 ledger.entries.append(entry)

@@ -104,15 +104,18 @@ class ClaimLedger:
         derivation: str,
         boundary: str,
     ) -> "ClaimLedger":
-        self.entries.append(
-            {
-                "claim": claim,
-                "artifact": f"artifacts/{artifact}.json",
-                "field": field,
-                "derivation": derivation,
-                "boundary": boundary,
-            }
-        )
+        entry = {
+            "claim": claim,
+            "artifact": f"artifacts/{artifact}.json",
+            "field": field,
+            "derivation": derivation,
+            "boundary": boundary,
+        }
+        for i, existing in enumerate(self.entries):
+            if existing.get("claim") == claim:
+                self.entries[i] = entry
+                return self
+        self.entries.append(entry)
         return self
 
     def write(self, command: str | None = None) -> Path:

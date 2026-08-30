@@ -46,7 +46,7 @@ MUTED = RGBColor(0x5A, 0x63, 0x73)
 GOOD = RGBColor(0x1B, 0x7F, 0x4B)
 BAD = RGBColor(0xB3, 0x2D, 0x2D)
 
-PROTOTYPE_URL = "https://8000-i9u0fjkr9b6mijyftzlkg-8f57ffe2.sandbox.novita.ai"
+PROTOTYPE_URL = "https://adversarial-payment-arena.onrender.com/"
 REPO_URL = "https://github.com/RajvardhanPatil07/adversarial-payment-arena"
 
 
