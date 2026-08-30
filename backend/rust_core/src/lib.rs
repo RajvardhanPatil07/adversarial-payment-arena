@@ -14,6 +14,10 @@ struct CustomerState {
     events: VecDeque<CustomerEvent>,
     amount_sum: f64,
     ordered: bool,
+    ten_min: VecDeque<(f64, f64)>,
+    ten_min_amount_sum: f64,
+    one_hour_mcc: VecDeque<(f64, i64)>,
+    one_hour_mcc_counts: HashMap<i64, usize>,
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -25,6 +29,7 @@ struct DeviceEvent {
 struct DeviceState {
     events: VecDeque<DeviceEvent>,
     ordered: bool,
+    ten_min: VecDeque<f64>,
 }
 
 #[derive(Clone, Debug)]
@@ -37,15 +42,17 @@ struct MerchantEvent {
 struct MerchantState {
     events: VecDeque<MerchantEvent>,
     ordered: bool,
+    ten_min: VecDeque<(f64, String)>,
+    ten_min_customer_counts: HashMap<String, usize>,
 }
 
 /// Rolling transaction state used by the Python velocity scorer.
 ///
-/// The normal arena stream is chronological. For that common case, window
-/// scans walk newest-to-oldest and stop as soon as the requested horizon is
-/// crossed. If an entity ever receives an out-of-order observation, its state
-/// permanently falls back to a full scan so the original Python semantics are
-/// preserved exactly for replay/experiment workloads.
+/// The normal arena stream is chronological. The fused high-throughput path
+/// maintains incremental 10-minute/1-hour queues and counters, making feature
+/// reads amortized O(1) with respect to retained history. If an entity receives
+/// an out-of-order observation, it permanently falls back to the original full
+/// scan semantics so replay/experiment behavior remains unchanged.
 #[pyclass(module = "arena_core")]
 pub struct RollingFeatureState {
     maxlen: usize,
@@ -62,8 +69,119 @@ where
     queue.back().map(|last| ts >= get_ts(last)).unwrap_or(true)
 }
 
+fn decrement_count<K>(counts: &mut HashMap<K, usize>, key: &K)
+where
+    K: Eq + std::hash::Hash,
+{
+    let remove = if let Some(count) = counts.get_mut(key) {
+        *count -= 1;
+        *count == 0
+    } else {
+        false
+    };
+    if remove {
+        counts.remove(key);
+    }
+}
+
+fn purge_customer_windows(state: &mut CustomerState, ts: f64) {
+    while state
+        .ten_min
+        .front()
+        .map(|(event_ts, _)| ts - *event_ts > 600.0)
+        .unwrap_or(false)
+    {
+        if let Some((_, amount)) = state.ten_min.pop_front() {
+            state.ten_min_amount_sum -= amount;
+        }
+    }
+
+    while state
+        .one_hour_mcc
+        .front()
+        .map(|(event_ts, _)| ts - *event_ts > 3600.0)
+        .unwrap_or(false)
+    {
+        if let Some((_, mcc)) = state.one_hour_mcc.pop_front() {
+            decrement_count(&mut state.one_hour_mcc_counts, &mcc);
+        }
+    }
+}
+
+fn remove_customer_eviction_from_windows(state: &mut CustomerState, evicted: CustomerEvent) {
+    if state
+        .ten_min
+        .front()
+        .map(|(ts, amount)| *ts == evicted.ts && *amount == evicted.amount)
+        .unwrap_or(false)
+    {
+        state.ten_min.pop_front();
+        state.ten_min_amount_sum -= evicted.amount;
+    }
+
+    if state
+        .one_hour_mcc
+        .front()
+        .map(|(ts, mcc)| *ts == evicted.ts && *mcc == evicted.mcc)
+        .unwrap_or(false)
+    {
+        state.one_hour_mcc.pop_front();
+        decrement_count(&mut state.one_hour_mcc_counts, &evicted.mcc);
+    }
+}
+
+fn purge_device_window(state: &mut DeviceState, ts: f64) {
+    while state
+        .ten_min
+        .front()
+        .map(|event_ts| ts - *event_ts > 600.0)
+        .unwrap_or(false)
+    {
+        state.ten_min.pop_front();
+    }
+}
+
+fn remove_device_eviction_from_window(state: &mut DeviceState, evicted: DeviceEvent) {
+    if state
+        .ten_min
+        .front()
+        .map(|event_ts| *event_ts == evicted.ts)
+        .unwrap_or(false)
+    {
+        state.ten_min.pop_front();
+    }
+}
+
+fn purge_merchant_window(state: &mut MerchantState, ts: f64) {
+    while state
+        .ten_min
+        .front()
+        .map(|(event_ts, _)| ts - *event_ts > 600.0)
+        .unwrap_or(false)
+    {
+        if let Some((_, customer_id)) = state.ten_min.pop_front() {
+            decrement_count(&mut state.ten_min_customer_counts, &customer_id);
+        }
+    }
+}
+
+fn remove_merchant_eviction_from_window(state: &mut MerchantState, evicted: &MerchantEvent) {
+    if state
+        .ten_min
+        .front()
+        .map(|(ts, customer_id)| *ts == evicted.ts && customer_id == &evicted.customer_id)
+        .unwrap_or(false)
+    {
+        if let Some((_, customer_id)) = state.ten_min.pop_front() {
+            decrement_count(&mut state.ten_min_customer_counts, &customer_id);
+        }
+    }
+}
+
 impl RollingFeatureState {
-    fn compute_features(
+    /// Reference implementation: scan retained history exactly like the Python
+    /// fallback. Used by scalar ``features()`` and by unordered entities.
+    fn compute_features_scan(
         &self,
         ts: f64,
         customer_id: &str,
@@ -175,6 +293,125 @@ impl RollingFeatureState {
         ]
     }
 
+    /// Fast pre-observation feature read for the fused chronological path.
+    /// Falls back per entity whenever the current timestamp would be unordered.
+    fn compute_features_fast(
+        &mut self,
+        ts: f64,
+        customer_id: &str,
+        device_id: &str,
+        merchant_id: &str,
+        amount: f64,
+    ) -> [f64; 9] {
+        let (
+            customer_count_10m,
+            customer_amount_10m,
+            customer_mcc_distinct_1h,
+            customer_history_count,
+            customer_amount_total,
+        ) = if let Some(state) = self.customer_states.get_mut(customer_id) {
+            let query_ordered = state.ordered
+                && was_monotonic(&state.events, ts, |event| event.ts);
+            if query_ordered {
+                purge_customer_windows(state, ts);
+                (
+                    state.ten_min.len(),
+                    state.ten_min_amount_sum,
+                    state.one_hour_mcc_counts.len(),
+                    state.events.len(),
+                    state.amount_sum,
+                )
+            } else {
+                let mut count_10m = 0usize;
+                let mut amount_10m = 0.0f64;
+                let mut mccs: HashSet<i64> = HashSet::new();
+                for event in &state.events {
+                    let age = ts - event.ts;
+                    if age <= 600.0 {
+                        count_10m += 1;
+                        amount_10m += event.amount;
+                    }
+                    if age <= 3600.0 {
+                        mccs.insert(event.mcc);
+                    }
+                }
+                (
+                    count_10m,
+                    amount_10m,
+                    mccs.len(),
+                    state.events.len(),
+                    state.amount_sum,
+                )
+            }
+        } else {
+            (0, 0.0, 0, 0, 0.0)
+        };
+
+        let historical_mean = if customer_history_count == 0 {
+            amount
+        } else {
+            customer_amount_total / customer_history_count as f64
+        };
+        let amount_over_mean = amount / (historical_mean + 1e-6);
+
+        let device_count_10m = if let Some(state) = self.device_states.get_mut(device_id) {
+            let query_ordered = state.ordered
+                && was_monotonic(&state.events, ts, |event| event.ts);
+            if query_ordered {
+                purge_device_window(state, ts);
+                state.ten_min.len()
+            } else {
+                state
+                    .events
+                    .iter()
+                    .filter(|event| ts - event.ts <= 600.0)
+                    .count()
+            }
+        } else {
+            0
+        };
+
+        let (merchant_count_10m, merchant_distinct_10m) =
+            if let Some(state) = self.merchant_states.get_mut(merchant_id) {
+                let query_ordered = state.ordered
+                    && was_monotonic(&state.events, ts, |event| event.ts);
+                if query_ordered {
+                    purge_merchant_window(state, ts);
+                    (state.ten_min.len(), state.ten_min_customer_counts.len())
+                } else {
+                    let mut count = 0usize;
+                    let mut customers: HashSet<&str> = HashSet::new();
+                    for event in &state.events {
+                        if ts - event.ts <= 600.0 {
+                            count += 1;
+                            customers.insert(event.customer_id.as_str());
+                        }
+                    }
+                    (count, customers.len())
+                }
+            } else {
+                (0, 0)
+            };
+
+        let device_age_hours = self
+            .device_first_seen
+            .get(device_id)
+            .map(|first| (ts - first) / 3600.0)
+            .unwrap_or(0.0);
+
+        [
+            customer_count_10m as f64,
+            customer_amount_10m,
+            amount_over_mean,
+            customer_mcc_distinct_1h as f64,
+            device_age_hours,
+            device_count_10m as f64,
+            merchant_count_10m as f64,
+            merchant_distinct_10m as f64,
+            customer_history_count as f64,
+        ]
+    }
+
     fn observe_inner(
         &mut self,
         ts: f64,
@@ -193,14 +430,29 @@ impl RollingFeatureState {
                 ordered: true,
                 ..CustomerState::default()
             });
-        customer.ordered &= was_monotonic(&customer.events, ts, |event| event.ts);
+        let monotonic = customer.ordered
+            && was_monotonic(&customer.events, ts, |event| event.ts);
+        if monotonic {
+            purge_customer_windows(customer, ts);
+        } else {
+            customer.ordered = false;
+        }
         if customer.events.len() >= maxlen {
             if let Some(evicted) = customer.events.pop_front() {
                 customer.amount_sum -= evicted.amount;
+                if customer.ordered {
+                    remove_customer_eviction_from_windows(customer, evicted);
+                }
             }
         }
         customer.events.push_back(CustomerEvent { ts, amount, mcc });
         customer.amount_sum += amount;
+        if customer.ordered {
+            customer.ten_min.push_back((ts, amount));
+            customer.ten_min_amount_sum += amount;
+            customer.one_hour_mcc.push_back((ts, mcc));
+            *customer.one_hour_mcc_counts.entry(mcc).or_insert(0) += 1;
+        }
 
         let device = self
             .device_states
@@ -209,11 +461,24 @@ impl RollingFeatureState {
                 ordered: true,
                 ..DeviceState::default()
             });
-        device.ordered &= was_monotonic(&device.events, ts, |event| event.ts);
+        let monotonic = device.ordered
+            && was_monotonic(&device.events, ts, |event| event.ts);
+        if monotonic {
+            purge_device_window(device, ts);
+        } else {
+            device.ordered = false;
+        }
         if device.events.len() >= maxlen {
-            device.events.pop_front();
+            if let Some(evicted) = device.events.pop_front() {
+                if device.ordered {
+                    remove_device_eviction_from_window(device, evicted);
+                }
+            }
         }
         device.events.push_back(DeviceEvent { ts });
+        if device.ordered {
+            device.ten_min.push_back(ts);
+        }
 
         let merchant = self
             .merchant_states
@@ -222,14 +487,31 @@ impl RollingFeatureState {
                 ordered: true,
                 ..MerchantState::default()
             });
-        merchant.ordered &= was_monotonic(&merchant.events, ts, |event| event.ts);
+        let monotonic = merchant.ordered
+            && was_monotonic(&merchant.events, ts, |event| event.ts);
+        if monotonic {
+            purge_merchant_window(merchant, ts);
+        } else {
+            merchant.ordered = false;
+        }
         if merchant.events.len() >= maxlen {
-            merchant.events.pop_front();
+            if let Some(evicted) = merchant.events.pop_front() {
+                if merchant.ordered {
+                    remove_merchant_eviction_from_window(merchant, &evicted);
+                }
+            }
         }
         merchant.events.push_back(MerchantEvent {
             ts,
             customer_id: customer_id.to_owned(),
         });
+        if merchant.ordered {
+            merchant.ten_min.push_back((ts, customer_id.to_owned()));
+            *merchant
+                .ten_min_customer_counts
+                .entry(customer_id.to_owned())
+                .or_insert(0) += 1;
+        }
 
         self.device_first_seen
             .entry(device_id.to_owned())
@@ -254,11 +536,8 @@ impl RollingFeatureState {
         })
     }
 
-    /// Compute dynamic rolling features without mutating state.
-    ///
-    /// A fixed tuple avoids allocating a Rust Vec for every score. Python keeps
-    /// the public feature names/order and maps these primitive values into the
-    /// existing XGBoost feature contract.
+    /// Scalar/reference feature read. This intentionally retains the original
+    /// scan semantics and does not mutate cached chronological windows.
     fn features(
         &self,
         ts: f64,
@@ -267,15 +546,12 @@ impl RollingFeatureState {
         merchant_id: &str,
         amount: f64,
     ) -> (f64, f64, f64, f64, f64, f64, f64, f64, f64) {
-        let f = self.compute_features(ts, customer_id, device_id, merchant_id, amount);
+        let f = self.compute_features_scan(ts, customer_id, device_id, merchant_id, amount);
         (f[0], f[1], f[2], f[3], f[4], f[5], f[6], f[7], f[8])
     }
 
-    /// Compute the current features and then fold the same event into state.
-    ///
-    /// This is the high-throughput batch primitive. The returned values are
-    /// computed before mutation, preserving the exact observe-after-score
-    /// feature contract while avoiding a second Python/Rust boundary crossing.
+    /// Compute pre-observation features using incremental chronological windows,
+    /// then fold the current event into state in the same native call.
     fn features_and_observe(
         &mut self,
         ts: f64,
@@ -285,7 +561,7 @@ impl RollingFeatureState {
         amount: f64,
         mcc: i64,
     ) -> (f64, f64, f64, f64, f64, f64, f64, f64, f64) {
-        let f = self.compute_features(ts, customer_id, device_id, merchant_id, amount);
+        let f = self.compute_features_fast(ts, customer_id, device_id, merchant_id, amount);
         self.observe_inner(ts, customer_id, device_id, merchant_id, amount, mcc);
         (f[0], f[1], f[2], f[3], f[4], f[5], f[6], f[7], f[8])
     }
@@ -331,7 +607,7 @@ mod tests {
     #[test]
     fn empty_state_has_expected_cold_start_features() {
         let state = RollingFeatureState::new(500).unwrap();
-        let f = state.compute_features(1_000.0, "C1", "D1", "M1", 100.0);
+        let f = state.compute_features_scan(1_000.0, "C1", "D1", "M1", 100.0);
         assert_eq!(f[0], 0.0);
         assert!((f[2] - 1.0).abs() < 1e-5);
         assert_eq!(f[8], 0.0);
@@ -344,27 +620,44 @@ mod tests {
         state.observe_inner(950.0, "C2", "D1", "M1", 75.0, 5732);
         state.observe_inner(980.0, "C1", "D2", "M1", 25.0, 5732);
 
-        let f = state.compute_features(1_000.0, "C1", "D1", "M1", 100.0);
-        assert_eq!(f[0], 2.0);
-        assert_eq!(f[1], 75.0);
-        assert_eq!(f[3], 2.0);
-        assert_eq!(f[5], 2.0);
-        assert_eq!(f[6], 3.0);
-        assert_eq!(f[7], 2.0);
-        assert_eq!(f[8], 2.0);
+        let scan = state.compute_features_scan(1_000.0, "C1", "D1", "M1", 100.0);
+        let fast = state.compute_features_fast(1_000.0, "C1", "D1", "M1", 100.0);
+        assert_eq!(scan, fast);
+        assert_eq!(scan[0], 2.0);
+        assert_eq!(scan[1], 75.0);
+        assert_eq!(scan[3], 2.0);
+        assert_eq!(scan[5], 2.0);
+        assert_eq!(scan[6], 3.0);
+        assert_eq!(scan[7], 2.0);
+        assert_eq!(scan[8], 2.0);
     }
 
     #[test]
-    fn maxlen_keeps_running_mean_exact() {
+    fn maxlen_keeps_running_mean_and_windows_exact() {
         let mut state = RollingFeatureState::new(2).unwrap();
         state.observe_inner(1.0, "C1", "D1", "M1", 10.0, 1);
         state.observe_inner(2.0, "C1", "D1", "M1", 20.0, 2);
         state.observe_inner(3.0, "C1", "D1", "M1", 30.0, 3);
-        let f = state.compute_features(4.0, "C1", "D1", "M1", 40.0);
-        assert_eq!(f[0], 2.0);
-        assert_eq!(f[1], 50.0);
-        assert_eq!(f[8], 2.0);
-        assert!((f[2] - (40.0 / 25.000001)).abs() < 1e-10);
+        let scan = state.compute_features_scan(4.0, "C1", "D1", "M1", 40.0);
+        let fast = state.compute_features_fast(4.0, "C1", "D1", "M1", 40.0);
+        assert_eq!(scan, fast);
+        assert_eq!(scan[0], 2.0);
+        assert_eq!(scan[1], 50.0);
+        assert_eq!(scan[8], 2.0);
+        assert!((scan[2] - (40.0 / 25.000001)).abs() < 1e-10);
+    }
+
+    #[test]
+    fn chronological_expiry_fast_path_matches_scan() {
+        let mut state = RollingFeatureState::new(100);
+        let mut state = state.unwrap();
+        for index in 0..50 {
+            let ts = index as f64 * 120.0;
+            state.observe_inner(ts, "C1", "D1", "M1", 10.0 + index as f64, index % 5);
+        }
+        let scan = state.compute_features_scan(6_100.0, "C1", "D1", "M1", 100.0);
+        let fast = state.compute_features_fast(6_100.0, "C1", "D1", "M1", 100.0);
+        assert_eq!(scan, fast);
     }
 
     #[test]
@@ -374,32 +667,12 @@ mod tests {
         state.observe_inner(100.0, "C1", "D1", "M1", 20.0, 2); // marks state unordered
         state.observe_inner(950.0, "C1", "D1", "M1", 30.0, 3);
 
-        let f = state.compute_features(1_000.0, "C1", "D1", "M1", 40.0);
-        assert_eq!(f[0], 2.0); // ts=100 is outside 10m; 1000 and 950 are inside
-        assert_eq!(f[3], 3.0); // all three are within 1h under original <= semantics
-        assert_eq!(f[5], 2.0);
-        assert_eq!(f[6], 2.0);
-    }
-
-    #[test]
-    fn fused_features_and_observe_matches_separate_calls() {
-        let mut separate = RollingFeatureState::new(10).unwrap();
-        let mut fused = RollingFeatureState::new(10).unwrap();
-
-        for index in 0..8 {
-            let ts = 1_000.0 + index as f64 * 15.0;
-            let amount = 20.0 + index as f64;
-            let customer = if index % 2 == 0 { "C1" } else { "C2" };
-            let device = if index % 3 == 0 { "D1" } else { "D2" };
-
-            let expected = separate.compute_features(ts, customer, device, "M1", amount);
-            separate.observe_inner(ts, customer, device, "M1", amount, 5411 + index);
-
-            let actual = fused.compute_features(ts, customer, device, "M1", amount);
-            assert_eq!(expected, actual);
-            fused.observe_inner(ts, customer, device, "M1", amount, 5411 + index);
-        }
-
-        assert_eq!(separate.state_sizes(), fused.state_sizes());
+        let scan = state.compute_features_scan(1_000.0, "C1", "D1", "M1", 40.0);
+        let fast = state.compute_features_fast(1_000.0, "C1", "D1", "M1", 40.0);
+        assert_eq!(scan, fast);
+        assert_eq!(scan[0], 2.0); // ts=100 is outside 10m; 1000 and 950 are inside
+        assert_eq!(scan[3], 3.0); // original <= semantics include all three in 1h
+        assert_eq!(scan[5], 2.0);
+        assert_eq!(scan[6], 2.0);
     }
 }
