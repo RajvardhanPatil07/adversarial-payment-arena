@@ -1,0 +1,53 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+      - "dev/**"
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  backend-python:
+    name: Backend (Python fallback)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+      - name: Install backend dependencies
+        run: python -m pip install -r backend/requirements.txt
+      - name: Run backend regressions
+        working-directory: backend
+        run: >-
+          python -m pytest -q
+          tests/test_defense.py
+          tests/test_main.py
+          tests/test_realtime_backend.py
+
+  rust-core:
+    name: Rust core + Python parity
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Rust unit tests
+        run: cargo test --manifest-path backend/rust_core/Cargo.toml
+      - name: Build native wheel
+        run: |
+          python -m pip install "maturin>=1.8,<2" pytest numpy
+          maturin build --release --manifest-path backend/rust_core/Cargo.toml --interpreter python3 --out /tmp/arena-wheels
+          python -m pip install /tmp/arena-wheels/*.whl
+      - name: Verify native/Python feature parity
+        env:
+          PYTHONPATH: backend
+        run: python -m pytest -q backend/tests/test_realtime_backend.py
