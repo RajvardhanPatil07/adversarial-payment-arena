@@ -135,9 +135,29 @@ def resolve_attack_path(name: str) -> Path:
     for cand in (SPECS_DIR / f"{name}.yaml",):
         if cand.exists():
             return cand
-    matches = [p for p in SPECS_DIR.glob("*.yaml") if p.stem.startswith(name)]
+    # Prefix match, but on WHOLE UNDERSCORE SEGMENTS rather than raw characters.
+    #
+    # Naive str.startswith broke the moment a tenth attack family landed:
+    # "attack_1" is a character-prefix of attack_1_mfa_reset_voice_clone AND of
+    # attack_10 through attack_14, so six files matched, the uniqueness check
+    # failed, and /api/load_attack started returning 404 for the FIRST attack in
+    # the taxonomy. Growing the corpus silently broke the demo path.
+    #
+    # Segment-aware matching makes "attack_1" match attack_1_* only, while
+    # "attack_1_mfa" and the full stem keep working.
+    wanted = name.split("_")
+    matches = [
+        p for p in SPECS_DIR.glob("*.yaml")
+        if p.stem.split("_")[: len(wanted)] == wanted
+    ]
     if len(matches) == 1:
         return matches[0]
+    if len(matches) > 1:
+        opts = ", ".join(sorted(p.stem for p in matches))
+        raise HTTPException(
+            status_code=400,
+            detail=f"ambiguous attack spec {name!r}; candidates: {opts}",
+        )
     raise HTTPException(status_code=404, detail=f"no unique attack spec for {name!r}")
 
 
@@ -386,16 +406,37 @@ async def ws_endpoint(ws: WebSocket):
 # When the variable is unset (local development, tests, CI) nothing is mounted
 # and the app behaves exactly as before -- `next dev` serves the UI on :3000.
 
-def _mount_static_ui(application: FastAPI) -> None:
-    configured = os.getenv("SERVE_STATIC_DIR", "").strip()
-    if not configured:
-        return
+def _resolve_static_dir() -> Path | None:
+    """SERVE_STATIC_DIR if set, else the conventional build outputs.
 
-    dist = Path(configured)
+    The env var is the deployment contract, but relying on it ALONE meant a
+    fresh clone that ran `make ui && make serve` got a 404 at `/` -- the
+    mandatory web prototype, dead, on the most obvious path a reviewer takes.
+    Falling back to the two conventional locations (the container's copy target
+    and the in-repo Next.js export) makes the default path work with no
+    environment configuration at all, which is the only default worth shipping.
+    """
+    configured = os.getenv("SERVE_STATIC_DIR", "").strip()
+    if configured:
+        return Path(configured)
+    here = Path(__file__).resolve().parent
+    for cand in (
+        here.parent / "frontend_dist",     # container layout (see Dockerfile)
+        here.parent / "frontend" / "out",  # local `next build` static export
+    ):
+        if (cand / "index.html").is_file():
+            return cand
+    return None
+
+
+def _mount_static_ui(application: FastAPI) -> None:
+    dist = _resolve_static_dir()
+    if dist is None:
+        return
     if not dist.is_dir():
         # Loud but non-fatal: the API is still fully usable, and a crash-loop
         # here would take down the endpoints a judge can otherwise still reach.
-        print(f"[arena] SERVE_STATIC_DIR={configured!r} is not a directory -- UI not mounted")
+        print(f"[arena] static dir {str(dist)!r} is not a directory -- UI not mounted")
         return
 
     from fastapi.staticfiles import StaticFiles

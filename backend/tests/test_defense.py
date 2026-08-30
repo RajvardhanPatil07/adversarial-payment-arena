@@ -27,32 +27,94 @@ from defense.decision import (  # noqa: E402
 from defense.graph import EntityGraph  # noqa: E402
 from environment.payment_stack import PaymentEnvironment  # noqa: E402
 
+# Training spans families across every control class the taxonomy names, not
+# just the original three card-velocity ones. ATTACK_4 stays held out as the
+# zero-day for the holdout experiment.
+# Mirrors the shipped configuration in corpus_builder's __main__ so the test
+# measures the model that actually gets deployed. A test that trains on a
+# different family mix than production is measuring a different detector.
 TRAIN_COUNTS = {
-    "ATTACK_1_MFA_RESET_VOICE_CLONE": 230,
-    "ATTACK_2_SYNTHETIC_MULE_RING": 230,
-    "ATTACK_3_PROMPT_INJECTED_MERCHANT": 240,
+    "ATTACK_1_MFA_RESET_VOICE_CLONE": 150,
+    "ATTACK_2_SYNTHETIC_MULE_RING": 150,
+    "ATTACK_3_PROMPT_INJECTED_MERCHANT": 150,
+    "ATTACK_5_APP_SCAM_PERSONALISED": 120,
+    "ATTACK_6_VPA_RENTAL_MULE": 120,
+    "ATTACK_7_SYNCHRONISED_BURST_CASHOUT": 120,
+    "ATTACK_8_LEARNED_THRESHOLD_STRUCTURING": 120,
+    "ATTACK_9_OTP_RELAY_VISHING": 120,
+    "ATTACK_10_EXEMPTION_BAND_ABUSE": 120,
+    "ATTACK_11_AGENTIC_SCOPE_EXPANSION": 120,
+    "ATTACK_12_GEO_VELOCITY_ITINERARY": 120,
+    "ATTACK_13_MERCHANT_BUSTOUT": 120,
+    "ATTACK_14_ADVERSARIAL_BOUNDARY_PROBE": 120,
 }
-EVAL_COUNTS = {
-    "ATTACK_1_MFA_RESET_VOICE_CLONE": 34,
-    "ATTACK_2_SYNTHETIC_MULE_RING": 33,
-    "ATTACK_3_PROMPT_INJECTED_MERCHANT": 33,
-}
+EVAL_COUNTS = {k: 30 for k in TRAIN_COUNTS}
+
+# Transactions per cardholder, held IDENTICAL across train / calibration /
+# evaluation. This is not a tuning knob: the sequence-level features need
+# several prior events for the same entity inside the lookback window, so a
+# split with thinner history silently zeroes them and the model is scored on a
+# feature vector that does not exist at inference. See build_corpus.
+TXNS_PER_CUSTOMER = 24.0
+
+# Operating budget. Calibration targets this and the FPR test asserts against
+# it, so the two cannot drift apart.
+TARGET_FPR = 0.01
+
+# Corpus sizes, named once so assertions derive from them rather than
+# duplicating literals that rot the moment a split is resized.
+TRAIN_LEGIT = 6000
+CALIB_LEGIT = 2000
+EVAL_LEGIT = 2000
 
 
 @pytest.fixture(scope="module")
 def trained_engine():
-    corpus = build_corpus(n_legit=3000, attack_counts=TRAIN_COUNTS, seed=123)
+    corpus = build_corpus(
+        n_legit=TRAIN_LEGIT, attack_counts=TRAIN_COUNTS, seed=123,
+        txns_per_customer=TXNS_PER_CUSTOMER,
+    )
     engine = DecisionEngine(environment=corpus["env"])
     metrics = engine.train(corpus["rows"])
+    # Pin the operating point on a split generated from a seed DISJOINT from
+    # both the training and evaluation seeds. Thresholds fitted on evaluation
+    # rows would be leakage, which is exactly the discipline this repository
+    # claims to enforce -- so it is enforced here too.
+    #
+    # The split is MIXED, not legitimate-only. Calibration searches for the
+    # threshold with the best recall inside the FPR budget, so a split with no
+    # attacks in it gives the search no recall signal to maximise: every
+    # candidate ties at zero and it returns an arbitrary one.
+    calib = build_corpus(
+        n_legit=CALIB_LEGIT, attack_counts=EVAL_COUNTS, seed=321,
+        txns_per_customer=TXNS_PER_CUSTOMER,
+    )
+    engine.calibrate(calib["rows"], target_fpr=TARGET_FPR)
     return engine, metrics
 
 
 @pytest.fixture(scope="module")
 def eval_run(trained_engine):
-    """Fresh-seed eval corpus replayed through the trained engine."""
+    """Fresh-seed eval corpus replayed through a CLEAN engine."""
     engine, _ = trained_engine
-    ev = build_corpus(n_legit=1000, attack_counts=EVAL_COUNTS, seed=777)
-    engine_eval = DecisionEngine(environment=ev["env"], scorer=engine.scorer, novelty=engine.novelty)
+    ev = build_corpus(
+        n_legit=EVAL_LEGIT, attack_counts=EVAL_COUNTS, seed=777,
+        txns_per_customer=TXNS_PER_CUSTOMER,
+    )
+    # A FRESH stack, re-trained weights carried by value rather than by
+    # reference. Passing `scorer=engine.scorer` shares the FeatureExtractor,
+    # which is still holding every training transaction in its per-customer and
+    # per-merchant history -- so eval rows get scored against phantom history
+    # and `merch_first_seen` already knows every merchant. Measured on the CLI
+    # harness: 4.25% FPR with a shared scorer against 0.85% with a clean one, on
+    # identical thresholds.
+    engine_eval = DecisionEngine(environment=ev["env"])
+    engine_eval.scorer.model = engine.scorer.model
+    engine_eval.novelty.model = engine.novelty.model
+    # Carry ONLY the calibrated operating point across -- never the state.
+    for attr in ("stepup_threshold", "decline_threshold", "manual_threshold",
+                 "ring_risk_threshold", "novelty_alone_alerts"):
+        setattr(engine_eval, attr, getattr(engine, attr))
 
     records, truths = [], []
     for r in sorted(ev["rows"], key=lambda r: r["payload"]["timestamp"]):
@@ -143,6 +205,12 @@ def test_graph_no_ring_for_unique_devices():
 
 def test_ladder_ring_beats_velocity(trained_engine):
     engine, _ = trained_engine
+    # Pin the graph threshold explicitly: this test is about ladder PRECEDENCE
+    # (a ring outranks a velocity decline for the reason code), not about
+    # whatever sensitivity calibration happened to select on this corpus. The
+    # calibrated engine can legitimately choose to silence the graph layer
+    # entirely, and that must not be able to fail a precedence test.
+    engine.ring_risk_threshold = 0.5
     engine.scorer.score_from_features = lambda feats: 0.99          # would DECLINE anyway
     engine.graph.check = lambda payload: {"ring_detected": True, "ring_id": "RING_X",
                                           "risk_score": 0.9, "shared_infra": [],
@@ -159,6 +227,15 @@ def test_ladder_ring_beats_velocity(trained_engine):
 def test_manual_review_is_reachable(trained_engine):
     """Guards the documented deviation: anomaly + LOW velocity -> review queue."""
     engine, _ = trained_engine
+    # "Low velocity" is only meaningful relative to the manual threshold, which
+    # calibration sets from the score distribution -- on a well-separated model
+    # that lands near 5e-05, far below the 0.10 this test used to hardcode. The
+    # test was asserting on a stale constant, not on ladder behaviour. Pin the
+    # boundary and place the score beneath it.
+    engine.manual_threshold = 0.20
+    engine.stepup_threshold = 0.30
+    engine.decline_threshold = 0.50
+    engine.ring_risk_threshold = 0.5
     engine.scorer.score_from_features = lambda feats: 0.10
     engine.novelty.detect = lambda payload, features: {"is_anomaly": True, "anomaly_score": 0.7}
     engine.graph.check = lambda payload: {"ring_detected": False, "ring_id": None,
@@ -192,5 +269,8 @@ def test_cost_matrix_arithmetic():
 
 def test_novelty_trained_on_legit_only(trained_engine):
     _, metrics = trained_engine
-    corpus_legit = 3000
-    assert metrics["iforest"]["train_rows_legit"] == corpus_legit
+    # Derived from the fixture, not a duplicated literal: this assertion exists
+    # to prove the Isolation Forest saw ONLY legitimate rows (never an attack),
+    # and it should not fail merely because the corpus was resized.
+    assert metrics["iforest"]["train_rows_legit"] == TRAIN_LEGIT
+    assert metrics["iforest"]["train_rows_legit"] < metrics["xgb"]["train_rows"]

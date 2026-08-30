@@ -1,0 +1,45 @@
+# ATTACK 10 — 3DS Frictionless / Exemption-Band Abuse  [T-06]
+# Taxon: policy-layer attack. The target is the issuer's risk-based
+# authentication EXEMPTION POLICY, not the rail and not the cardholder.
+#
+# What GenAI changed: the exemption band (low-value / transaction-risk-analysis
+# exemptions under SCA-style rules) used to be probed by hand. An agent that
+# reads decline and challenge outcomes can estimate the issuer's frictionless
+# ceiling empirically and then stay just inside it, permanently.
+#
+# The signature is NOT any single transaction — each one is small, unremarkable
+# and exemption-eligible by design. The signature is that a whole population of
+# transactions hugs one side of an invisible policy line.
+
+spec_id: ATTACK_10_EXEMPTION_BAND_ABUSE
+attack_name: "3DS Exemption-Band Abuse (frictionless-flow hugging)"
+taxon: policy_evasion
+
+description: >
+  The agent keeps every authorisation inside the issuer's frictionless
+  exemption band so no challenge is ever raised. Amounts sit just under the
+  step-up ceiling, merchant categories are chosen from low-risk bands, and the
+  cadence is deliberately unhurried so no velocity counter trips.
+
+preconditions: >
+  Phish-kit harvested credentials, plus enough observed authorisation outcomes
+  to estimate where the issuer's step-up threshold actually sits.
+
+economic_model:
+  acquisition_cost_usd: 8          # phish-kit credential
+  expected_payoff_usd: 760         # many small, unchallenged tickets
+  breakeven_txns: 2
+
+constraints:
+  stolen_resource: phished_credentials
+  pos_entry_modes: [ECOM]
+  preferred_three_ds: [N, A]       # never challenged: exemption granted
+  target_verticals: [ecommerce, grocery]
+  min_amount_usd: 60
+  max_amount_usd: 96               # deliberately below a ~$100 step-up line
+
+evasion_notes: >
+  Defeats threshold-based step-up policy and any control that only inspects
+  challenged traffic. Detection must come from the *distribution* — an
+  abnormally tight amount band pressed against a policy boundary, and an
+  exemption rate far above the population norm for that customer.
