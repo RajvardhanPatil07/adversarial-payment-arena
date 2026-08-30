@@ -37,9 +37,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
       - uses: actions/setup-python@v5
         with:
           python-version: "3.13"
+      - name: Rust formatting
+        run: cargo fmt --manifest-path backend/rust_core/Cargo.toml -- --check
+      - name: Rust lint
+        run: cargo clippy --manifest-path backend/rust_core/Cargo.toml --all-targets -- -D warnings
       - name: Rust unit tests
         run: cargo test --manifest-path backend/rust_core/Cargo.toml
       - name: Build native wheel
@@ -65,3 +71,39 @@ jobs:
           name: feature-state-benchmark
           path: /tmp/feature-state-benchmark.json
           if-no-files-found: error
+
+  container-smoke:
+    name: Production container + native runtime
+    needs: [backend-python, rust-core]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build production image
+        run: docker build --tag adversarial-payment-arena:ci .
+      - name: Boot production image
+        run: docker run --detach --name arena-ci --publish 8000:8000 adversarial-payment-arena:ci
+      - name: Verify health and native backend
+        run: |
+          rm -f /tmp/arena-health.json
+          for attempt in $(seq 1 60); do
+            if curl --fail --silent --show-error http://127.0.0.1:8000/api/health > /tmp/arena-health.json; then
+              break
+            fi
+            sleep 2
+          done
+          test -s /tmp/arena-health.json
+          cat /tmp/arena-health.json
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          health = json.loads(Path('/tmp/arena-health.json').read_text())
+          assert health['status'] == 'ok', health
+          assert health['feature_backend'] == 'rust', health
+          PY
+      - name: Print container logs on failure
+        if: failure()
+        run: docker logs arena-ci || true
+      - name: Stop container
+        if: always()
+        run: docker rm --force arena-ci || true
