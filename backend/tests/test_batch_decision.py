@@ -60,7 +60,12 @@ def test_batch_decision_matches_scalar_full_records():
         msg = PaymentMessage.model_validate(raw)
         gate = batch_env.ingest(msg)
         assert gate["accepted"], gate["reason"]
-        prepared.append(batch.prepare_for_batch(msg))
+        # Exercise the production/benchmark fast path: ingest already created
+        # this canonical wire representation, so no second Pydantic dump is
+        # necessary before batched scoring.
+        prepared.append(
+            batch.prepare_wire_for_batch(gate["internal_event"]["payload"])
+        )
     batch_records = batch.finalize_batch(prepared)
 
     assert len(batch_records) == len(scalar_records)
@@ -69,6 +74,59 @@ def test_batch_decision_matches_scalar_full_records():
 
     assert batch.scorer.extractor.state_sizes() == scalar.scorer.extractor.state_sizes()
     assert batch_env.events_seen_total == scalar_env.events_seen_total == len(raw_rows)
+
+
+def test_issuer_history_is_only_copied_while_scorer_is_cold():
+    env = PaymentEnvironment(n_customers=20, seed=814)
+    engine = DecisionEngine(environment=env)
+    original = env.get_customer_history
+    calls = 0
+
+    def counted(customer_id: str):
+        nonlocal calls
+        calls += 1
+        return original(customer_id)
+
+    env.get_customer_history = counted
+    customer_id = "CUST_0000"
+    merchant = next(iter(env.merchant_registry.values()))
+    customer = env.customers[customer_id]
+
+    for index in range(25):
+        raw = {
+            "transaction_id": f"HIST_{index:06d}",
+            "customer_id": customer_id,
+            "merchant_id": merchant.merchant_id,
+            "mcc": merchant.mcc,
+            "amount": 30.0 + index,
+            "currency": "USD",
+            "pos_entry_mode": "ECOM",
+            "3ds_status": "Y",
+            "ip_address": "10.9.0.1",
+            "ip_country": merchant.country,
+            "device_id": customer.devices[0],
+            "stolen_resource": None,
+            "timestamp": (BASE + timedelta(seconds=index * 10)).isoformat(),
+        }
+        msg = PaymentMessage.model_validate(raw)
+        gate = env.ingest(msg)
+        assert gate["accepted"]
+        engine.prepare_wire_for_batch(gate["internal_event"]["payload"])
+
+    # The first scorer observation may use the issuer ledger to bootstrap
+    # amount_over_mean30. After that, native/sequence state owns the history.
+    assert calls == 1
+
+
+def test_cached_merchant_enrichment_remains_event_local():
+    env = PaymentEnvironment(n_customers=20, seed=815)
+    first = env.ingest(PaymentMessage.model_validate(_raw_payload(env, 1)))
+    second = env.ingest(PaymentMessage.model_validate(_raw_payload(env, 13)))
+    assert first["accepted"] and second["accepted"]
+    first_merchant = first["internal_event"]["enrichment"]["merchant"]
+    second_merchant = second["internal_event"]["enrichment"]["merchant"]
+    assert first_merchant == second_merchant
+    assert first_merchant is not second_merchant
 
 
 def test_bounded_event_retention_keeps_exact_total_count():
