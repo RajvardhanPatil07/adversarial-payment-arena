@@ -17,23 +17,27 @@ ENV NEXT_TELEMETRY_DISABLED=1
 RUN npm run build
 
 # --------------------------------------------------------------------------- #
-# Stage 2: compile the optional Rust/PyO3 transaction feature hot path
+# Stage 2: compile the Rust/PyO3 transaction-feature + graph-risk hot paths
 # --------------------------------------------------------------------------- #
 FROM python:3.13-slim AS rust-core
 
 RUN apt-get update \
  && apt-get install -y --no-install-recommends build-essential cargo \
  && rm -rf /var/lib/apt/lists/*
-# Maturin >=1.9.4 scopes PyO3 extension-module linking behavior to wheel
-# builds, which keeps ordinary `cargo test` linkable against libpython.
 RUN pip install --no-cache-dir "maturin>=1.9.4,<2"
 
 WORKDIR /build
 COPY backend/rust_core/ ./backend/rust_core/
+COPY backend/rust_graph_core/ ./backend/rust_graph_core/
 RUN mkdir -p /wheels \
  && maturin build \
       --release \
       --manifest-path backend/rust_core/Cargo.toml \
+      --interpreter python3 \
+      --out /wheels \
+ && maturin build \
+      --release \
+      --manifest-path backend/rust_graph_core/Cargo.toml \
       --interpreter python3 \
       --out /wheels
 
@@ -60,17 +64,12 @@ RUN pip install --no-cache-dir -r backend/requirements.txt \
  && rm -rf /tmp/rust-wheels
 
 COPY backend/ ./backend/
-# The artifact set is part of the deliverable: the Evidence page reads these
-# files, so a deployed prototype without them would show 404s where the
-# reproducible numbers should be.
 COPY artifacts/ ./artifacts/
 COPY docs/ ./docs/
 COPY Makefile ./
 
-# Exported UI lands where main.py's static mount expects it.
 COPY --from=ui /ui/out ./frontend_dist
 
-# Non-root: the container needs no write access to anything it ships.
 RUN useradd --create-home --uid 10001 arena && chown -R arena:arena /app
 USER arena
 
