@@ -6,11 +6,12 @@ state is implemented in Rust; source checkouts use a semantically equivalent
 Python fallback.
 
 Evidence policy:
-* shared device across unrelated customers is strong evidence;
+* shared device across unrelated customers is strong evidence and can form a
+  hard ring;
 * shared IP is weak by itself (office/campus/carrier NAT is normal);
-* shared IP becomes hard evidence only when beneficiary/merchant convergence
-  occurs in the same recent window;
-* merchant fan-in contributes soft risk but never creates a ring on its own.
+* shared IP + beneficiary/merchant convergence raises a strong SOFT signal but
+  cannot directly hard-decline;
+* merchant fan-in is corroborating evidence and never creates a ring alone.
 """
 
 from __future__ import annotations
@@ -74,9 +75,6 @@ class _PythonGraphRiskState:
 
     @staticmethod
     def _merchant_risk(degree: int) -> float:
-        # A popular merchant is not fraud evidence by itself. Keep fan-in as a
-        # small corroborating term for synchronized convergence but cap it well
-        # below any standalone friction threshold.
         if degree < 8:
             return 0.0
         return min(0.15, 0.04 + 0.01 * (degree - 8))
@@ -106,7 +104,7 @@ class _PythonGraphRiskState:
         merchant_degree = self.merchants[merchant_id].prospective_distinct(
             ts, self.window_seconds, customer_id
         )
-        ring = device_degree >= 3 or (ip_degree >= 5 and merchant_degree >= 5)
+        ring = device_degree >= 3
         risk = self._fuse(
             (
                 self._device_risk(device_degree),
@@ -114,6 +112,8 @@ class _PythonGraphRiskState:
                 self._merchant_risk(merchant_degree),
             )
         )
+        if ip_degree >= 5 and merchant_degree >= 5:
+            risk = max(risk, 0.55)
         if ring:
             risk = max(risk, 0.72)
         return risk, ring, device_degree, ip_degree, merchant_degree
@@ -259,8 +259,6 @@ class EntityGraph:
         ring_customers = {c_node}
         if device_degree >= 3:
             ring_customers.update(self._prospective_customers(d_node, c_node))
-        elif ring_detected and ip_degree >= 5 and merchant_degree >= 5:
-            ring_customers.update(self._prospective_customers(i_node, c_node))
 
         return {
             "ring_detected": bool(ring_detected),
@@ -272,6 +270,7 @@ class EntityGraph:
                 "device_degree_10m": device_degree,
                 "ip_degree_10m": ip_degree,
                 "merchant_fanin_10m": merchant_degree,
+                "nat_beneficiary_convergence": bool(ip_degree >= 5 and merchant_degree >= 5),
                 "shared_ip_alone_is_hard_rule": False,
                 "backend": self.backend,
             },
