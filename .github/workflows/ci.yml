@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main
-      - "dev/**"
   pull_request:
 
 permissions:
@@ -14,6 +13,7 @@ permissions:
 # The benchmark harness itself still supports 100M transactions for explicit
 # network-scale evidence runs, but ordinary CI validates the exact same paths
 # at 1M so iteration does not spend hours on superseded commits.
+# PR branches are validated by pull_request only; main keeps push validation.
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
