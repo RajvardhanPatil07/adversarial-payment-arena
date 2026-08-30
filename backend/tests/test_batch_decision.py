@@ -121,7 +121,8 @@ def test_issuer_history_is_only_copied_while_scorer_is_cold():
 def test_cached_merchant_enrichment_remains_event_local():
     env = PaymentEnvironment(n_customers=20, seed=815)
     first = env.ingest(PaymentMessage.model_validate(_raw_payload(env, 1)))
-    second = env.ingest(PaymentMessage.model_validate(_raw_payload(env, 13)))
+    # +20 keeps the merchant index identical while changing the transaction.
+    second = env.ingest(PaymentMessage.model_validate(_raw_payload(env, 21)))
     assert first["accepted"] and second["accepted"]
     first_merchant = first["internal_event"]["enrichment"]["merchant"]
     second_merchant = second["internal_event"]["enrichment"]["merchant"]
