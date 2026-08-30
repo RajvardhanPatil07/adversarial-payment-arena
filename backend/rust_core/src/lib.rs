@@ -174,44 +174,8 @@ impl RollingFeatureState {
             customer_history_count as f64,
         ]
     }
-}
 
-#[pymethods]
-impl RollingFeatureState {
-    #[new]
-    #[pyo3(signature = (maxlen=500))]
-    fn new(maxlen: usize) -> PyResult<Self> {
-        if maxlen == 0 {
-            return Err(PyValueError::new_err("maxlen must be greater than zero"));
-        }
-        Ok(Self {
-            maxlen,
-            customer_states: HashMap::with_capacity(1024),
-            device_states: HashMap::with_capacity(2048),
-            merchant_states: HashMap::with_capacity(64),
-            device_first_seen: HashMap::with_capacity(2048),
-        })
-    }
-
-    /// Compute dynamic rolling features without mutating state.
-    ///
-    /// A fixed tuple avoids allocating a Rust Vec for every score. Python keeps
-    /// the public feature names/order and maps these primitive values into the
-    /// existing XGBoost feature contract.
-    fn features(
-        &self,
-        ts: f64,
-        customer_id: &str,
-        device_id: &str,
-        merchant_id: &str,
-        amount: f64,
-    ) -> (f64, f64, f64, f64, f64, f64, f64, f64, f64) {
-        let f = self.compute_features(ts, customer_id, device_id, merchant_id, amount);
-        (f[0], f[1], f[2], f[3], f[4], f[5], f[6], f[7], f[8])
-    }
-
-    /// Fold an accepted transaction into bounded per-entity state.
-    fn observe(
+    fn observe_inner(
         &mut self,
         ts: f64,
         customer_id: &str,
@@ -271,6 +235,73 @@ impl RollingFeatureState {
             .entry(device_id.to_owned())
             .or_insert(ts);
     }
+}
+
+#[pymethods]
+impl RollingFeatureState {
+    #[new]
+    #[pyo3(signature = (maxlen=500))]
+    fn new(maxlen: usize) -> PyResult<Self> {
+        if maxlen == 0 {
+            return Err(PyValueError::new_err("maxlen must be greater than zero"));
+        }
+        Ok(Self {
+            maxlen,
+            customer_states: HashMap::with_capacity(4096),
+            device_states: HashMap::with_capacity(8192),
+            merchant_states: HashMap::with_capacity(1024),
+            device_first_seen: HashMap::with_capacity(8192),
+        })
+    }
+
+    /// Compute dynamic rolling features without mutating state.
+    ///
+    /// A fixed tuple avoids allocating a Rust Vec for every score. Python keeps
+    /// the public feature names/order and maps these primitive values into the
+    /// existing XGBoost feature contract.
+    fn features(
+        &self,
+        ts: f64,
+        customer_id: &str,
+        device_id: &str,
+        merchant_id: &str,
+        amount: f64,
+    ) -> (f64, f64, f64, f64, f64, f64, f64, f64, f64) {
+        let f = self.compute_features(ts, customer_id, device_id, merchant_id, amount);
+        (f[0], f[1], f[2], f[3], f[4], f[5], f[6], f[7], f[8])
+    }
+
+    /// Compute the current features and then fold the same event into state.
+    ///
+    /// This is the high-throughput batch primitive. The returned values are
+    /// computed before mutation, preserving the exact observe-after-score
+    /// feature contract while avoiding a second Python/Rust boundary crossing.
+    fn features_and_observe(
+        &mut self,
+        ts: f64,
+        customer_id: &str,
+        device_id: &str,
+        merchant_id: &str,
+        amount: f64,
+        mcc: i64,
+    ) -> (f64, f64, f64, f64, f64, f64, f64, f64, f64) {
+        let f = self.compute_features(ts, customer_id, device_id, merchant_id, amount);
+        self.observe_inner(ts, customer_id, device_id, merchant_id, amount, mcc);
+        (f[0], f[1], f[2], f[3], f[4], f[5], f[6], f[7], f[8])
+    }
+
+    /// Fold an accepted transaction into bounded per-entity state.
+    fn observe(
+        &mut self,
+        ts: f64,
+        customer_id: &str,
+        device_id: &str,
+        merchant_id: &str,
+        amount: f64,
+        mcc: i64,
+    ) {
+        self.observe_inner(ts, customer_id, device_id, merchant_id, amount, mcc);
+    }
 
     fn backend_name(&self) -> &'static str {
         "rust"
@@ -309,9 +340,9 @@ mod tests {
     #[test]
     fn rolling_windows_and_distinct_customers_match_contract() {
         let mut state = RollingFeatureState::new(500).unwrap();
-        state.observe(900.0, "C1", "D1", "M1", 50.0, 5411);
-        state.observe(950.0, "C2", "D1", "M1", 75.0, 5732);
-        state.observe(980.0, "C1", "D2", "M1", 25.0, 5732);
+        state.observe_inner(900.0, "C1", "D1", "M1", 50.0, 5411);
+        state.observe_inner(950.0, "C2", "D1", "M1", 75.0, 5732);
+        state.observe_inner(980.0, "C1", "D2", "M1", 25.0, 5732);
 
         let f = state.compute_features(1_000.0, "C1", "D1", "M1", 100.0);
         assert_eq!(f[0], 2.0);
@@ -326,9 +357,9 @@ mod tests {
     #[test]
     fn maxlen_keeps_running_mean_exact() {
         let mut state = RollingFeatureState::new(2).unwrap();
-        state.observe(1.0, "C1", "D1", "M1", 10.0, 1);
-        state.observe(2.0, "C1", "D1", "M1", 20.0, 2);
-        state.observe(3.0, "C1", "D1", "M1", 30.0, 3);
+        state.observe_inner(1.0, "C1", "D1", "M1", 10.0, 1);
+        state.observe_inner(2.0, "C1", "D1", "M1", 20.0, 2);
+        state.observe_inner(3.0, "C1", "D1", "M1", 30.0, 3);
         let f = state.compute_features(4.0, "C1", "D1", "M1", 40.0);
         assert_eq!(f[0], 2.0);
         assert_eq!(f[1], 50.0);
@@ -339,14 +370,36 @@ mod tests {
     #[test]
     fn out_of_order_events_preserve_full_scan_semantics() {
         let mut state = RollingFeatureState::new(10).unwrap();
-        state.observe(1_000.0, "C1", "D1", "M1", 10.0, 1);
-        state.observe(100.0, "C1", "D1", "M1", 20.0, 2); // marks state unordered
-        state.observe(950.0, "C1", "D1", "M1", 30.0, 3);
+        state.observe_inner(1_000.0, "C1", "D1", "M1", 10.0, 1);
+        state.observe_inner(100.0, "C1", "D1", "M1", 20.0, 2); // marks state unordered
+        state.observe_inner(950.0, "C1", "D1", "M1", 30.0, 3);
 
         let f = state.compute_features(1_000.0, "C1", "D1", "M1", 40.0);
         assert_eq!(f[0], 2.0); // ts=100 is outside 10m; 1000 and 950 are inside
         assert_eq!(f[3], 3.0); // all three are within 1h under original <= semantics
         assert_eq!(f[5], 2.0);
         assert_eq!(f[6], 2.0);
+    }
+
+    #[test]
+    fn fused_features_and_observe_matches_separate_calls() {
+        let mut separate = RollingFeatureState::new(10).unwrap();
+        let mut fused = RollingFeatureState::new(10).unwrap();
+
+        for index in 0..8 {
+            let ts = 1_000.0 + index as f64 * 15.0;
+            let amount = 20.0 + index as f64;
+            let customer = if index % 2 == 0 { "C1" } else { "C2" };
+            let device = if index % 3 == 0 { "D1" } else { "D2" };
+
+            let expected = separate.compute_features(ts, customer, device, "M1", amount);
+            separate.observe_inner(ts, customer, device, "M1", amount, 5411 + index);
+
+            let actual = fused.compute_features(ts, customer, device, "M1", amount);
+            assert_eq!(expected, actual);
+            fused.observe_inner(ts, customer, device, "M1", amount, 5411 + index);
+        }
+
+        assert_eq!(separate.state_sizes(), fused.state_sizes());
     }
 }
