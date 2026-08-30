@@ -44,7 +44,7 @@ def test_shared_device_remains_immediate_hard_evidence():
     assert result["evidence"]["device_degree_10m"] == 3
 
 
-def test_shared_ip_plus_beneficiary_convergence_is_strong_composite_evidence():
+def test_shared_ip_plus_beneficiary_convergence_is_strong_soft_evidence():
     graph = EntityGraph()
     for index in range(4):
         row = _wire(f"C{index}", f"D{index}", "10.0.0.1", "MULE", index)
@@ -52,10 +52,11 @@ def test_shared_ip_plus_beneficiary_convergence_is_strong_composite_evidence():
         graph.observe(row)
 
     result = graph.check(_wire("C4", "D4", "10.0.0.1", "MULE", 4))
-    assert result["ring_detected"]
-    assert result["risk_score"] >= 0.72
+    assert not result["ring_detected"]
+    assert 0.55 <= result["risk_score"] < 0.72
     assert result["evidence"]["ip_degree_10m"] == 5
     assert result["evidence"]["merchant_fanin_10m"] == 5
+    assert result["evidence"]["nat_beneficiary_convergence"] is True
 
 
 def test_popular_merchant_is_low_risk_without_shared_infra():
