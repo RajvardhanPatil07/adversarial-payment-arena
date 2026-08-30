@@ -1,6 +1,8 @@
 """Evidence-weighted graph-risk regressions."""
 
-from defense.graph import EntityGraph
+import pytest
+
+from defense.graph import EntityGraph, _PythonGraphRiskState, _RustGraphRiskState
 
 
 def _wire(customer: str, device: str, ip: str, merchant: str, ts: int) -> dict:
@@ -73,3 +75,30 @@ def test_popular_merchant_is_low_risk_without_shared_infra():
     assert not result["ring_detected"]
     assert result["risk_score"] < 0.2
     assert result["evidence"]["merchant_fanin_10m"] >= 8
+
+
+@pytest.mark.skipif(_RustGraphRiskState is None, reason="arena_graph_core is not installed")
+def test_native_graph_state_matches_python_fallback():
+    native = _RustGraphRiskState(600.0)
+    python = _PythonGraphRiskState(600.0)
+    rows = [
+        (1.0, "C1", "D1", "10.0.0.1", "M1"),
+        (2.0, "C2", "D2", "10.0.0.1", "M1"),
+        (3.0, "C3", "D3", "10.0.0.1", "M1"),
+        (4.0, "C4", "D4", "10.0.0.1", "M1"),
+        (5.0, "C5", "D_SHARED", "10.0.0.5", "M2"),
+        (6.0, "C6", "D_SHARED", "10.0.0.6", "M3"),
+    ]
+    for row in rows:
+        ts, customer, device, ip, merchant = row
+        p = python.check(ts, customer, device, ip, merchant)
+        n = native.check(ts, customer, device, ip, merchant)
+        assert n[0] == pytest.approx(p[0], abs=1e-12)
+        assert tuple(n[1:]) == tuple(p[1:])
+        python.observe(ts, customer, device, ip, merchant)
+        native.observe(ts, customer, device, ip, merchant)
+
+    p = python.check(7.0, "C7", "D_SHARED", "10.0.0.1", "M1")
+    n = native.check(7.0, "C7", "D_SHARED", "10.0.0.1", "M1")
+    assert n[0] == pytest.approx(p[0], abs=1e-12)
+    assert tuple(n[1:]) == tuple(p[1:])
