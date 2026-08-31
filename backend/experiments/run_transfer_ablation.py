@@ -454,7 +454,7 @@ def main() -> dict:
     write_metrics_summary(summary, seeds=SEEDS, command=command)
 
     (
-        ClaimLedger()
+        ClaimLedger(_existing_claims())
         .add(
             claim="Generator fidelity orders how much red-teaming DEGRADES real-fraud recall: the higher-fidelity generator costs about a third as much recall, in every seed.",
             artifact="transfer_ledger",

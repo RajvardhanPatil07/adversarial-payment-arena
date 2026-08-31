@@ -1,8 +1,8 @@
 {
   "provenance": {
     "schema_version": "1.0.0",
-    "generated_at": "2026-08-30T10:56:01.390843+00:00",
-    "git_sha": "52061f0",
+    "generated_at": "2026-08-30T15:22:36.262712+00:00",
+    "git_sha": "0b927d7",
     "python": "3.12.13",
     "platform": "macOS-26.6.2-arm64-arm-64bit",
     "seeds": [
@@ -199,7 +199,7 @@
       },
       "operating_points": [
         {
-          "threshold": 0.6638889054119235,
+          "threshold": 0.6638889054119234,
           "target_fpr": 0.001,
           "validation_fpr": 0.0006666666666666666,
           "validation_rows": 1500,

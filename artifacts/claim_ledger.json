@@ -1,14 +1,14 @@
 {
   "provenance": {
     "schema_version": "1.0.0",
-    "generated_at": "2026-08-30T15:09:01.531966+00:00",
-    "git_sha": "6426c69",
+    "generated_at": "2026-08-30T15:30:22.654081+00:00",
+    "git_sha": "0b927d7",
     "python": "3.12.13",
     "platform": "macOS-26.6.2-arm64-arm-64bit",
     "seeds": [],
-    "command": "python backend/experiments/run_family_coverage.py"
+    "command": "python backend/experiments/run_closed_loop.py"
   },
-  "claim_count": 11,
+  "claim_count": 8,
   "claims": [
     {
       "claim": "Generator fidelity orders how much red-teaming DEGRADES real-fraud recall: the higher-fidelity generator costs about a third as much recall, in every seed.",
@@ -65,27 +65,6 @@
       "field": "gate",
       "derivation": "C2ST AUC and Spearman rank-correlation Frobenius distance between the escape batch and the real fraud rows already in training.",
       "boundary": "Requires >= 20 escapes to measure; smaller batches are refused by default."
-    },
-    {
-      "claim": "The full four-layer decision stack scores inline at p99 15.15 ms, inside a 100 ms authorisation budget.",
-      "artifact": "artifacts/latency.json",
-      "field": "overall.p99_ms",
-      "derivation": "time.perf_counter() around DecisionEngine.decide() over a mixed legit/attack stream, warmup excluded.",
-      "boundary": "Single-threaded on one machine; excludes network transport and ISO message parsing."
-    },
-    {
-      "claim": "All 14 attack families are executable and individually measured, not merely listed.",
-      "artifact": "artifacts/family_coverage.json",
-      "field": "family_in_training.*.recall",
-      "derivation": "Per-family non-APPROVE rate on a fresh evaluation corpus, at a full-stack operating point calibrated on a mixed split disjoint from training and evaluation and re-pinned for every seed and withheld family.",
-      "boundary": "Synthetic environment; each family generated through the same Plausibility Gate as every other payload."
-    },
-    {
-      "claim": "Families withheld from supervised training are still detected by the unsupervised and graph layers.",
-      "artifact": "artifacts/family_coverage.json",
-      "field": "family_withheld_zero_day.*.recall",
-      "derivation": "Leave-one-family-out: the measured family is absent from supervised training; recall and per-layer attribution reported.",
-      "boundary": "The unsupervised layers see legitimate traffic only, so this measures architecture rather than memorisation."
     }
   ]
 }

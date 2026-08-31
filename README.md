@@ -1,22 +1,38 @@
-# Adversarial Payment Arena: Closed-Loop Defense Against GenAI Fraud
+# Adversarial Payment Arena
 
-A full-stack, closed-loop adversarial simulation and real-time defense testbed for GenAI-driven payment fraud. Built for the **Mastercard Innovation Challenge**.
+**Mastercard Innovation Challenge 2026 submission:** a closed-loop adversarial simulation and real-time payment-defense testbed.
 
-> **The thesis in one line:** a closed-loop red team *without* a fidelity gate is an attack
-> surface, not a feature — folding a low-fidelity generator's escapes back into training makes
-> every dashboard number improve while recall on **real** fraud falls. A label-free fidelity
-> gate, computable *before* retraining, removes that failure mode. This repo doesn't assert it;
-> it measures it, and every number below is regenerable with `make reproduce`.
+> **Most red-team loops celebrate when recall on their own synthetic attacks rises. We prove that
+> the same loop can silently destroy recall on held-out real fraud—and our label-free fidelity gate
+> prevents 35.3 points of that damage before retraining.**
+
+**Submission links:** **Live Demo — PLACEHOLDER: add final public URL** ·
+[`90-second Judge Path`](docs/JUDGES.md#90-second-judge-path) ·
+[`Evidence`](artifacts/closed_loop.json) ·
+[`Walkthrough`](docs/Solution_Walkthrough_Adversarial_Payment_Arena.docx) ·
+[`Reproduce`](#reproduce-the-evidence) ·
+**Video — PLACEHOLDER: add final public URL** ·
+**PDF — PLACEHOLDER: add final public URL**
 
 [![CI](https://github.com/RajvardhanPatil07/adversarial-payment-arena/actions/workflows/ci.yml/badge.svg)](https://github.com/RajvardhanPatil07/adversarial-payment-arena/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-### Five-minute judge path
+### The three numbers
+
+- **+85.7 pts** recall on synthetic attacks
+- **−35.8 pts** recall on held-out arena fraud
+- **+35.3 pts** real-fraud recall protected by the fidelity gate
+
+> **Evaluation boundary:** “held-out arena fraud” is simulated evaluation data from the arena,
+> not issuer production traffic. This submission does not claim production validation.
+
+### 90-second judge path
+
 1. **Live fight** — run the stack (or open the deployed URL) and press **▶ GUIDED DEMO**: a synthetic
    mule ring is built in front of you and the narration advances only on real events (gate verdicts,
    graph ring detection, declines, final cost).
-2. **The scissor** — open **/evidence**: an ungated closed loop loses **−35.8 pts** of real-fraud recall
-   while gaining **+86 pts** on its own synthetic attacks; the same loop with the fidelity gate on loses
+2. **The scissor** — open **/evidence**: an ungated closed loop loses **−35.8 pts** on held-out arena
+   fraud while gaining **+85.7 pts** on its own synthetic attacks; the same loop with the fidelity gate on loses
    **−0.5 pts**. That gap is the whole argument.
 3. **Verify** — `make reproduce` regenerates every figure in `artifacts/` with a provenance stamp
    (git SHA, seeds, command), mapped claim-by-claim in [`artifacts/claim_ledger.json`](artifacts/claim_ledger.json).
@@ -86,7 +102,7 @@ The arena simulates an active fight between an autonomous **LLM Red-Team Attacke
 
 - **The scissor (every number emitted by `make reproduce` into `artifacts/closed_loop.json`):** an
   **ungated** loop trained on a low-fidelity generator's escapes loses **−35.8 pts** of recall on
-  held-out real fraud while *gaining* **+86 pts** on the generator's own attacks — the vanity metric
+  held-out arena fraud while *gaining* **+85.7 pts** on the generator's own attacks — the vanity metric
   and the real metric move in opposite directions. The **same loop with the fidelity gate on** loses
   **−0.5 pts**: the gate refuses the escape batches that cause the scissor, using only a label-free
   measurement computable before retraining (**+35.3 pts** of recall protected).
@@ -263,7 +279,7 @@ python backend/run_campaign.py --attack attack_2_synthetic_mule_ring --size 25 -
 python backend/run_campaign.py --attack attack_1 --size 50
 ```
 
-### Regenerate the full evidence set (headline experiment + economics)
+### Reproduce the evidence
 ```bash
 make reproduce        # calibration + fidelity + transfer ablation -> artifacts/*.json
 ```
@@ -275,24 +291,8 @@ make zero-day         # or: python backend/experiments/zero_day_holdout.py
 
 ---
 
-## How this compares
-
-| | This repo | Published comparable submission | Commercial vendor category | Typical hackathon demo |
-|---|---|---|---|---|
-| Red-team visible end-to-end | Yes — attacker reasoning, gate verdicts, decisions, cost, live | Partial | No (black-box) | Rarely |
-| Measures closed-loop harm on *real* fraud | Yes — the scissor, gated vs ungated | Reported a **−3.8 pt** real-recall loss from ungated hardening (C2ST 0.980) | Not published | Not measured |
-| Fidelity gate before retraining | Yes, label-free | Concluded a learned generative model was needed | Proprietary | Absent |
-| Every headline number reproducible | `make reproduce` + claim ledger | Partial | No | Unverifiable hero numbers |
-| Honest negatives reported | Yes (recall ceiling stated plainly) | — | No incentive | No incentive |
-
-The transfer ablation and zero-day holdout figures, for reference:
-
-![Three-arm transfer ablation](docs/transfer_ledger.png)
-![Zero-day holdout: unsupervised layers hold the line on an unseen attack family](docs/zero_day_results.png)
-
 ---
 
 ## License
 
 MIT License. Developed for research and demonstration in payment security.
-

@@ -93,8 +93,8 @@ class ClaimLedger:
     that gets a fraud system deployed badly.
     """
 
-    def __init__(self) -> None:
-        self.entries: list[dict] = []
+    def __init__(self, existing: list[dict] | None = None) -> None:
+        self.entries: list[dict] = existing or []
 
     def add(
         self,
@@ -134,6 +134,7 @@ def write_metrics_summary(summary: dict, seeds: list[int] | None = None, command
 __all__ = [
     "ARTIFACTS_DIR",
     "ClaimLedger",
+    "_existing_claims",
     "SCHEMA_VERSION",
     "provenance",
     "read_artifact",

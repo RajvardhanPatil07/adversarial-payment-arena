@@ -1,8 +1,8 @@
 {
   "provenance": {
     "schema_version": "1.0.0",
-    "generated_at": "2026-08-30T10:56:51.449316+00:00",
-    "git_sha": "52061f0",
+    "generated_at": "2026-08-30T15:30:22.623127+00:00",
+    "git_sha": "0b927d7",
     "python": "3.12.13",
     "platform": "macOS-26.6.2-arm64-arm-64bit",
     "seeds": [
