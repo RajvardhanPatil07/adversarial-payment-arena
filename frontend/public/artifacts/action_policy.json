@@ -1,0 +1,1840 @@
+{
+  "provenance": {
+    "schema_version": "1.0.0",
+    "generated_at": "2026-08-28T09:56:18.937761+00:00",
+    "git_sha": "87c0ec6",
+    "python": "3.12.13",
+    "platform": "macOS-26.6.2-arm64-arm-64bit",
+    "seeds": [
+      11,
+      23,
+      37
+    ],
+    "command": "python backend/experiments/run_action_policy.py"
+  },
+  "experiment": "four_action_policy_economics",
+  "question": "Does a four-action policy beat approve/decline once APP scams are in the mix?",
+  "action_set": [
+    "APPROVE",
+    "STEP_UP",
+    "COOLING_OFF",
+    "DECLINE"
+  ],
+  "protocol": {
+    "seeds": [
+      11,
+      23,
+      37
+    ],
+    "two_action_baseline": "threshold pinned at 1% FPR on legitimate validation rows, evaluated with app_carve_out=False",
+    "four_action": "non-decreasing threshold triples over the grid PLUS the pinned baseline threshold, cheapest total cost selected",
+    "app_scam_rule": "APP candidates are never hard-declined on score alone"
+  },
+  "mean_total_cost_four_action_inr": 979085.33,
+  "mean_total_cost_two_action_inr": 974402.33,
+  "mean_saving_inr": -4683.0,
+  "mean_saving_on_app_scam_subset_inr": -5674.67,
+  "baseline_reachable_by_four_action_family": true,
+  "headline_result": "HYPOTHESIS NOT SUPPORTED at the default assumptions",
+  "reading": "This experiment refutes its own hypothesis, and the refutation is more useful than a confirmation would have been. Against a TRUE approve/decline baseline (no APP carve-out), the four-action optimum is not cheaper: the cost-minimising policy collapses to a plain score cascade and STEP_UP is never selected. The cause is localised to one assumption. When a hard decline is credited with the same APP-scam prevention as a cooling-off (both 0.58), declining strictly dominates -- identical prevention, none of the review cost -- so no search could ever justify the carve-out. The sensitivity sweep prices that assumption instead of asserting it: the carve-out only pays once a decline is materially worse at stopping an authorised push payment than a delay is, which is precisely the empirical question an issuer would have to answer from its own retry data.",
+  "break_even_decline_efficacy": 0.1,
+  "sensitivity_summary": [
+    {
+      "decline_blocks_app_scam": 0.1,
+      "mean_saving_vs_true_two_action_inr": 880053.0
+    },
+    {
+      "decline_blocks_app_scam": 0.2,
+      "mean_saving_vs_true_two_action_inr": 695733.0
+    },
+    {
+      "decline_blocks_app_scam": 0.3,
+      "mean_saving_vs_true_two_action_inr": 511413.0
+    },
+    {
+      "decline_blocks_app_scam": 0.4,
+      "mean_saving_vs_true_two_action_inr": 327093.0
+    },
+    {
+      "decline_blocks_app_scam": 0.5,
+      "mean_saving_vs_true_two_action_inr": 142773.0
+    },
+    {
+      "decline_blocks_app_scam": 0.58,
+      "mean_saving_vs_true_two_action_inr": -4683.0
+    }
+  ],
+  "per_seed": [
+    {
+      "seed": 11,
+      "two_action_threshold_at_1pct_fpr": 0.08122488,
+      "app_decline_efficacy_sensitivity": [
+        {
+          "decline_blocks_app_scam": 0.1,
+          "saving_vs_true_two_action_inr": 906532.0,
+          "saving_on_app_scam_subset_inr": 906532.0,
+          "cooling_off_actions_in_best_policy": 44
+        },
+        {
+          "decline_blocks_app_scam": 0.2,
+          "saving_vs_true_two_action_inr": 716452.0,
+          "saving_on_app_scam_subset_inr": 716452.0,
+          "cooling_off_actions_in_best_policy": 44
+        },
+        {
+          "decline_blocks_app_scam": 0.3,
+          "saving_vs_true_two_action_inr": 526372.0,
+          "saving_on_app_scam_subset_inr": 526372.0,
+          "cooling_off_actions_in_best_policy": 44
+        },
+        {
+          "decline_blocks_app_scam": 0.4,
+          "saving_vs_true_two_action_inr": 336292.0,
+          "saving_on_app_scam_subset_inr": 336292.0,
+          "cooling_off_actions_in_best_policy": 44
+        },
+        {
+          "decline_blocks_app_scam": 0.5,
+          "saving_vs_true_two_action_inr": 146212.0,
+          "saving_on_app_scam_subset_inr": 146212.0,
+          "cooling_off_actions_in_best_policy": 44
+        },
+        {
+          "decline_blocks_app_scam": 0.58,
+          "saving_vs_true_two_action_inr": -5852.0,
+          "saving_on_app_scam_subset_inr": -5852.0,
+          "cooling_off_actions_in_best_policy": 44
+        }
+      ],
+      "test_composition": {
+        "rows": 1085,
+        "legit": 782,
+        "ring_fraud": 259,
+        "app_scam": 44
+      },
+      "sweep": {
+        "n_policies_evaluated": 56,
+        "best_policy": {
+          "thresholds": {
+            "step_up": 0.081225,
+            "cooling_off": 0.081225,
+            "decline": 0.081225
+          },
+          "app_carve_out": true,
+          "action_counts": {
+            "APPROVE": 791,
+            "STEP_UP": 0,
+            "COOLING_OFF": 44,
+            "DECLINE": 250
+          },
+          "legit_action_counts": {
+            "APPROVE": 772,
+            "STEP_UP": 0,
+            "COOLING_OFF": 0,
+            "DECLINE": 10
+          },
+          "legit_friction_rate": 0.012788,
+          "legit_hard_decline_rate": 0.012788,
+          "total_cost_inr": 1182738.0,
+          "fraud_cost_inr": 1178488.0,
+          "app_scam_cost_inr": 804188.0,
+          "non_app_fraud_cost_inr": 374300.0,
+          "friction_and_insult_cost_inr": 4250.0,
+          "insult_share_of_total_cost": 0.003593,
+          "cost_model": {
+            "avg_fraud_amount_inr": 18500.0,
+            "avg_app_scam_amount_inr": 42000.0,
+            "chargeback_admin_inr": 1200.0,
+            "avg_legit_amount_inr": 2400.0,
+            "interchange_margin": 0.012,
+            "insult_support_cost_inr": 210.0,
+            "insult_churn_probability": 0.019,
+            "customer_lifetime_value_inr": 9800.0,
+            "step_up_cost_inr": 6.0,
+            "step_up_abandon_probability": 0.07,
+            "cooling_off_cost_inr": 38.0,
+            "cooling_off_abandon_probability": 0.03,
+            "manual_review_cost_inr": 95.0,
+            "step_up_blocks_unauthorised": 0.82,
+            "step_up_blocks_app_scam": 0.11,
+            "cooling_off_blocks_unauthorised": 0.86,
+            "cooling_off_blocks_app_scam": 0.58,
+            "decline_blocks_app_scam": 0.58
+          }
+        },
+        "two_action_baseline": {
+          "thresholds": {
+            "step_up": 0.081225,
+            "cooling_off": 0.081225,
+            "decline": 0.081225
+          },
+          "app_carve_out": false,
+          "action_counts": {
+            "APPROVE": 791,
+            "STEP_UP": 0,
+            "COOLING_OFF": 0,
+            "DECLINE": 294
+          },
+          "legit_action_counts": {
+            "APPROVE": 772,
+            "STEP_UP": 0,
+            "COOLING_OFF": 0,
+            "DECLINE": 10
+          },
+          "legit_friction_rate": 0.012788,
+          "legit_hard_decline_rate": 0.012788,
+          "total_cost_inr": 1176886.0,
+          "fraud_cost_inr": 1172636.0,
+          "app_scam_cost_inr": 798336.0,
+          "non_app_fraud_cost_inr": 374300.0,
+          "friction_and_insult_cost_inr": 4250.0,
+          "insult_share_of_total_cost": 0.003611,
+          "cost_model": {
+            "avg_fraud_amount_inr": 18500.0,
+            "avg_app_scam_amount_inr": 42000.0,
+            "chargeback_admin_inr": 1200.0,
+            "avg_legit_amount_inr": 2400.0,
+            "interchange_margin": 0.012,
+            "insult_support_cost_inr": 210.0,
+            "insult_churn_probability": 0.019,
+            "customer_lifetime_value_inr": 9800.0,
+            "step_up_cost_inr": 6.0,
+            "step_up_abandon_probability": 0.07,
+            "cooling_off_cost_inr": 38.0,
+            "cooling_off_abandon_probability": 0.03,
+            "manual_review_cost_inr": 95.0,
+            "step_up_blocks_unauthorised": 0.82,
+            "step_up_blocks_app_scam": 0.11,
+            "cooling_off_blocks_unauthorised": 0.86,
+            "cooling_off_blocks_app_scam": 0.58,
+            "decline_blocks_app_scam": 0.58
+          },
+          "policy": "two_action_approve_or_decline_no_app_carve_out"
+        },
+        "two_action_baseline_with_app_carve_out": {
+          "thresholds": {
+            "step_up": 0.081225,
+            "cooling_off": 0.081225,
+            "decline": 0.081225
+          },
+          "app_carve_out": true,
+          "action_counts": {
+            "APPROVE": 791,
+            "STEP_UP": 0,
+            "COOLING_OFF": 44,
+            "DECLINE": 250
+          },
+          "legit_action_counts": {
+            "APPROVE": 772,
+            "STEP_UP": 0,
+            "COOLING_OFF": 0,
+            "DECLINE": 10
+          },
+          "legit_friction_rate": 0.012788,
+          "legit_hard_decline_rate": 0.012788,
+          "total_cost_inr": 1182738.0,
+          "fraud_cost_inr": 1178488.0,
+          "app_scam_cost_inr": 804188.0,
+          "non_app_fraud_cost_inr": 374300.0,
+          "friction_and_insult_cost_inr": 4250.0,
+          "insult_share_of_total_cost": 0.003593,
+          "cost_model": {
+            "avg_fraud_amount_inr": 18500.0,
+            "avg_app_scam_amount_inr": 42000.0,
+            "chargeback_admin_inr": 1200.0,
+            "avg_legit_amount_inr": 2400.0,
+            "interchange_margin": 0.012,
+            "insult_support_cost_inr": 210.0,
+            "insult_churn_probability": 0.019,
+            "customer_lifetime_value_inr": 9800.0,
+            "step_up_cost_inr": 6.0,
+            "step_up_abandon_probability": 0.07,
+            "cooling_off_cost_inr": 38.0,
+            "cooling_off_abandon_probability": 0.03,
+            "manual_review_cost_inr": 95.0,
+            "step_up_blocks_unauthorised": 0.82,
+            "step_up_blocks_app_scam": 0.11,
+            "cooling_off_blocks_unauthorised": 0.86,
+            "cooling_off_blocks_app_scam": 0.58,
+            "decline_blocks_app_scam": 0.58
+          },
+          "policy": "two_action_plus_app_carve_out"
+        },
+        "saving_vs_two_action_inr": -5852.0,
+        "saving_vs_two_action_with_carve_out_inr": 0.0,
+        "saving_on_app_scam_subset_inr": -5852.0,
+        "baseline_is_reachable_by_this_family": true,
+        "frontier": [
+          {
+            "thresholds": {
+              "step_up": 0.081225,
+              "cooling_off": 0.081225,
+              "decline": 0.081225
+            },
+            "app_carve_out": true,
+            "action_counts": {
+              "APPROVE": 791,
+              "STEP_UP": 0,
+              "COOLING_OFF": 44,
+              "DECLINE": 250
+            },
+            "legit_action_counts": {
+              "APPROVE": 772,
+              "STEP_UP": 0,
+              "COOLING_OFF": 0,
+              "DECLINE": 10
+            },
+            "legit_friction_rate": 0.012788,
+            "legit_hard_decline_rate": 0.012788,
+            "total_cost_inr": 1182738.0,
+            "fraud_cost_inr": 1178488.0,
+            "app_scam_cost_inr": 804188.0,
+            "non_app_fraud_cost_inr": 374300.0,
+            "friction_and_insult_cost_inr": 4250.0,
+            "insult_share_of_total_cost": 0.003593,
+            "cost_model": {
+              "avg_fraud_amount_inr": 18500.0,
+              "avg_app_scam_amount_inr": 42000.0,
+              "chargeback_admin_inr": 1200.0,
+              "avg_legit_amount_inr": 2400.0,
+              "interchange_margin": 0.012,
+              "insult_support_cost_inr": 210.0,
+              "insult_churn_probability": 0.019,
+              "customer_lifetime_value_inr": 9800.0,
+              "step_up_cost_inr": 6.0,
+              "step_up_abandon_probability": 0.07,
+              "cooling_off_cost_inr": 38.0,
+              "cooling_off_abandon_probability": 0.03,
+              "manual_review_cost_inr": 95.0,
+              "step_up_blocks_unauthorised": 0.82,
+              "step_up_blocks_app_scam": 0.11,
+              "cooling_off_blocks_unauthorised": 0.86,
+              "cooling_off_blocks_app_scam": 0.58,
+              "decline_blocks_app_scam": 0.58
+            }
+          },
+          {
+            "thresholds": {
+              "step_up": 0.081225,
+              "cooling_off": 0.081225,
+              "decline": 0.15
+            },
+            "app_carve_out": true,
+            "action_counts": {
+              "APPROVE": 791,
+              "STEP_UP": 0,
+              "COOLING_OFF": 62,
+              "DECLINE": 232
+            },
+            "legit_action_counts": {
+              "APPROVE": 772,
+              "STEP_UP": 0,
+              "COOLING_OFF": 8,
+              "DECLINE": 2
+            },
+            "legit_friction_rate": 0.012788,
+            "legit_hard_decline_rate": 0.002558,
+            "total_cost_inr": 1209369.31,
+            "fraud_cost_inr": 1207398.0,
+            "app_scam_cost_inr": 804188.0,
+            "non_app_fraud_cost_inr": 403210.0,
+            "friction_and_insult_cost_inr": 1971.31,
+            "insult_share_of_total_cost": 0.00163,
+            "cost_model": {
+              "avg_fraud_amount_inr": 18500.0,
+              "avg_app_scam_amount_inr": 42000.0,
+              "chargeback_admin_inr": 1200.0,
+              "avg_legit_amount_inr": 2400.0,
+              "interchange_margin": 0.012,
+              "insult_support_cost_inr": 210.0,
+              "insult_churn_probability": 0.019,
+              "customer_lifetime_value_inr": 9800.0,
+              "step_up_cost_inr": 6.0,
+              "step_up_abandon_probability": 0.07,
+              "cooling_off_cost_inr": 38.0,
+              "cooling_off_abandon_probability": 0.03,
+              "manual_review_cost_inr": 95.0,
+              "step_up_blocks_unauthorised": 0.82,
+              "step_up_blocks_app_scam": 0.11,
+              "cooling_off_blocks_unauthorised": 0.86,
+              "cooling_off_blocks_app_scam": 0.58,
+              "decline_blocks_app_scam": 0.58
+            }
+          },
+          {
+            "thresholds": {
+              "step_up": 0.081225,
+              "cooling_off": 0.081225,
+              "decline": 0.3
+            },
+            "app_carve_out": true,
+            "action_counts": {
+              "APPROVE": 791,
+              "STEP_UP": 0,
+              "COOLING_OFF": 66,
+              "DECLINE": 228
+            },
+            "legit_action_counts": {
+              "APPROVE": 772,
+              "STEP_UP": 0,
+              "COOLING_OFF": 10,
+              "DECLINE": 0
+            },
+            "legit_friction_rate": 0.012788,
+            "legit_hard_decline_rate": 0.0,
+            "total_cost_inr": 1214581.64,
+            "fraud_cost_inr": 1213180.0,
+            "app_scam_cost_inr": 804188.0,
+            "non_app_fraud_cost_inr": 408992.0,
+            "friction_and_insult_cost_inr": 1401.64,
+            "insult_share_of_total_cost": 0.001154,
+            "cost_model": {
+              "avg_fraud_amount_inr": 18500.0,
+              "avg_app_scam_amount_inr": 42000.0,
+              "chargeback_admin_inr": 1200.0,
+              "avg_legit_amount_inr": 2400.0,
+              "interchange_margin": 0.012,
+              "insult_support_cost_inr": 210.0,
+              "insult_churn_probability": 0.019,
+              "customer_lifetime_value_inr": 9800.0,
+              "step_up_cost_inr": 6.0,
+              "step_up_abandon_probability": 0.07,
+              "cooling_off_cost_inr": 38.0,
+              "cooling_off_abandon_probability": 0.03,
+              "manual_review_cost_inr": 95.0,
+              "step_up_blocks_unauthorised": 0.82,
+              "step_up_blocks_app_scam": 0.11,
+              "cooling_off_blocks_unauthorised": 0.86,
+              "cooling_off_blocks_app_scam": 0.58,
+              "decline_blocks_app_scam": 0.58
+            }
+          },
+          {
+            "thresholds": {
+              "step_up": 0.081225,
+              "cooling_off": 0.15,
+              "decline": 0.15
+            },
+            "app_carve_out": true,
+            "action_counts": {
+              "APPROVE": 791,
+              "STEP_UP": 18,
+              "COOLING_OFF": 44,
+              "DECLINE": 232
+            },
+            "legit_action_counts": {
+              "APPROVE": 772,
+              "STEP_UP": 8,
+              "COOLING_OFF": 0,
+              "DECLINE": 2
+            },
+            "legit_friction_rate": 0.012788,
+            "legit_hard_decline_rate": 0.002558,
+            "total_cost_inr": 1215039.73,
+            "fraud_cost_inr": 1214008.0,
+            "app_scam_cost_inr": 804188.0,
+            "non_app_fraud_cost_inr": 409820.0,
+            "friction_and_insult_cost_inr": 1031.73,
+            "insult_share_of_total_cost": 0.000849,
+            "cost_model": {
+              "avg_fraud_amount_inr": 18500.0,
+              "avg_app_scam_amount_inr": 42000.0,
+              "chargeback_admin_inr": 1200.0,
+              "avg_legit_amount_inr": 2400.0,
+              "interchange_margin": 0.012,
+              "insult_support_cost_inr": 210.0,
+              "insult_churn_probability": 0.019,
+              "customer_lifetime_value_inr": 9800.0,
+              "step_up_cost_inr": 6.0,
+              "step_up_abandon_probability": 0.07,
+              "cooling_off_cost_inr": 38.0,
+              "cooling_off_abandon_probability": 0.03,
+              "manual_review_cost_inr": 95.0,
+              "step_up_blocks_unauthorised": 0.82,
+              "step_up_blocks_app_scam": 0.11,
+              "cooling_off_blocks_unauthorised": 0.86,
+              "cooling_off_blocks_app_scam": 0.58,
+              "decline_blocks_app_scam": 0.58
+            }
+          },
+          {
+            "thresholds": {
+              "step_up": 0.081225,
+              "cooling_off": 0.15,
+              "decline": 0.3
+            },
+            "app_carve_out": true,
+            "action_counts": {
+              "APPROVE": 791,
+              "STEP_UP": 18,
+              "COOLING_OFF": 48,
+              "DECLINE": 228
+            },
+            "legit_action_counts": {
+              "APPROVE": 772,
+              "STEP_UP": 8,
+              "COOLING_OFF": 2,
+              "DECLINE": 0
+            },
+            "legit_friction_rate": 0.012788,
+            "legit_hard_decline_rate": 0.0,
+            "total_cost_inr": 1220252.06,
+            "fraud_cost_inr": 1219790.0,
+            "app_scam_cost_inr": 804188.0,
+            "non_app_fraud_cost_inr": 415602.0,
+            "friction_and_insult_cost_inr": 462.06,
+            "insult_share_of_total_cost": 0.000379,
+            "cost_model": {
+              "avg_fraud_amount_inr": 18500.0,
+              "avg_app_scam_amount_inr": 42000.0,
+              "chargeback_admin_inr": 1200.0,
+              "avg_legit_amount_inr": 2400.0,
+              "interchange_margin": 0.012,
+              "insult_support_cost_inr": 210.0,
+              "insult_churn_probability": 0.019,
+              "customer_lifetime_value_inr": 9800.0,
+              "step_up_cost_inr": 6.0,
+              "step_up_abandon_probability": 0.07,
+              "cooling_off_cost_inr": 38.0,
+              "cooling_off_abandon_probability": 0.03,
+              "manual_review_cost_inr": 95.0,
+              "step_up_blocks_unauthorised": 0.82,
+              "step_up_blocks_app_scam": 0.11,
+              "cooling_off_blocks_unauthorised": 0.86,
+              "cooling_off_blocks_app_scam": 0.58,
+              "decline_blocks_app_scam": 0.58
+            }
+          },
+          {
+            "thresholds": {
+              "step_up": 0.081225,
+              "cooling_off": 0.3,
+              "decline": 0.3
+            },
+            "app_carve_out": true,
+            "action_counts": {
+              "APPROVE": 791,
+              "STEP_UP": 22,
+              "COOLING_OFF": 44,
+              "DECLINE": 228
+            },
+            "legit_action_counts": {
+              "APPROVE": 772,
+              "STEP_UP": 10,
+              "COOLING_OFF": 0,
+              "DECLINE": 0
+            },
+            "legit_friction_rate": 0.012788,
+            "legit_hard_decline_rate": 0.0,
+            "total_cost_inr": 1221339.16,
+            "fraud_cost_inr": 1221112.0,
+            "app_scam_cost_inr": 804188.0,
+            "non_app_fraud_cost_inr": 416924.0,
+            "friction_and_insult_cost_inr": 227.16,
+            "insult_share_of_total_cost": 0.000186,
+            "cost_model": {
+              "avg_fraud_amount_inr": 18500.0,
+              "avg_app_scam_amount_inr": 42000.0,
+              "chargeback_admin_inr": 1200.0,
+              "avg_legit_amount_inr": 2400.0,
+              "interchange_margin": 0.012,
+              "insult_support_cost_inr": 210.0,
+              "insult_churn_probability": 0.019,
+              "customer_lifetime_value_inr": 9800.0,
+              "step_up_cost_inr": 6.0,
+              "step_up_abandon_probability": 0.07,
+              "cooling_off_cost_inr": 38.0,
+              "cooling_off_abandon_probability": 0.03,
+              "manual_review_cost_inr": 95.0,
+              "step_up_blocks_unauthorised": 0.82,
+              "step_up_blocks_app_scam": 0.11,
+              "cooling_off_blocks_unauthorised": 0.86,
+              "cooling_off_blocks_app_scam": 0.58,
+              "decline_blocks_app_scam": 0.58
+            }
+          },
+          {
+            "thresholds": {
+              "step_up": 0.081225,
+              "cooling_off": 0.081225,
+              "decline": 0.5
+            },
+            "app_carve_out": true,
+            "action_counts": {
+              "APPROVE": 791,
+              "STEP_UP": 0,
+              "COOLING_OFF": 102,
+              "DECLINE": 192
+            },
+            "legit_action_counts": {
+              "APPROVE": 772,
+              "STEP_UP": 0,
+              "COOLING_OFF": 10,
+              "DECLINE": 0
+            },
+            "legit_friction_rate": 0.012788,
+            "legit_hard_decline_rate": 0.0,
+            "total_cost_inr": 1318657.64,
+            "fraud_cost_inr": 1317256.0,
+            "app_scam_cost_inr": 804188.0,
+            "non_app_fraud_cost_inr": 513068.0,
+            "friction_and_insult_cost_inr": 1401.64,
+            "insult_share_of_total_cost": 0.001063,
+            "cost_model": {
+              "avg_fraud_amount_inr": 18500.0,
+              "avg_app_scam_amount_inr": 42000.0,
+              "chargeback_admin_inr": 1200.0,
+              "avg_legit_amount_inr": 2400.0,
+              "interchange_margin": 0.012,
+              "insult_support_cost_inr": 210.0,
+              "insult_churn_probability": 0.019,
+              "customer_lifetime_value_inr": 9800.0,
+              "step_up_cost_inr": 6.0,
+              "step_up_abandon_probability": 0.07,
+              "cooling_off_cost_inr": 38.0,
+              "cooling_off_abandon_probability": 0.03,
+              "manual_review_cost_inr": 95.0,
+              "step_up_blocks_unauthorised": 0.82,
+              "step_up_blocks_app_scam": 0.11,
+              "cooling_off_blocks_unauthorised": 0.86,
+              "cooling_off_blocks_app_scam": 0.58,
+              "decline_blocks_app_scam": 0.58
+            }
+          },
+          {
+            "thresholds": {
+              "step_up": 0.081225,
+              "cooling_off": 0.15,
+              "decline": 0.5
+            },
+            "app_carve_out": true,
+            "action_counts": {
+              "APPROVE": 791,
+              "STEP_UP": 18,
+              "COOLING_OFF": 84,
+              "DECLINE": 192
+            },
+            "legit_action_counts": {
+              "APPROVE": 772,
+              "STEP_UP": 8,
+              "COOLING_OFF": 2,
+              "DECLINE": 0
+            },
+            "legit_friction_rate": 0.012788,
+            "legit_hard_decline_rate": 0.0,
+            "total_cost_inr": 1324328.06,
+            "fraud_cost_inr": 1323866.0,
+            "app_scam_cost_inr": 804188.0,
+            "non_app_fraud_cost_inr": 519678.0,
+            "friction_and_insult_cost_inr": 462.06,
+            "insult_share_of_total_cost": 0.000349,
+            "cost_model": {
+              "avg_fraud_amount_inr": 18500.0,
+              "avg_app_scam_amount_inr": 42000.0,
+              "chargeback_admin_inr": 1200.0,
+              "avg_legit_amount_inr": 2400.0,
+              "interchange_margin": 0.012,
+              "insult_support_cost_inr": 210.0,
+              "insult_churn_probability": 0.019,
+              "customer_lifetime_value_inr": 9800.0,
+              "step_up_cost_inr": 6.0,
+              "step_up_abandon_probability": 0.07,
+              "cooling_off_cost_inr": 38.0,
+              "cooling_off_abandon_probability": 0.03,
+              "manual_review_cost_inr": 95.0,
+              "step_up_blocks_unauthorised": 0.82,
+              "step_up_blocks_app_scam": 0.11,
+              "cooling_off_blocks_unauthorised": 0.86,
+              "cooling_off_blocks_app_scam": 0.58,
+              "decline_blocks_app_scam": 0.58
+            }
+          }
+        ]
+      }
+    },
+    {
+      "seed": 23,
+      "two_action_threshold_at_1pct_fpr": 0.09803412,
+      "app_decline_efficacy_sensitivity": [
+        {
+          "decline_blocks_app_scam": 0.1,
+          "saving_vs_true_two_action_inr": 847698.0,
+          "saving_on_app_scam_subset_inr": 844723.0,
+          "cooling_off_actions_in_best_policy": 41
+        },
+        {
+          "decline_blocks_app_scam": 0.2,
+          "saving_vs_true_two_action_inr": 670578.0,
+          "saving_on_app_scam_subset_inr": 667603.0,
+          "cooling_off_actions_in_best_policy": 41
+        },
+        {
+          "decline_blocks_app_scam": 0.3,
+          "saving_vs_true_two_action_inr": 493458.0,
+          "saving_on_app_scam_subset_inr": 490483.0,
+          "cooling_off_actions_in_best_policy": 41
+        },
+        {
+          "decline_blocks_app_scam": 0.4,
+          "saving_vs_true_two_action_inr": 316338.0,
+          "saving_on_app_scam_subset_inr": 313363.0,
+          "cooling_off_actions_in_best_policy": 41
+        },
+        {
+          "decline_blocks_app_scam": 0.5,
+          "saving_vs_true_two_action_inr": 139218.0,
+          "saving_on_app_scam_subset_inr": 136243.0,
+          "cooling_off_actions_in_best_policy": 41
+        },
+        {
+          "decline_blocks_app_scam": 0.58,
+          "saving_vs_true_two_action_inr": -2478.0,
+          "saving_on_app_scam_subset_inr": -5453.0,
+          "cooling_off_actions_in_best_policy": 41
+        }
+      ],
+      "test_composition": {
+        "rows": 1100,
+        "legit": 800,
+        "ring_fraud": 259,
+        "app_scam": 41
+      },
+      "sweep": {
+        "n_policies_evaluated": 56,
+        "best_policy": {
+          "thresholds": {
+            "step_up": 0.3,
+            "cooling_off": 0.3,
+            "decline": 0.3
+          },
+          "app_carve_out": true,
+          "action_counts": {
+            "APPROVE": 799,
+            "STEP_UP": 0,
+            "COOLING_OFF": 41,
+            "DECLINE": 260
+          },
+          "legit_action_counts": {
+            "APPROVE": 799,
+            "STEP_UP": 0,
+            "COOLING_OFF": 0,
+            "DECLINE": 1
+          },
+          "legit_friction_rate": 0.00125,
+          "legit_hard_decline_rate": 0.00125,
+          "total_cost_inr": 749782.0,
+          "fraud_cost_inr": 749357.0,
+          "app_scam_cost_inr": 749357.0,
+          "non_app_fraud_cost_inr": 0.0,
+          "friction_and_insult_cost_inr": 425.0,
+          "insult_share_of_total_cost": 0.000567,
+          "cost_model": {
+            "avg_fraud_amount_inr": 18500.0,
+            "avg_app_scam_amount_inr": 42000.0,
+            "chargeback_admin_inr": 1200.0,
+            "avg_legit_amount_inr": 2400.0,
+            "interchange_margin": 0.012,
+            "insult_support_cost_inr": 210.0,
+            "insult_churn_probability": 0.019,
+            "customer_lifetime_value_inr": 9800.0,
+            "step_up_cost_inr": 6.0,
+            "step_up_abandon_probability": 0.07,
+            "cooling_off_cost_inr": 38.0,
+            "cooling_off_abandon_probability": 0.03,
+            "manual_review_cost_inr": 95.0,
+            "step_up_blocks_unauthorised": 0.82,
+            "step_up_blocks_app_scam": 0.11,
+            "cooling_off_blocks_unauthorised": 0.86,
+            "cooling_off_blocks_app_scam": 0.58,
+            "decline_blocks_app_scam": 0.58
+          }
+        },
+        "two_action_baseline": {
+          "thresholds": {
+            "step_up": 0.098034,
+            "cooling_off": 0.098034,
+            "decline": 0.098034
+          },
+          "app_carve_out": false,
+          "action_counts": {
+            "APPROVE": 792,
+            "STEP_UP": 0,
+            "COOLING_OFF": 0,
+            "DECLINE": 308
+          },
+          "legit_action_counts": {
+            "APPROVE": 792,
+            "STEP_UP": 0,
+            "COOLING_OFF": 0,
+            "DECLINE": 8
+          },
+          "legit_friction_rate": 0.01,
+          "legit_hard_decline_rate": 0.01,
+          "total_cost_inr": 747304.0,
+          "fraud_cost_inr": 743904.0,
+          "app_scam_cost_inr": 743904.0,
+          "non_app_fraud_cost_inr": 0.0,
+          "friction_and_insult_cost_inr": 3400.0,
+          "insult_share_of_total_cost": 0.00455,
+          "cost_model": {
+            "avg_fraud_amount_inr": 18500.0,
+            "avg_app_scam_amount_inr": 42000.0,
+            "chargeback_admin_inr": 1200.0,
+            "avg_legit_amount_inr": 2400.0,
+            "interchange_margin": 0.012,
+            "insult_support_cost_inr": 210.0,
+            "insult_churn_probability": 0.019,
+            "customer_lifetime_value_inr": 9800.0,
+            "step_up_cost_inr": 6.0,
+            "step_up_abandon_probability": 0.07,
+            "cooling_off_cost_inr": 38.0,
+            "cooling_off_abandon_probability": 0.03,
+            "manual_review_cost_inr": 95.0,
+            "step_up_blocks_unauthorised": 0.82,
+            "step_up_blocks_app_scam": 0.11,
+            "cooling_off_blocks_unauthorised": 0.86,
+            "cooling_off_blocks_app_scam": 0.58,
+            "decline_blocks_app_scam": 0.58
+          },
+          "policy": "two_action_approve_or_decline_no_app_carve_out"
+        },
+        "two_action_baseline_with_app_carve_out": {
+          "thresholds": {
+            "step_up": 0.098034,
+            "cooling_off": 0.098034,
+            "decline": 0.098034
+          },
+          "app_carve_out": true,
+          "action_counts": {
+            "APPROVE": 792,
+            "STEP_UP": 0,
+            "COOLING_OFF": 41,
+            "DECLINE": 267
+          },
+          "legit_action_counts": {
+            "APPROVE": 792,
+            "STEP_UP": 0,
+            "COOLING_OFF": 0,
+            "DECLINE": 8
+          },
+          "legit_friction_rate": 0.01,
+          "legit_hard_decline_rate": 0.01,
+          "total_cost_inr": 752757.0,
+          "fraud_cost_inr": 749357.0,
+          "app_scam_cost_inr": 749357.0,
+          "non_app_fraud_cost_inr": 0.0,
+          "friction_and_insult_cost_inr": 3400.0,
+          "insult_share_of_total_cost": 0.004517,
+          "cost_model": {
+            "avg_fraud_amount_inr": 18500.0,
+            "avg_app_scam_amount_inr": 42000.0,
+            "chargeback_admin_inr": 1200.0,
+            "avg_legit_amount_inr": 2400.0,
+            "interchange_margin": 0.012,
+            "insult_support_cost_inr": 210.0,
+            "insult_churn_probability": 0.019,
+            "customer_lifetime_value_inr": 9800.0,
+            "step_up_cost_inr": 6.0,
+            "step_up_abandon_probability": 0.07,
+            "cooling_off_cost_inr": 38.0,
+            "cooling_off_abandon_probability": 0.03,
+            "manual_review_cost_inr": 95.0,
+            "step_up_blocks_unauthorised": 0.82,
+            "step_up_blocks_app_scam": 0.11,
+            "cooling_off_blocks_unauthorised": 0.86,
+            "cooling_off_blocks_app_scam": 0.58,
+            "decline_blocks_app_scam": 0.58
+          },
+          "policy": "two_action_plus_app_carve_out"
+        },
+        "saving_vs_two_action_inr": -2478.0,
+        "saving_vs_two_action_with_carve_out_inr": 2975.0,
+        "saving_on_app_scam_subset_inr": -5453.0,
+        "baseline_is_reachable_by_this_family": true,
+        "frontier": [
+          {
+            "thresholds": {
+              "step_up": 0.3,
+              "cooling_off": 0.3,
+              "decline": 0.3
+            },
+            "app_carve_out": true,
+            "action_counts": {
+              "APPROVE": 799,
+              "STEP_UP": 0,
+              "COOLING_OFF": 41,
+              "DECLINE": 260
+            },
+            "legit_action_counts": {
+              "APPROVE": 799,
+              "STEP_UP": 0,
+              "COOLING_OFF": 0,
+              "DECLINE": 1
+            },
+            "legit_friction_rate": 0.00125,
+            "legit_hard_decline_rate": 0.00125,
+            "total_cost_inr": 749782.0,
+            "fraud_cost_inr": 749357.0,
+            "app_scam_cost_inr": 749357.0,
+            "non_app_fraud_cost_inr": 0.0,
+            "friction_and_insult_cost_inr": 425.0,
+            "insult_share_of_total_cost": 0.000567,
+            "cost_model": {
+              "avg_fraud_amount_inr": 18500.0,
+              "avg_app_scam_amount_inr": 42000.0,
+              "chargeback_admin_inr": 1200.0,
+              "avg_legit_amount_inr": 2400.0,
+              "interchange_margin": 0.012,
+              "insult_support_cost_inr": 210.0,
+              "insult_churn_probability": 0.019,
+              "customer_lifetime_value_inr": 9800.0,
+              "step_up_cost_inr": 6.0,
+              "step_up_abandon_probability": 0.07,
+              "cooling_off_cost_inr": 38.0,
+              "cooling_off_abandon_probability": 0.03,
+              "manual_review_cost_inr": 95.0,
+              "step_up_blocks_unauthorised": 0.82,
+              "step_up_blocks_app_scam": 0.11,
+              "cooling_off_blocks_unauthorised": 0.86,
+              "cooling_off_blocks_app_scam": 0.58,
+              "decline_blocks_app_scam": 0.58
+            }
+          },
+          {
+            "thresholds": {
+              "step_up": 0.15,
+              "cooling_off": 0.3,
+              "decline": 0.3
+            },
+            "app_carve_out": true,
+            "action_counts": {
+              "APPROVE": 796,
+              "STEP_UP": 3,
+              "COOLING_OFF": 41,
+              "DECLINE": 260
+            },
+            "legit_action_counts": {
+              "APPROVE": 796,
+              "STEP_UP": 3,
+              "COOLING_OFF": 0,
+              "DECLINE": 1
+            },
+            "legit_friction_rate": 0.005,
+            "legit_hard_decline_rate": 0.00125,
+            "total_cost_inr": 749850.15,
+            "fraud_cost_inr": 749357.0,
+            "app_scam_cost_inr": 749357.0,
+            "non_app_fraud_cost_inr": 0.0,
+            "friction_and_insult_cost_inr": 493.15,
+            "insult_share_of_total_cost": 0.000658,
+            "cost_model": {
+              "avg_fraud_amount_inr": 18500.0,
+              "avg_app_scam_amount_inr": 42000.0,
+              "chargeback_admin_inr": 1200.0,
+              "avg_legit_amount_inr": 2400.0,
+              "interchange_margin": 0.012,
+              "insult_support_cost_inr": 210.0,
+              "insult_churn_probability": 0.019,
+              "customer_lifetime_value_inr": 9800.0,
+              "step_up_cost_inr": 6.0,
+              "step_up_abandon_probability": 0.07,
+              "cooling_off_cost_inr": 38.0,
+              "cooling_off_abandon_probability": 0.03,
+              "manual_review_cost_inr": 95.0,
+              "step_up_blocks_unauthorised": 0.82,
+              "step_up_blocks_app_scam": 0.11,
+              "cooling_off_blocks_unauthorised": 0.86,
+              "cooling_off_blocks_app_scam": 0.58,
+              "decline_blocks_app_scam": 0.58
+            }
+          },
+          {
+            "thresholds": {
+              "step_up": 0.098034,
+              "cooling_off": 0.3,
+              "decline": 0.3
+            },
+            "app_carve_out": true,
+            "action_counts": {
+              "APPROVE": 792,
+              "STEP_UP": 7,
+              "COOLING_OFF": 41,
+              "DECLINE": 260
+            },
+            "legit_action_counts": {
+              "APPROVE": 792,
+              "STEP_UP": 7,
+              "COOLING_OFF": 0,
+              "DECLINE": 1
+            },
+            "legit_friction_rate": 0.01,
+            "legit_hard_decline_rate": 0.00125,
+            "total_cost_inr": 749941.01,
+            "fraud_cost_inr": 749357.0,
+            "app_scam_cost_inr": 749357.0,
+            "non_app_fraud_cost_inr": 0.0,
+            "friction_and_insult_cost_inr": 584.01,
+            "insult_share_of_total_cost": 0.000779,
+            "cost_model": {
+              "avg_fraud_amount_inr": 18500.0,
+              "avg_app_scam_amount_inr": 42000.0,
+              "chargeback_admin_inr": 1200.0,
+              "avg_legit_amount_inr": 2400.0,
+              "interchange_margin": 0.012,
+              "insult_support_cost_inr": 210.0,
+              "insult_churn_probability": 0.019,
+              "customer_lifetime_value_inr": 9800.0,
+              "step_up_cost_inr": 6.0,
+              "step_up_abandon_probability": 0.07,
+              "cooling_off_cost_inr": 38.0,
+              "cooling_off_abandon_probability": 0.03,
+              "manual_review_cost_inr": 95.0,
+              "step_up_blocks_unauthorised": 0.82,
+              "step_up_blocks_app_scam": 0.11,
+              "cooling_off_blocks_unauthorised": 0.86,
+              "cooling_off_blocks_app_scam": 0.58,
+              "decline_blocks_app_scam": 0.58
+            }
+          },
+          {
+            "thresholds": {
+              "step_up": 0.15,
+              "cooling_off": 0.15,
+              "decline": 0.3
+            },
+            "app_carve_out": true,
+            "action_counts": {
+              "APPROVE": 796,
+              "STEP_UP": 0,
+              "COOLING_OFF": 44,
+              "DECLINE": 260
+            },
+            "legit_action_counts": {
+              "APPROVE": 796,
+              "STEP_UP": 0,
+              "COOLING_OFF": 3,
+              "DECLINE": 1
+            },
+            "legit_friction_rate": 0.005,
+            "legit_hard_decline_rate": 0.00125,
+            "total_cost_inr": 750202.49,
+            "fraud_cost_inr": 749357.0,
+            "app_scam_cost_inr": 749357.0,
+            "non_app_fraud_cost_inr": 0.0,
+            "friction_and_insult_cost_inr": 845.49,
+            "insult_share_of_total_cost": 0.001127,
+            "cost_model": {
+              "avg_fraud_amount_inr": 18500.0,
+              "avg_app_scam_amount_inr": 42000.0,
+              "chargeback_admin_inr": 1200.0,
+              "avg_legit_amount_inr": 2400.0,
+              "interchange_margin": 0.012,
+              "insult_support_cost_inr": 210.0,
+              "insult_churn_probability": 0.019,
+              "customer_lifetime_value_inr": 9800.0,
+              "step_up_cost_inr": 6.0,
+              "step_up_abandon_probability": 0.07,
+              "cooling_off_cost_inr": 38.0,
+              "cooling_off_abandon_probability": 0.03,
+              "manual_review_cost_inr": 95.0,
+              "step_up_blocks_unauthorised": 0.82,
+              "step_up_blocks_app_scam": 0.11,
+              "cooling_off_blocks_unauthorised": 0.86,
+              "cooling_off_blocks_app_scam": 0.58,
+              "decline_blocks_app_scam": 0.58
+            }
+          },
+          {
+            "thresholds": {
+              "step_up": 0.098034,
+              "cooling_off": 0.15,
+              "decline": 0.3
+            },
+            "app_carve_out": true,
+            "action_counts": {
+              "APPROVE": 792,
+              "STEP_UP": 4,
+              "COOLING_OFF": 44,
+              "DECLINE": 260
+            },
+            "legit_action_counts": {
+              "APPROVE": 792,
+              "STEP_UP": 4,
+              "COOLING_OFF": 3,
+              "DECLINE": 1
+            },
+            "legit_friction_rate": 0.01,
+            "legit_hard_decline_rate": 0.00125,
+            "total_cost_inr": 750293.36,
+            "fraud_cost_inr": 749357.0,
+            "app_scam_cost_inr": 749357.0,
+            "non_app_fraud_cost_inr": 0.0,
+            "friction_and_insult_cost_inr": 936.36,
+            "insult_share_of_total_cost": 0.001248,
+            "cost_model": {
+              "avg_fraud_amount_inr": 18500.0,
+              "avg_app_scam_amount_inr": 42000.0,
+              "chargeback_admin_inr": 1200.0,
+              "avg_legit_amount_inr": 2400.0,
+              "interchange_margin": 0.012,
+              "insult_support_cost_inr": 210.0,
+              "insult_churn_probability": 0.019,
+              "customer_lifetime_value_inr": 9800.0,
+              "step_up_cost_inr": 6.0,
+              "step_up_abandon_probability": 0.07,
+              "cooling_off_cost_inr": 38.0,
+              "cooling_off_abandon_probability": 0.03,
+              "manual_review_cost_inr": 95.0,
+              "step_up_blocks_unauthorised": 0.82,
+              "step_up_blocks_app_scam": 0.11,
+              "cooling_off_blocks_unauthorised": 0.86,
+              "cooling_off_blocks_app_scam": 0.58,
+              "decline_blocks_app_scam": 0.58
+            }
+          },
+          {
+            "thresholds": {
+              "step_up": 0.098034,
+              "cooling_off": 0.098034,
+              "decline": 0.3
+            },
+            "app_carve_out": true,
+            "action_counts": {
+              "APPROVE": 792,
+              "STEP_UP": 0,
+              "COOLING_OFF": 48,
+              "DECLINE": 260
+            },
+            "legit_action_counts": {
+              "APPROVE": 792,
+              "STEP_UP": 0,
+              "COOLING_OFF": 7,
+              "DECLINE": 1
+            },
+            "legit_friction_rate": 0.01,
+            "legit_hard_decline_rate": 0.00125,
+            "total_cost_inr": 750763.15,
+            "fraud_cost_inr": 749357.0,
+            "app_scam_cost_inr": 749357.0,
+            "non_app_fraud_cost_inr": 0.0,
+            "friction_and_insult_cost_inr": 1406.15,
+            "insult_share_of_total_cost": 0.001873,
+            "cost_model": {
+              "avg_fraud_amount_inr": 18500.0,
+              "avg_app_scam_amount_inr": 42000.0,
+              "chargeback_admin_inr": 1200.0,
+              "avg_legit_amount_inr": 2400.0,
+              "interchange_margin": 0.012,
+              "insult_support_cost_inr": 210.0,
+              "insult_churn_probability": 0.019,
+              "customer_lifetime_value_inr": 9800.0,
+              "step_up_cost_inr": 6.0,
+              "step_up_abandon_probability": 0.07,
+              "cooling_off_cost_inr": 38.0,
+              "cooling_off_abandon_probability": 0.03,
+              "manual_review_cost_inr": 95.0,
+              "step_up_blocks_unauthorised": 0.82,
+              "step_up_blocks_app_scam": 0.11,
+              "cooling_off_blocks_unauthorised": 0.86,
+              "cooling_off_blocks_app_scam": 0.58,
+              "decline_blocks_app_scam": 0.58
+            }
+          },
+          {
+            "thresholds": {
+              "step_up": 0.15,
+              "cooling_off": 0.15,
+              "decline": 0.15
+            },
+            "app_carve_out": true,
+            "action_counts": {
+              "APPROVE": 796,
+              "STEP_UP": 0,
+              "COOLING_OFF": 41,
+              "DECLINE": 263
+            },
+            "legit_action_counts": {
+              "APPROVE": 796,
+              "STEP_UP": 0,
+              "COOLING_OFF": 0,
+              "DECLINE": 4
+            },
+            "legit_friction_rate": 0.005,
+            "legit_hard_decline_rate": 0.005,
+            "total_cost_inr": 751057.0,
+            "fraud_cost_inr": 749357.0,
+            "app_scam_cost_inr": 749357.0,
+            "non_app_fraud_cost_inr": 0.0,
+            "friction_and_insult_cost_inr": 1700.0,
+            "insult_share_of_total_cost": 0.002263,
+            "cost_model": {
+              "avg_fraud_amount_inr": 18500.0,
+              "avg_app_scam_amount_inr": 42000.0,
+              "chargeback_admin_inr": 1200.0,
+              "avg_legit_amount_inr": 2400.0,
+              "interchange_margin": 0.012,
+              "insult_support_cost_inr": 210.0,
+              "insult_churn_probability": 0.019,
+              "customer_lifetime_value_inr": 9800.0,
+              "step_up_cost_inr": 6.0,
+              "step_up_abandon_probability": 0.07,
+              "cooling_off_cost_inr": 38.0,
+              "cooling_off_abandon_probability": 0.03,
+              "manual_review_cost_inr": 95.0,
+              "step_up_blocks_unauthorised": 0.82,
+              "step_up_blocks_app_scam": 0.11,
+              "cooling_off_blocks_unauthorised": 0.86,
+              "cooling_off_blocks_app_scam": 0.58,
+              "decline_blocks_app_scam": 0.58
+            }
+          },
+          {
+            "thresholds": {
+              "step_up": 0.098034,
+              "cooling_off": 0.15,
+              "decline": 0.15
+            },
+            "app_carve_out": true,
+            "action_counts": {
+              "APPROVE": 792,
+              "STEP_UP": 4,
+              "COOLING_OFF": 41,
+              "DECLINE": 263
+            },
+            "legit_action_counts": {
+              "APPROVE": 792,
+              "STEP_UP": 4,
+              "COOLING_OFF": 0,
+              "DECLINE": 4
+            },
+            "legit_friction_rate": 0.01,
+            "legit_hard_decline_rate": 0.005,
+            "total_cost_inr": 751147.86,
+            "fraud_cost_inr": 749357.0,
+            "app_scam_cost_inr": 749357.0,
+            "non_app_fraud_cost_inr": 0.0,
+            "friction_and_insult_cost_inr": 1790.86,
+            "insult_share_of_total_cost": 0.002384,
+            "cost_model": {
+              "avg_fraud_amount_inr": 18500.0,
+              "avg_app_scam_amount_inr": 42000.0,
+              "chargeback_admin_inr": 1200.0,
+              "avg_legit_amount_inr": 2400.0,
+              "interchange_margin": 0.012,
+              "insult_support_cost_inr": 210.0,
+              "insult_churn_probability": 0.019,
+              "customer_lifetime_value_inr": 9800.0,
+              "step_up_cost_inr": 6.0,
+              "step_up_abandon_probability": 0.07,
+              "cooling_off_cost_inr": 38.0,
+              "cooling_off_abandon_probability": 0.03,
+              "manual_review_cost_inr": 95.0,
+              "step_up_blocks_unauthorised": 0.82,
+              "step_up_blocks_app_scam": 0.11,
+              "cooling_off_blocks_unauthorised": 0.86,
+              "cooling_off_blocks_app_scam": 0.58,
+              "decline_blocks_app_scam": 0.58
+            }
+          }
+        ]
+      }
+    },
+    {
+      "seed": 37,
+      "two_action_threshold_at_1pct_fpr": 0.09410915,
+      "app_decline_efficacy_sensitivity": [
+        {
+          "decline_blocks_app_scam": 0.1,
+          "saving_vs_true_two_action_inr": 885929.0,
+          "saving_on_app_scam_subset_inr": 885929.0,
+          "cooling_off_actions_in_best_policy": 43
+        },
+        {
+          "decline_blocks_app_scam": 0.2,
+          "saving_vs_true_two_action_inr": 700169.0,
+          "saving_on_app_scam_subset_inr": 700169.0,
+          "cooling_off_actions_in_best_policy": 43
+        },
+        {
+          "decline_blocks_app_scam": 0.3,
+          "saving_vs_true_two_action_inr": 514409.0,
+          "saving_on_app_scam_subset_inr": 514409.0,
+          "cooling_off_actions_in_best_policy": 43
+        },
+        {
+          "decline_blocks_app_scam": 0.4,
+          "saving_vs_true_two_action_inr": 328649.0,
+          "saving_on_app_scam_subset_inr": 328649.0,
+          "cooling_off_actions_in_best_policy": 43
+        },
+        {
+          "decline_blocks_app_scam": 0.5,
+          "saving_vs_true_two_action_inr": 142889.0,
+          "saving_on_app_scam_subset_inr": 142889.0,
+          "cooling_off_actions_in_best_policy": 43
+        },
+        {
+          "decline_blocks_app_scam": 0.58,
+          "saving_vs_true_two_action_inr": -5719.0,
+          "saving_on_app_scam_subset_inr": -5719.0,
+          "cooling_off_actions_in_best_policy": 43
+        }
+      ],
+      "test_composition": {
+        "rows": 1095,
+        "legit": 793,
+        "ring_fraud": 259,
+        "app_scam": 43
+      },
+      "sweep": {
+        "n_policies_evaluated": 56,
+        "best_policy": {
+          "thresholds": {
+            "step_up": 0.094109,
+            "cooling_off": 0.094109,
+            "decline": 0.094109
+          },
+          "app_carve_out": true,
+          "action_counts": {
+            "APPROVE": 799,
+            "STEP_UP": 0,
+            "COOLING_OFF": 43,
+            "DECLINE": 253
+          },
+          "legit_action_counts": {
+            "APPROVE": 788,
+            "STEP_UP": 0,
+            "COOLING_OFF": 0,
+            "DECLINE": 5
+          },
+          "legit_friction_rate": 0.006305,
+          "legit_hard_decline_rate": 0.006305,
+          "total_cost_inr": 1004736.0,
+          "fraud_cost_inr": 1002611.0,
+          "app_scam_cost_inr": 785911.0,
+          "non_app_fraud_cost_inr": 216700.0,
+          "friction_and_insult_cost_inr": 2125.0,
+          "insult_share_of_total_cost": 0.002115,
+          "cost_model": {
+            "avg_fraud_amount_inr": 18500.0,
+            "avg_app_scam_amount_inr": 42000.0,
+            "chargeback_admin_inr": 1200.0,
+            "avg_legit_amount_inr": 2400.0,
+            "interchange_margin": 0.012,
+            "insult_support_cost_inr": 210.0,
+            "insult_churn_probability": 0.019,
+            "customer_lifetime_value_inr": 9800.0,
+            "step_up_cost_inr": 6.0,
+            "step_up_abandon_probability": 0.07,
+            "cooling_off_cost_inr": 38.0,
+            "cooling_off_abandon_probability": 0.03,
+            "manual_review_cost_inr": 95.0,
+            "step_up_blocks_unauthorised": 0.82,
+            "step_up_blocks_app_scam": 0.11,
+            "cooling_off_blocks_unauthorised": 0.86,
+            "cooling_off_blocks_app_scam": 0.58,
+            "decline_blocks_app_scam": 0.58
+          }
+        },
+        "two_action_baseline": {
+          "thresholds": {
+            "step_up": 0.094109,
+            "cooling_off": 0.094109,
+            "decline": 0.094109
+          },
+          "app_carve_out": false,
+          "action_counts": {
+            "APPROVE": 799,
+            "STEP_UP": 0,
+            "COOLING_OFF": 0,
+            "DECLINE": 296
+          },
+          "legit_action_counts": {
+            "APPROVE": 788,
+            "STEP_UP": 0,
+            "COOLING_OFF": 0,
+            "DECLINE": 5
+          },
+          "legit_friction_rate": 0.006305,
+          "legit_hard_decline_rate": 0.006305,
+          "total_cost_inr": 999017.0,
+          "fraud_cost_inr": 996892.0,
+          "app_scam_cost_inr": 780192.0,
+          "non_app_fraud_cost_inr": 216700.0,
+          "friction_and_insult_cost_inr": 2125.0,
+          "insult_share_of_total_cost": 0.002127,
+          "cost_model": {
+            "avg_fraud_amount_inr": 18500.0,
+            "avg_app_scam_amount_inr": 42000.0,
+            "chargeback_admin_inr": 1200.0,
+            "avg_legit_amount_inr": 2400.0,
+            "interchange_margin": 0.012,
+            "insult_support_cost_inr": 210.0,
+            "insult_churn_probability": 0.019,
+            "customer_lifetime_value_inr": 9800.0,
+            "step_up_cost_inr": 6.0,
+            "step_up_abandon_probability": 0.07,
+            "cooling_off_cost_inr": 38.0,
+            "cooling_off_abandon_probability": 0.03,
+            "manual_review_cost_inr": 95.0,
+            "step_up_blocks_unauthorised": 0.82,
+            "step_up_blocks_app_scam": 0.11,
+            "cooling_off_blocks_unauthorised": 0.86,
+            "cooling_off_blocks_app_scam": 0.58,
+            "decline_blocks_app_scam": 0.58
+          },
+          "policy": "two_action_approve_or_decline_no_app_carve_out"
+        },
+        "two_action_baseline_with_app_carve_out": {
+          "thresholds": {
+            "step_up": 0.094109,
+            "cooling_off": 0.094109,
+            "decline": 0.094109
+          },
+          "app_carve_out": true,
+          "action_counts": {
+            "APPROVE": 799,
+            "STEP_UP": 0,
+            "COOLING_OFF": 43,
+            "DECLINE": 253
+          },
+          "legit_action_counts": {
+            "APPROVE": 788,
+            "STEP_UP": 0,
+            "COOLING_OFF": 0,
+            "DECLINE": 5
+          },
+          "legit_friction_rate": 0.006305,
+          "legit_hard_decline_rate": 0.006305,
+          "total_cost_inr": 1004736.0,
+          "fraud_cost_inr": 1002611.0,
+          "app_scam_cost_inr": 785911.0,
+          "non_app_fraud_cost_inr": 216700.0,
+          "friction_and_insult_cost_inr": 2125.0,
+          "insult_share_of_total_cost": 0.002115,
+          "cost_model": {
+            "avg_fraud_amount_inr": 18500.0,
+            "avg_app_scam_amount_inr": 42000.0,
+            "chargeback_admin_inr": 1200.0,
+            "avg_legit_amount_inr": 2400.0,
+            "interchange_margin": 0.012,
+            "insult_support_cost_inr": 210.0,
+            "insult_churn_probability": 0.019,
+            "customer_lifetime_value_inr": 9800.0,
+            "step_up_cost_inr": 6.0,
+            "step_up_abandon_probability": 0.07,
+            "cooling_off_cost_inr": 38.0,
+            "cooling_off_abandon_probability": 0.03,
+            "manual_review_cost_inr": 95.0,
+            "step_up_blocks_unauthorised": 0.82,
+            "step_up_blocks_app_scam": 0.11,
+            "cooling_off_blocks_unauthorised": 0.86,
+            "cooling_off_blocks_app_scam": 0.58,
+            "decline_blocks_app_scam": 0.58
+          },
+          "policy": "two_action_plus_app_carve_out"
+        },
+        "saving_vs_two_action_inr": -5719.0,
+        "saving_vs_two_action_with_carve_out_inr": 0.0,
+        "saving_on_app_scam_subset_inr": -5719.0,
+        "baseline_is_reachable_by_this_family": true,
+        "frontier": [
+          {
+            "thresholds": {
+              "step_up": 0.094109,
+              "cooling_off": 0.094109,
+              "decline": 0.094109
+            },
+            "app_carve_out": true,
+            "action_counts": {
+              "APPROVE": 799,
+              "STEP_UP": 0,
+              "COOLING_OFF": 43,
+              "DECLINE": 253
+            },
+            "legit_action_counts": {
+              "APPROVE": 788,
+              "STEP_UP": 0,
+              "COOLING_OFF": 0,
+              "DECLINE": 5
+            },
+            "legit_friction_rate": 0.006305,
+            "legit_hard_decline_rate": 0.006305,
+            "total_cost_inr": 1004736.0,
+            "fraud_cost_inr": 1002611.0,
+            "app_scam_cost_inr": 785911.0,
+            "non_app_fraud_cost_inr": 216700.0,
+            "friction_and_insult_cost_inr": 2125.0,
+            "insult_share_of_total_cost": 0.002115,
+            "cost_model": {
+              "avg_fraud_amount_inr": 18500.0,
+              "avg_app_scam_amount_inr": 42000.0,
+              "chargeback_admin_inr": 1200.0,
+              "avg_legit_amount_inr": 2400.0,
+              "interchange_margin": 0.012,
+              "insult_support_cost_inr": 210.0,
+              "insult_churn_probability": 0.019,
+              "customer_lifetime_value_inr": 9800.0,
+              "step_up_cost_inr": 6.0,
+              "step_up_abandon_probability": 0.07,
+              "cooling_off_cost_inr": 38.0,
+              "cooling_off_abandon_probability": 0.03,
+              "manual_review_cost_inr": 95.0,
+              "step_up_blocks_unauthorised": 0.82,
+              "step_up_blocks_app_scam": 0.11,
+              "cooling_off_blocks_unauthorised": 0.86,
+              "cooling_off_blocks_app_scam": 0.58,
+              "decline_blocks_app_scam": 0.58
+            }
+          },
+          {
+            "thresholds": {
+              "step_up": 0.094109,
+              "cooling_off": 0.094109,
+              "decline": 0.15
+            },
+            "app_carve_out": true,
+            "action_counts": {
+              "APPROVE": 799,
+              "STEP_UP": 0,
+              "COOLING_OFF": 56,
+              "DECLINE": 240
+            },
+            "legit_action_counts": {
+              "APPROVE": 788,
+              "STEP_UP": 0,
+              "COOLING_OFF": 4,
+              "DECLINE": 1
+            },
+            "legit_friction_rate": 0.006305,
+            "legit_hard_decline_rate": 0.001261,
+            "total_cost_inr": 1029615.66,
+            "fraud_cost_inr": 1028630.0,
+            "app_scam_cost_inr": 785911.0,
+            "non_app_fraud_cost_inr": 242719.0,
+            "friction_and_insult_cost_inr": 985.66,
+            "insult_share_of_total_cost": 0.000957,
+            "cost_model": {
+              "avg_fraud_amount_inr": 18500.0,
+              "avg_app_scam_amount_inr": 42000.0,
+              "chargeback_admin_inr": 1200.0,
+              "avg_legit_amount_inr": 2400.0,
+              "interchange_margin": 0.012,
+              "insult_support_cost_inr": 210.0,
+              "insult_churn_probability": 0.019,
+              "customer_lifetime_value_inr": 9800.0,
+              "step_up_cost_inr": 6.0,
+              "step_up_abandon_probability": 0.07,
+              "cooling_off_cost_inr": 38.0,
+              "cooling_off_abandon_probability": 0.03,
+              "manual_review_cost_inr": 95.0,
+              "step_up_blocks_unauthorised": 0.82,
+              "step_up_blocks_app_scam": 0.11,
+              "cooling_off_blocks_unauthorised": 0.86,
+              "cooling_off_blocks_app_scam": 0.58,
+              "decline_blocks_app_scam": 0.58
+            }
+          },
+          {
+            "thresholds": {
+              "step_up": 0.094109,
+              "cooling_off": 0.15,
+              "decline": 0.15
+            },
+            "app_carve_out": true,
+            "action_counts": {
+              "APPROVE": 799,
+              "STEP_UP": 13,
+              "COOLING_OFF": 43,
+              "DECLINE": 240
+            },
+            "legit_action_counts": {
+              "APPROVE": 788,
+              "STEP_UP": 4,
+              "COOLING_OFF": 0,
+              "DECLINE": 1
+            },
+            "legit_friction_rate": 0.006305,
+            "legit_hard_decline_rate": 0.001261,
+            "total_cost_inr": 1035094.86,
+            "fraud_cost_inr": 1034579.0,
+            "app_scam_cost_inr": 785911.0,
+            "non_app_fraud_cost_inr": 248668.0,
+            "friction_and_insult_cost_inr": 515.86,
+            "insult_share_of_total_cost": 0.000498,
+            "cost_model": {
+              "avg_fraud_amount_inr": 18500.0,
+              "avg_app_scam_amount_inr": 42000.0,
+              "chargeback_admin_inr": 1200.0,
+              "avg_legit_amount_inr": 2400.0,
+              "interchange_margin": 0.012,
+              "insult_support_cost_inr": 210.0,
+              "insult_churn_probability": 0.019,
+              "customer_lifetime_value_inr": 9800.0,
+              "step_up_cost_inr": 6.0,
+              "step_up_abandon_probability": 0.07,
+              "cooling_off_cost_inr": 38.0,
+              "cooling_off_abandon_probability": 0.03,
+              "manual_review_cost_inr": 95.0,
+              "step_up_blocks_unauthorised": 0.82,
+              "step_up_blocks_app_scam": 0.11,
+              "cooling_off_blocks_unauthorised": 0.86,
+              "cooling_off_blocks_app_scam": 0.58,
+              "decline_blocks_app_scam": 0.58
+            }
+          },
+          {
+            "thresholds": {
+              "step_up": 0.094109,
+              "cooling_off": 0.094109,
+              "decline": 0.3
+            },
+            "app_carve_out": true,
+            "action_counts": {
+              "APPROVE": 799,
+              "STEP_UP": 0,
+              "COOLING_OFF": 69,
+              "DECLINE": 227
+            },
+            "legit_action_counts": {
+              "APPROVE": 788,
+              "STEP_UP": 0,
+              "COOLING_OFF": 5,
+              "DECLINE": 0
+            },
+            "legit_friction_rate": 0.006305,
+            "legit_hard_decline_rate": 0.0,
+            "total_cost_inr": 1064022.82,
+            "fraud_cost_inr": 1063322.0,
+            "app_scam_cost_inr": 785911.0,
+            "non_app_fraud_cost_inr": 277411.0,
+            "friction_and_insult_cost_inr": 700.82,
+            "insult_share_of_total_cost": 0.000659,
+            "cost_model": {
+              "avg_fraud_amount_inr": 18500.0,
+              "avg_app_scam_amount_inr": 42000.0,
+              "chargeback_admin_inr": 1200.0,
+              "avg_legit_amount_inr": 2400.0,
+              "interchange_margin": 0.012,
+              "insult_support_cost_inr": 210.0,
+              "insult_churn_probability": 0.019,
+              "customer_lifetime_value_inr": 9800.0,
+              "step_up_cost_inr": 6.0,
+              "step_up_abandon_probability": 0.07,
+              "cooling_off_cost_inr": 38.0,
+              "cooling_off_abandon_probability": 0.03,
+              "manual_review_cost_inr": 95.0,
+              "step_up_blocks_unauthorised": 0.82,
+              "step_up_blocks_app_scam": 0.11,
+              "cooling_off_blocks_unauthorised": 0.86,
+              "cooling_off_blocks_app_scam": 0.58,
+              "decline_blocks_app_scam": 0.58
+            }
+          },
+          {
+            "thresholds": {
+              "step_up": 0.094109,
+              "cooling_off": 0.15,
+              "decline": 0.3
+            },
+            "app_carve_out": true,
+            "action_counts": {
+              "APPROVE": 799,
+              "STEP_UP": 13,
+              "COOLING_OFF": 56,
+              "DECLINE": 227
+            },
+            "legit_action_counts": {
+              "APPROVE": 788,
+              "STEP_UP": 4,
+              "COOLING_OFF": 1,
+              "DECLINE": 0
+            },
+            "legit_friction_rate": 0.006305,
+            "legit_hard_decline_rate": 0.0,
+            "total_cost_inr": 1069502.03,
+            "fraud_cost_inr": 1069271.0,
+            "app_scam_cost_inr": 785911.0,
+            "non_app_fraud_cost_inr": 283360.0,
+            "friction_and_insult_cost_inr": 231.03,
+            "insult_share_of_total_cost": 0.000216,
+            "cost_model": {
+              "avg_fraud_amount_inr": 18500.0,
+              "avg_app_scam_amount_inr": 42000.0,
+              "chargeback_admin_inr": 1200.0,
+              "avg_legit_amount_inr": 2400.0,
+              "interchange_margin": 0.012,
+              "insult_support_cost_inr": 210.0,
+              "insult_churn_probability": 0.019,
+              "customer_lifetime_value_inr": 9800.0,
+              "step_up_cost_inr": 6.0,
+              "step_up_abandon_probability": 0.07,
+              "cooling_off_cost_inr": 38.0,
+              "cooling_off_abandon_probability": 0.03,
+              "manual_review_cost_inr": 95.0,
+              "step_up_blocks_unauthorised": 0.82,
+              "step_up_blocks_app_scam": 0.11,
+              "cooling_off_blocks_unauthorised": 0.86,
+              "cooling_off_blocks_app_scam": 0.58,
+              "decline_blocks_app_scam": 0.58
+            }
+          },
+          {
+            "thresholds": {
+              "step_up": 0.094109,
+              "cooling_off": 0.3,
+              "decline": 0.3
+            },
+            "app_carve_out": true,
+            "action_counts": {
+              "APPROVE": 799,
+              "STEP_UP": 26,
+              "COOLING_OFF": 43,
+              "DECLINE": 227
+            },
+            "legit_action_counts": {
+              "APPROVE": 788,
+              "STEP_UP": 5,
+              "COOLING_OFF": 0,
+              "DECLINE": 0
+            },
+            "legit_friction_rate": 0.006305,
+            "legit_hard_decline_rate": 0.0,
+            "total_cost_inr": 1077316.58,
+            "fraud_cost_inr": 1077203.0,
+            "app_scam_cost_inr": 785911.0,
+            "non_app_fraud_cost_inr": 291292.0,
+            "friction_and_insult_cost_inr": 113.58,
+            "insult_share_of_total_cost": 0.000105,
+            "cost_model": {
+              "avg_fraud_amount_inr": 18500.0,
+              "avg_app_scam_amount_inr": 42000.0,
+              "chargeback_admin_inr": 1200.0,
+              "avg_legit_amount_inr": 2400.0,
+              "interchange_margin": 0.012,
+              "insult_support_cost_inr": 210.0,
+              "insult_churn_probability": 0.019,
+              "customer_lifetime_value_inr": 9800.0,
+              "step_up_cost_inr": 6.0,
+              "step_up_abandon_probability": 0.07,
+              "cooling_off_cost_inr": 38.0,
+              "cooling_off_abandon_probability": 0.03,
+              "manual_review_cost_inr": 95.0,
+              "step_up_blocks_unauthorised": 0.82,
+              "step_up_blocks_app_scam": 0.11,
+              "cooling_off_blocks_unauthorised": 0.86,
+              "cooling_off_blocks_app_scam": 0.58,
+              "decline_blocks_app_scam": 0.58
+            }
+          },
+          {
+            "thresholds": {
+              "step_up": 0.094109,
+              "cooling_off": 0.094109,
+              "decline": 0.5
+            },
+            "app_carve_out": true,
+            "action_counts": {
+              "APPROVE": 799,
+              "STEP_UP": 0,
+              "COOLING_OFF": 94,
+              "DECLINE": 202
+            },
+            "legit_action_counts": {
+              "APPROVE": 788,
+              "STEP_UP": 0,
+              "COOLING_OFF": 5,
+              "DECLINE": 0
+            },
+            "legit_friction_rate": 0.006305,
+            "legit_hard_decline_rate": 0.0,
+            "total_cost_inr": 1136297.82,
+            "fraud_cost_inr": 1135597.0,
+            "app_scam_cost_inr": 785911.0,
+            "non_app_fraud_cost_inr": 349686.0,
+            "friction_and_insult_cost_inr": 700.82,
+            "insult_share_of_total_cost": 0.000617,
+            "cost_model": {
+              "avg_fraud_amount_inr": 18500.0,
+              "avg_app_scam_amount_inr": 42000.0,
+              "chargeback_admin_inr": 1200.0,
+              "avg_legit_amount_inr": 2400.0,
+              "interchange_margin": 0.012,
+              "insult_support_cost_inr": 210.0,
+              "insult_churn_probability": 0.019,
+              "customer_lifetime_value_inr": 9800.0,
+              "step_up_cost_inr": 6.0,
+              "step_up_abandon_probability": 0.07,
+              "cooling_off_cost_inr": 38.0,
+              "cooling_off_abandon_probability": 0.03,
+              "manual_review_cost_inr": 95.0,
+              "step_up_blocks_unauthorised": 0.82,
+              "step_up_blocks_app_scam": 0.11,
+              "cooling_off_blocks_unauthorised": 0.86,
+              "cooling_off_blocks_app_scam": 0.58,
+              "decline_blocks_app_scam": 0.58
+            }
+          },
+          {
+            "thresholds": {
+              "step_up": 0.094109,
+              "cooling_off": 0.15,
+              "decline": 0.5
+            },
+            "app_carve_out": true,
+            "action_counts": {
+              "APPROVE": 799,
+              "STEP_UP": 13,
+              "COOLING_OFF": 81,
+              "DECLINE": 202
+            },
+            "legit_action_counts": {
+              "APPROVE": 788,
+              "STEP_UP": 4,
+              "COOLING_OFF": 1,
+              "DECLINE": 0
+            },
+            "legit_friction_rate": 0.006305,
+            "legit_hard_decline_rate": 0.0,
+            "total_cost_inr": 1141777.03,
+            "fraud_cost_inr": 1141546.0,
+            "app_scam_cost_inr": 785911.0,
+            "non_app_fraud_cost_inr": 355635.0,
+            "friction_and_insult_cost_inr": 231.03,
+            "insult_share_of_total_cost": 0.000202,
+            "cost_model": {
+              "avg_fraud_amount_inr": 18500.0,
+              "avg_app_scam_amount_inr": 42000.0,
+              "chargeback_admin_inr": 1200.0,
+              "avg_legit_amount_inr": 2400.0,
+              "interchange_margin": 0.012,
+              "insult_support_cost_inr": 210.0,
+              "insult_churn_probability": 0.019,
+              "customer_lifetime_value_inr": 9800.0,
+              "step_up_cost_inr": 6.0,
+              "step_up_abandon_probability": 0.07,
+              "cooling_off_cost_inr": 38.0,
+              "cooling_off_abandon_probability": 0.03,
+              "manual_review_cost_inr": 95.0,
+              "step_up_blocks_unauthorised": 0.82,
+              "step_up_blocks_app_scam": 0.11,
+              "cooling_off_blocks_unauthorised": 0.86,
+              "cooling_off_blocks_app_scam": 0.58,
+              "decline_blocks_app_scam": 0.58
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "boundaries": [
+    "Every rate in ActionCostModel is an assumption, not a measured issuer figure. The artifact carries the full model so any number can be recomputed.",
+    "Friction effectiveness against APP scams (58% for cooling-off) is the single most influential assumption and is not measured here.",
+    "Simulated APP scams have no true victim-behaviour ground truth; they encode a hypothesis about what the pattern looks like.",
+    "Cost totals are for the simulated test split only and do not scale linearly to portfolio volumes.",
+    "The baseline reported here is a TRUE approve/decline with no APP carve-out. An earlier version gave the baseline the same carve-out as the treatment arm, which made the carve-out's value identically zero by construction.",
+    "An earlier version of this sweep used strictly distinct thresholds, could not reproduce the baseline, and reported a NEGATIVE saving of about INR 193,770. That was a search-space bug, not a finding.",
+    "STEP_UP is never selected at any assumption tested. Either the step-up cost is too high relative to its 0.82 prevention, or a three-tier ladder is genuinely redundant here. This is not evidence that step-up is useless in production.",
+    "The default decline_blocks_app_scam of 0.58 makes the carve-out impossible to justify. It is kept as the default deliberately, so the artifact reports a negative result rather than a tuned positive one."
+  ]
+}

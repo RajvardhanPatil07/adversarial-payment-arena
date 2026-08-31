@@ -33,12 +33,15 @@ const NODE_W = 150;
 const NODE_H = 34;
 const MAX_NODES = 150; // keep the canvas readable during long campaigns
 
+// Design tokens only (SECTION 1: no inline hex). Exactly two accent hues:
+// customers sit in the defender-blue family, device/ip are attacker
+// infrastructure in the red family, merchant/unknown stay neutral.
 const TYPE_STYLE: Record<string, { bg: string; border: string; label: string }> = {
-  customer: { bg: "#0c4a6e", border: "#38bdf8", label: "#e0f2fe" },
-  device: { bg: "#451a03", border: "#f59e0b", label: "#fef3c7" },
-  ip: { bg: "#2e1065", border: "#a78bfa", label: "#ede9fe" },
-  merchant: { bg: "#064e3b", border: "#34d399", label: "#d1fae5" },
-  unknown: { bg: "#27272a", border: "#71717a", label: "#e4e4e7" },
+  customer: { bg: "var(--blue-dim)", border: "var(--blue)", label: "var(--text)" },
+  device: { bg: "var(--red-dim)", border: "var(--red)", label: "var(--text)" },
+  ip: { bg: "var(--surface-3)", border: "var(--red)", label: "var(--text)" },
+  merchant: { bg: "var(--surface-3)", border: "var(--border-hi)", label: "var(--text)" },
+  unknown: { bg: "var(--surface-2)", border: "var(--border-hi)", label: "var(--text-dim)" },
 };
 
 function shortLabel(id: string): string {
@@ -77,7 +80,7 @@ function toFlowNode(n: GraphNode): Node {
       color: style.label,
       borderRadius: 8,
       fontSize: 10,
-      fontFamily: "var(--font-geist-mono), monospace",
+      fontFamily: "var(--font-jetbrains-mono), monospace",
       padding: 4,
       width: NODE_W,
     },
@@ -92,11 +95,11 @@ function toFlowEdge(e: GraphEdge): Edge {
     target: e.target,
     animated: hot,
     style: {
-      stroke: hot ? "#ef4444" : "#3f3f46",
+      stroke: hot ? "var(--red)" : "var(--border)",
       strokeWidth: hot ? 2 : 1,
       opacity: hot ? 0.95 : 0.55,
     },
-    markerEnd: { type: MarkerType.ArrowClosed, color: hot ? "#ef4444" : "#52525b", width: 14, height: 14 },
+    markerEnd: { type: MarkerType.ArrowClosed, color: hot ? "var(--red)" : "var(--text-faint)", width: 14, height: 14 },
   };
 }
 
@@ -166,7 +169,7 @@ export function EntityGraphCanvas({
         proOptions={{ hideAttribution: false }}
         colorMode="dark"
       >
-        <Background variant={BackgroundVariant.Dots} gap={18} size={1} color="#27272a" />
+        <Background variant={BackgroundVariant.Dots} gap={18} size={1} color="var(--surface-3)" />
         <Controls showInteractive={false} className="!bottom-3 !left-3" />
       </ReactFlow>
     </div>

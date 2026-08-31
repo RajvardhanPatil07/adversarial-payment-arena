@@ -1,0 +1,243 @@
+{
+  "provenance": {
+    "schema_version": "1.0.0",
+    "generated_at": "2026-08-28T09:56:23.833706+00:00",
+    "git_sha": "87c0ec6",
+    "python": "3.12.13",
+    "platform": "macOS-26.6.2-arm64-arm-64bit",
+    "seeds": [
+      11,
+      23,
+      37
+    ],
+    "command": "python backend/experiments/run_privacy_audit.py"
+  },
+  "experiment": "privacy_audit",
+  "question": "Do our own red-team generators leak the real fraud rows they were fitted on, and does the synthetic corpus transfer sensitive attributes?",
+  "protocol": {
+    "n_real_fraud": 400,
+    "train_members": 90,
+    "synth_budget": 750,
+    "membership_attack": "negative distance to nearest synthetic row, AUC over members vs held-out non-members",
+    "attribute_attack": "train on synthetic, predict amount>median(train) on real held-out rows",
+    "attribute_features": [
+      "hour_sin",
+      "hour_cos",
+      "mcc_num",
+      "entry_mode_code",
+      "velocity_5m",
+      "velocity_1h",
+      "seq_index",
+      "log_gap_prev",
+      "device_customer_count",
+      "ip_customer_count",
+      "merchant_customer_count",
+      "customer_device_count"
+    ],
+    "seeds": [
+      11,
+      23,
+      37
+    ]
+  },
+  "summary": [
+    {
+      "generator": "A1_marginal_generator",
+      "mean_membership_inference_auc": 0.598017,
+      "max_membership_inference_auc": 0.693441,
+      "per_seed_membership_inference_auc": [
+        0.584158,
+        0.693441,
+        0.516452
+      ],
+      "mean_exact_duplicate_share": 0.0,
+      "mean_attribute_inference_lift": -0.063441,
+      "per_seed_attribute_inference_lift": [
+        -0.048387,
+        -0.112903,
+        -0.029032
+      ],
+      "worst_risk_membership_inference": "medium",
+      "worst_risk_duplication": "low"
+    },
+    {
+      "generator": "A2_joint_behavioural_generator",
+      "mean_membership_inference_auc": 0.564528,
+      "max_membership_inference_auc": 0.652975,
+      "per_seed_membership_inference_auc": [
+        0.58086,
+        0.459749,
+        0.652975
+      ],
+      "mean_exact_duplicate_share": 0.0,
+      "mean_attribute_inference_lift": -0.047312,
+      "per_seed_attribute_inference_lift": [
+        -0.03871,
+        -0.090323,
+        -0.012903
+      ],
+      "worst_risk_membership_inference": "medium",
+      "worst_risk_duplication": "low"
+    }
+  ],
+  "per_seed": [
+    {
+      "seed": 11,
+      "n_train_members": 90,
+      "n_holdout": 310,
+      "generators": [
+        {
+          "generator": "A1_marginal_generator",
+          "exact_duplicate_share": 0.0,
+          "distance_to_closest_real_median": 3.149074,
+          "distance_to_closest_real_p05": 2.132097,
+          "identical_row_share": 0.0,
+          "membership_inference_auc": 0.584158,
+          "risk": {
+            "duplication": "low",
+            "membership_inference": "low"
+          },
+          "reading": "membership_inference_auc near 0.50 means the attack cannot distinguish training rows from held-out rows. Distance-to-closest-real near zero means near-verbatim copying even when exact duplicates are absent.",
+          "boundary": "Small samples, one attack family, no differential privacy guarantee. A low score here is evidence of no detectable leakage at this sample size, not proof of privacy.",
+          "attribute_inference": {
+            "accuracy": 0.480645,
+            "majority_baseline": 0.529032,
+            "lift": -0.048387
+          },
+          "attribute_inference_note": "Dual-use. Lift is measured over the majority-class baseline on real held-out rows, using non-amount features only. High lift is simultaneously evidence of utility and of transferred real structure.",
+          "n_synth": 750
+        },
+        {
+          "generator": "A2_joint_behavioural_generator",
+          "exact_duplicate_share": 0.0,
+          "distance_to_closest_real_median": 3.269238,
+          "distance_to_closest_real_p05": 2.178717,
+          "identical_row_share": 0.0,
+          "membership_inference_auc": 0.58086,
+          "risk": {
+            "duplication": "low",
+            "membership_inference": "low"
+          },
+          "reading": "membership_inference_auc near 0.50 means the attack cannot distinguish training rows from held-out rows. Distance-to-closest-real near zero means near-verbatim copying even when exact duplicates are absent.",
+          "boundary": "Small samples, one attack family, no differential privacy guarantee. A low score here is evidence of no detectable leakage at this sample size, not proof of privacy.",
+          "attribute_inference": {
+            "accuracy": 0.490323,
+            "majority_baseline": 0.529032,
+            "lift": -0.03871
+          },
+          "attribute_inference_note": "Dual-use. Lift is measured over the majority-class baseline on real held-out rows, using non-amount features only. High lift is simultaneously evidence of utility and of transferred real structure.",
+          "n_synth": 750
+        }
+      ]
+    },
+    {
+      "seed": 23,
+      "n_train_members": 90,
+      "n_holdout": 310,
+      "generators": [
+        {
+          "generator": "A1_marginal_generator",
+          "exact_duplicate_share": 0.0,
+          "distance_to_closest_real_median": 4.053746,
+          "distance_to_closest_real_p05": 3.521209,
+          "identical_row_share": 0.0,
+          "membership_inference_auc": 0.693441,
+          "risk": {
+            "duplication": "low",
+            "membership_inference": "medium"
+          },
+          "reading": "membership_inference_auc near 0.50 means the attack cannot distinguish training rows from held-out rows. Distance-to-closest-real near zero means near-verbatim copying even when exact duplicates are absent.",
+          "boundary": "Small samples, one attack family, no differential privacy guarantee. A low score here is evidence of no detectable leakage at this sample size, not proof of privacy.",
+          "attribute_inference": {
+            "accuracy": 0.5,
+            "majority_baseline": 0.612903,
+            "lift": -0.112903
+          },
+          "attribute_inference_note": "Dual-use. Lift is measured over the majority-class baseline on real held-out rows, using non-amount features only. High lift is simultaneously evidence of utility and of transferred real structure.",
+          "n_synth": 750
+        },
+        {
+          "generator": "A2_joint_behavioural_generator",
+          "exact_duplicate_share": 0.0,
+          "distance_to_closest_real_median": 3.82096,
+          "distance_to_closest_real_p05": 2.470117,
+          "identical_row_share": 0.0,
+          "membership_inference_auc": 0.459749,
+          "risk": {
+            "duplication": "low",
+            "membership_inference": "low"
+          },
+          "reading": "membership_inference_auc near 0.50 means the attack cannot distinguish training rows from held-out rows. Distance-to-closest-real near zero means near-verbatim copying even when exact duplicates are absent.",
+          "boundary": "Small samples, one attack family, no differential privacy guarantee. A low score here is evidence of no detectable leakage at this sample size, not proof of privacy.",
+          "attribute_inference": {
+            "accuracy": 0.522581,
+            "majority_baseline": 0.612903,
+            "lift": -0.090323
+          },
+          "attribute_inference_note": "Dual-use. Lift is measured over the majority-class baseline on real held-out rows, using non-amount features only. High lift is simultaneously evidence of utility and of transferred real structure.",
+          "n_synth": 750
+        }
+      ]
+    },
+    {
+      "seed": 37,
+      "n_train_members": 90,
+      "n_holdout": 310,
+      "generators": [
+        {
+          "generator": "A1_marginal_generator",
+          "exact_duplicate_share": 0.0,
+          "distance_to_closest_real_median": 7.407483,
+          "distance_to_closest_real_p05": 7.01576,
+          "identical_row_share": 0.0,
+          "membership_inference_auc": 0.516452,
+          "risk": {
+            "duplication": "low",
+            "membership_inference": "low"
+          },
+          "reading": "membership_inference_auc near 0.50 means the attack cannot distinguish training rows from held-out rows. Distance-to-closest-real near zero means near-verbatim copying even when exact duplicates are absent.",
+          "boundary": "Small samples, one attack family, no differential privacy guarantee. A low score here is evidence of no detectable leakage at this sample size, not proof of privacy.",
+          "attribute_inference": {
+            "accuracy": 0.5,
+            "majority_baseline": 0.529032,
+            "lift": -0.029032
+          },
+          "attribute_inference_note": "Dual-use. Lift is measured over the majority-class baseline on real held-out rows, using non-amount features only. High lift is simultaneously evidence of utility and of transferred real structure.",
+          "n_synth": 750
+        },
+        {
+          "generator": "A2_joint_behavioural_generator",
+          "exact_duplicate_share": 0.0,
+          "distance_to_closest_real_median": 3.012942,
+          "distance_to_closest_real_p05": 1.680636,
+          "identical_row_share": 0.0,
+          "membership_inference_auc": 0.652975,
+          "risk": {
+            "duplication": "low",
+            "membership_inference": "medium"
+          },
+          "reading": "membership_inference_auc near 0.50 means the attack cannot distinguish training rows from held-out rows. Distance-to-closest-real near zero means near-verbatim copying even when exact duplicates are absent.",
+          "boundary": "Small samples, one attack family, no differential privacy guarantee. A low score here is evidence of no detectable leakage at this sample size, not proof of privacy.",
+          "attribute_inference": {
+            "accuracy": 0.516129,
+            "majority_baseline": 0.529032,
+            "lift": -0.012903
+          },
+          "attribute_inference_note": "Dual-use. Lift is measured over the majority-class baseline on real held-out rows, using non-amount features only. High lift is simultaneously evidence of utility and of transferred real structure.",
+          "n_synth": 750
+        }
+      ]
+    }
+  ],
+  "reading": "Membership AUC near 0.50 means the attack cannot separate training rows from held-out rows at this sample size. Both generators land ABOVE 0.55 here, which is a weak but real membership signal, so both are labelled medium risk. Attribute-inference lift is negative for both, so the synthetic corpus does not transfer the sensitive attribute once amount-derived features are removed.",
+  "boundaries": [
+    "No differential privacy guarantee is claimed and no epsilon is reported.",
+    "One membership-inference attack family (nearest-neighbour distance) only.",
+    "Small samples: 90 training members per seed, 3 seeds.",
+    "worst_risk_* fields are a MAX across seeds and can be set by a single seed; the mean and every per-seed value are published alongside.",
+    "Attribute-inference lift is dual-use and is not presented as a benefit. Measured lift is NEGATIVE for both generators here, so no transfer of the sensitive attribute is claimed.",
+    "A previous run of this attack included amount-derived features and reported lift 0.5 for the joint generator. That attack was circular (predicting amount from amount). The number is withdrawn.",
+    "Membership-inference AUC lands in the 0.56-0.60 range, i.e. a weak but non-zero signal, and is labelled medium risk rather than low. It is not dismissed.",
+    "Risk bands (duplication 0.01/0.05, membership 0.20/0.40 on |auc-0.5|*2) are our own convention, not a regulatory standard."
+  ]
+}

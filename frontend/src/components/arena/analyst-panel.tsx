@@ -59,24 +59,24 @@ export function AnalystPanel({ getStats }: { getStats: () => AnalystStats }) {
   }, [getStats]);
 
   return (
-    <Card className="flex min-h-0 flex-col border-zinc-800 bg-zinc-950/60">
+    <Card className="flex min-h-0 flex-col border-border bg-surface-1">
       <CardHeader className="flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm">AI Field Notes</CardTitle>
+        <CardTitle className="type-ui text-sm">AI Field Notes</CardTitle>
         <Button
           size="sm"
           variant="outline"
           disabled={busy}
           onClick={() => (busy ? abortRef.current?.abort() : void run())}
-          className="h-7 border-zinc-700 px-2 font-mono text-[10px] text-zinc-300 hover:bg-zinc-800"
+          className="type-ui h-7 rounded-[var(--r-md)] border-border-hi px-2 text-[10px] text-text-dim hover:bg-surface-2"
         >
           {busy ? "STOP" : "SUMMARIZE FIGHT"}
         </Button>
       </CardHeader>
       <CardContent className="min-h-0 flex-1 overflow-y-auto">
         {text ? (
-          <p className="whitespace-pre-wrap text-[11px] leading-relaxed text-zinc-300">{text}</p>
+          <p className="type-ui whitespace-pre-wrap text-[11px] leading-relaxed text-text-dim">{text}</p>
         ) : (
-          <p className="text-[11px] text-muted-foreground">
+          <p className="type-ui text-[11px] text-text-dim">
             Streams a fraud-ops read of the current session — cost matrix, decision mix,
             and what the defense layers are doing — from the same model that plays the attacker.
           </p>

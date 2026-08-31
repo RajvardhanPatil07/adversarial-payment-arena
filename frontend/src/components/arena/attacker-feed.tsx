@@ -46,10 +46,10 @@ function money(n: number): string {
 function PayloadCard({ row }: { row: PayloadRow }) {
   const p = row.payload;
   return (
-    <div className="rounded-md border border-l-2 border-l-amber-500 bg-amber-500/5 p-2 font-mono text-[10.5px] leading-relaxed text-muted-foreground">
+    <div className="type-num rounded-[var(--r-md)] border border-l-2 border-l-red bg-red/5 p-2 text-[10.5px] leading-relaxed text-text-dim">
       <div className="flex items-center justify-between">
-        <span className="font-semibold text-amber-400">{p.merchant_id.replace("MERCH_", "")}</span>
-        <span className="text-foreground">{money(p.amount)}</span>
+        <span className="font-semibold text-red">{p.merchant_id.replace("MERCH_", "")}</span>
+        <span className="text-text">{money(p.amount)}</span>
       </div>
       <div className="mt-0.5 flex flex-wrap gap-x-3">
         <span>{p.customer_id}</span>
@@ -57,7 +57,7 @@ function PayloadCard({ row }: { row: PayloadRow }) {
         <span>3DS:{p["3ds_status"]}</span>
         <span>mcc {p.mcc}</span>
         {p.stolen_resource ? (
-          <span className="text-red-400">⚠ {p.stolen_resource}</span>
+          <span className="text-fail">⚠ {p.stolen_resource}</span>
         ) : null}
       </div>
     </div>
@@ -74,11 +74,11 @@ export function AttackerFeed({
   checks: CheckRow[];
 }) {
   return (
-    <Card className="flex min-h-0 flex-1 flex-col border-zinc-800 bg-zinc-950/60">
+    <Card className="flex min-h-0 flex-1 flex-col border-border bg-surface-1">
       <CardHeader className="pb-2">
-        <CardTitle className="flex items-center gap-2 text-sm">
+        <CardTitle className="type-ui flex items-center gap-2 text-sm">
           Attacker Stream
-          <Badge variant="outline" className="font-mono text-[9px] text-red-400 border-red-900">
+          <Badge variant="outline" className="type-ui text-[9px] text-red border-red/50">
             LLM red team
           </Badge>
         </CardTitle>
@@ -86,11 +86,11 @@ export function AttackerFeed({
       <CardContent className="min-h-0 flex-1 overflow-y-auto pr-1">
         <Tabs defaultValue="stream" className="flex h-full flex-col gap-2">
           <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="stream" className="text-xs">Stream</TabsTrigger>
-            <TabsTrigger value="gate" className="text-xs">
+            <TabsTrigger value="stream" className="type-ui text-xs">Stream</TabsTrigger>
+            <TabsTrigger value="gate" className="type-ui text-xs">
               Gate Verdicts
               {checks.length > 0 && (
-                <span className="ml-1 text-[9px] text-red-400">
+                <span className="type-num ml-1 text-[9px] text-red">
                   {checks.filter((c) => !c.ok).length}✗
                 </span>
               )}
@@ -99,28 +99,28 @@ export function AttackerFeed({
 
           <TabsContent value="stream" className="min-h-0 flex-1 space-y-2 overflow-y-auto pr-1">
             {thoughts.length === 0 && payloads.length === 0 && (
-              <p className="pt-8 text-center text-xs text-muted-foreground">
+              <p className="type-ui pt-8 text-center text-xs text-text-dim">
                 No campaign running. Pick an attack and press LAUNCH.
               </p>
             )}
             {thoughts.map((t) => (
               <div
                 key={`t-${t.id}`}
-                className={`rounded-md border p-2 text-[11px] leading-snug ${
+                className={`type-ui rounded-[var(--r-md)] border p-2 text-[11px] leading-snug ${
                   t.role === "PLANNER"
-                    ? "border-violet-900 bg-violet-500/10 text-violet-200"
+                    ? "border-red/50 bg-red-dim text-text"
                     : t.role === "SYSTEM"
-                      ? "border-amber-900 bg-amber-500/10 text-amber-200"
-                      : "border-zinc-800 bg-zinc-900/60 text-zinc-300"
+                      ? "border-warn/50 bg-warn/10 text-text"
+                      : "border-border bg-surface-2 text-text-dim"
                 }`}
               >
                 <span
-                  className={`mr-1.5 font-mono text-[9px] font-bold ${
+                  className={`type-num mr-1.5 text-[9px] font-bold ${
                     t.role === "PLANNER"
-                      ? "text-violet-400"
+                      ? "text-red"
                       : t.role === "SYSTEM"
-                        ? "text-amber-400"
-                        : "text-red-400"
+                        ? "text-warn"
+                        : "text-red"
                   }`}
                 >
                   {t.role}
@@ -136,18 +136,18 @@ export function AttackerFeed({
 
           <TabsContent value="gate" className="min-h-0 flex-1 space-y-1.5 overflow-y-auto pr-1">
             {checks.length === 0 && (
-              <p className="pt-8 text-center text-xs text-muted-foreground">
+              <p className="type-ui pt-8 text-center text-xs text-text-dim">
                 Gate verdicts will appear here.
               </p>
             )}
             {checks.slice().reverse().map((c) => (
               <div
                 key={`c-${c.id}`}
-                className={`flex items-center justify-between rounded border px-2 py-1.5 font-mono text-[10.5px] ${
-                  c.ok ? "border-emerald-900 bg-emerald-500/5" : "border-red-900 bg-red-500/10"
+                className={`type-num flex items-center justify-between rounded-[var(--r-sm)] border px-2 py-1.5 text-[10.5px] ${
+                  c.ok ? "border-blue/50 bg-blue-dim" : "border-red/50 bg-red-dim"
                 }`}
               >
-                <span className="text-muted-foreground">
+                <span className="text-text-dim">
                   txn {c.txn ?? "—"} · attempt {c.attempt ?? "—"}
                 </span>
                 <Badge variant={REASON_STYLE[c.reason] ?? "outline"} className="text-[9px]">

@@ -1,0 +1,178 @@
+{
+  "provenance": {
+    "schema_version": "1.0.0",
+    "generated_at": "2026-08-30T10:56:19.931964+00:00",
+    "git_sha": "52061f0",
+    "python": "3.12.13",
+    "platform": "macOS-26.6.2-arm64-arm-64bit",
+    "seeds": [
+      11,
+      23,
+      37
+    ],
+    "command": "python backend/experiments/run_transfer_ablation.py"
+  },
+  "cost_model": {
+    "avg_fraud_amount_inr": 18500.0,
+    "recovery_rate_on_declined_fraud": 1.0,
+    "chargeback_admin_inr": 1200.0,
+    "avg_legit_amount_inr": 2400.0,
+    "interchange_margin": 0.012,
+    "insult_support_cost_inr": 210.0,
+    "insult_churn_probability": 0.019,
+    "customer_lifetime_value_inr": 9800.0,
+    "manual_review_cost_inr": 95.0,
+    "derived": {
+      "insult_cost_per_false_positive_inr": 425.0,
+      "loss_per_false_negative_inr": 19700.0,
+      "value_per_true_positive_inr": 18500.0
+    }
+  },
+  "at_production_prevalence": {
+    "counts": {
+      "tp": 12928,
+      "fp": 13818,
+      "fn": 72,
+      "tn": 973182
+    },
+    "fraud_prevented_inr": 239168000.0,
+    "fraud_lost_inr": 1418400.0,
+    "insult_cost_inr": 5872650.0,
+    "review_cost_inr": 2540870.0,
+    "net_benefit_inr": 229336080.0,
+    "insult_share_of_total_cost": 0.5973,
+    "assumptions": {
+      "avg_fraud_amount_inr": 18500.0,
+      "recovery_rate_on_declined_fraud": 1.0,
+      "chargeback_admin_inr": 1200.0,
+      "avg_legit_amount_inr": 2400.0,
+      "interchange_margin": 0.012,
+      "insult_support_cost_inr": 210.0,
+      "insult_churn_probability": 0.019,
+      "customer_lifetime_value_inr": 9800.0,
+      "manual_review_cost_inr": 95.0,
+      "derived": {
+        "insult_cost_per_false_positive_inr": 425.0,
+        "loss_per_false_negative_inr": 19700.0,
+        "value_per_true_positive_inr": 18500.0
+      }
+    },
+    "operating_point": {
+      "recall": 0.9944666666666667,
+      "fpr": 0.014,
+      "prevalence": 0.013,
+      "volume": 1000000
+    }
+  },
+  "arms_priced": {
+    "A0_baseline": {
+      "counts": {
+        "tp": 12942,
+        "fp": 14279,
+        "fn": 58,
+        "tn": 972721
+      },
+      "fraud_prevented_inr": 239427000.0,
+      "fraud_lost_inr": 1142600.0,
+      "insult_cost_inr": 6068575.0,
+      "review_cost_inr": 2585995.0,
+      "net_benefit_inr": 229629830.0,
+      "insult_share_of_total_cost": 0.6194,
+      "assumptions": {
+        "avg_fraud_amount_inr": 18500.0,
+        "recovery_rate_on_declined_fraud": 1.0,
+        "chargeback_admin_inr": 1200.0,
+        "avg_legit_amount_inr": 2400.0,
+        "interchange_margin": 0.012,
+        "insult_support_cost_inr": 210.0,
+        "insult_churn_probability": 0.019,
+        "customer_lifetime_value_inr": 9800.0,
+        "manual_review_cost_inr": 95.0,
+        "derived": {
+          "insult_cost_per_false_positive_inr": 425.0,
+          "loss_per_false_negative_inr": 19700.0,
+          "value_per_true_positive_inr": 18500.0
+        }
+      },
+      "operating_point": {
+        "recall": 0.9955666666666666,
+        "fpr": 0.014466666666666664,
+        "prevalence": 0.013,
+        "volume": 1000000
+      }
+    },
+    "A1_independent_marginal": {
+      "counts": {
+        "tp": 12928,
+        "fp": 13588,
+        "fn": 72,
+        "tn": 973412
+      },
+      "fraud_prevented_inr": 239168000.0,
+      "fraud_lost_inr": 1418400.0,
+      "insult_cost_inr": 5774900.0,
+      "review_cost_inr": 2519020.0,
+      "net_benefit_inr": 229455680.0,
+      "insult_share_of_total_cost": 0.5946,
+      "assumptions": {
+        "avg_fraud_amount_inr": 18500.0,
+        "recovery_rate_on_declined_fraud": 1.0,
+        "chargeback_admin_inr": 1200.0,
+        "avg_legit_amount_inr": 2400.0,
+        "interchange_margin": 0.012,
+        "insult_support_cost_inr": 210.0,
+        "insult_churn_probability": 0.019,
+        "customer_lifetime_value_inr": 9800.0,
+        "manual_review_cost_inr": 95.0,
+        "derived": {
+          "insult_cost_per_false_positive_inr": 425.0,
+          "loss_per_false_negative_inr": 19700.0,
+          "value_per_true_positive_inr": 18500.0
+        }
+      },
+      "operating_point": {
+        "recall": 0.9944666666666667,
+        "fpr": 0.013766666666666665,
+        "prevalence": 0.013,
+        "volume": 1000000
+      }
+    },
+    "A2_gaussian_copula": {
+      "counts": {
+        "tp": 12928,
+        "fp": 13818,
+        "fn": 72,
+        "tn": 973182
+      },
+      "fraud_prevented_inr": 239168000.0,
+      "fraud_lost_inr": 1418400.0,
+      "insult_cost_inr": 5872650.0,
+      "review_cost_inr": 2540870.0,
+      "net_benefit_inr": 229336080.0,
+      "insult_share_of_total_cost": 0.5973,
+      "assumptions": {
+        "avg_fraud_amount_inr": 18500.0,
+        "recovery_rate_on_declined_fraud": 1.0,
+        "chargeback_admin_inr": 1200.0,
+        "avg_legit_amount_inr": 2400.0,
+        "interchange_margin": 0.012,
+        "insult_support_cost_inr": 210.0,
+        "insult_churn_probability": 0.019,
+        "customer_lifetime_value_inr": 9800.0,
+        "manual_review_cost_inr": 95.0,
+        "derived": {
+          "insult_cost_per_false_positive_inr": 425.0,
+          "loss_per_false_negative_inr": 19700.0,
+          "value_per_true_positive_inr": 18500.0
+        }
+      },
+      "operating_point": {
+        "recall": 0.9944666666666667,
+        "fpr": 0.014,
+        "prevalence": 0.013,
+        "volume": 1000000
+      }
+    }
+  },
+  "note": "Insult cost is the expected INR cost of wrongly declining a legitimate payment: lost margin plus support contact plus probability-weighted churn. At a 1% false-positive rate it is the dominant cost term."
+}

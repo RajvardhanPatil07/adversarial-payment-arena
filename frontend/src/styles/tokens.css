@@ -1,0 +1,48 @@
+/* Design tokens — the single source of every colour, radius and spacing value
+ * in the judge-facing UI. Declared verbatim from the design system spec.
+ *
+ * Two accent hues only:
+ *   --red  == attacker / red-team / loss
+ *   --blue == defender / blue-team / fidelity gate
+ * That mapping never breaks on any page.
+ *
+ * Imported AFTER globals.css (see app/layout.tsx) so these values win over the
+ * inherited shadcn `.dark` palette for the one property both files declare
+ * (--border). Everything else here is additive.
+ */
+
+:root {
+  --bg:#08090C; --surface-1:#0E1015; --surface-2:#14171F; --surface-3:#1B1F2A;
+  --border:#232834; --border-hi:#333A4A;
+  --text:#E8EAF0; --text-dim:#98A0B3; --text-faint:#5C647A;
+  --red:#FF5C5C; --red-dim:#3A1D22;      /* ATTACKER / escapes / cost */
+  --blue:#4DA3FF; --blue-dim:#14263D;    /* DEFENDER / detections / gate */
+  --pass:#3FD68C; --warn:#FFC145; --fail:#FF5C5C;
+  --font-ui:'Inter',system-ui,sans-serif;
+  --font-mono:'JetBrains Mono',ui-monospace,monospace;
+  --r-sm:6px; --r-md:10px; --r-lg:16px;
+  --sp-1:4px; --sp-2:8px; --sp-3:12px; --sp-4:16px;
+  --sp-6:24px; --sp-8:32px; --sp-12:48px; --sp-16:64px;
+}
+
+/* ---------------------------------------------------------------------------
+ * ACCESSIBILITY CONSTRAINT ON --text-faint  (measured, not asserted)
+ *
+ * Contrast ratios of --text-faint (#5C647A), computed per WCAG 2.1 relative
+ * luminance:
+ *     on --bg        (#08090C)  3.37 : 1
+ *     on --surface-1 (#0E1015)  3.22 : 1
+ *     on --surface-2 (#14171F)  3.04 : 1
+ *
+ * All three clear AA for large-scale text and non-text UI (>= 3.0:1) but FAIL
+ * AA for normal-size body text (>= 4.5:1). The token value is fixed by the
+ * design system, so it is not redefined here. Instead the usage rule is:
+ *
+ *   --text-faint  is for non-essential decoration only -- never for a label,
+ *                 a value, or any sentence a judge needs to read.
+ *   --text-dim    (#98A0B3, 7.60:1 on --bg) carries all small informational
+ *                 text: eyebrows, table labels, captions, footnotes.
+ *
+ * Phase 1 therefore renders every small label in --text-dim. Comparable
+ * ratios: --text 16.55:1, --blue 7.58:1, --red 6.58:1 on --bg.
+ * ------------------------------------------------------------------------- */

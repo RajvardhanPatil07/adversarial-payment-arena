@@ -48,6 +48,188 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
+/* ------------------------------------------------------------------------- *
+ * Judge-UI design tokens -> Tailwind v4 utilities.
+ *
+ * This project has no tailwind.config.* (Tailwind v4 is CSS-first), so the
+ * bridge lives here, in the Tailwind entry file. Values are `var()`
+ * references, and `@theme inline` emits them without re-wrapping, so every
+ * utility late-binds to whatever `src/styles/tokens.css` declares. tokens.css
+ * stays the single source of truth; nothing below restates a literal value.
+ *
+ * Utility names map 1:1 onto token names, so `bg-surface-2` is grep-traceable
+ * to `--surface-2`. Radii are referenced directly as `rounded-[var(--r-md)]`
+ * rather than rebinding Tailwind's --radius-* namespace, which the existing
+ * arena components already depend on.
+ *
+ * Spacing needs no bridge: Tailwind's default 4px scale is value-identical to
+ * the --sp-* tokens (1=4, 2=8, 3=12, 4=16, 6=24, 8=32, 12=48, 16=64), so
+ * `p-4` IS `--sp-4`. No arbitrary pixel values are ever required.
+ * ------------------------------------------------------------------------- */
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface-1: var(--surface-1);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+
+  --color-border: var(--border);
+  --color-border-hi: var(--border-hi);
+
+  --color-text: var(--text);
+  --color-text-dim: var(--text-dim);
+  --color-text-faint: var(--text-faint);
+
+  /* Exactly two accent hues. Red = attacker/loss, blue = defender/gate. */
+  --color-red: var(--red);
+  --color-red-dim: var(--red-dim);
+  --color-blue: var(--blue);
+  --color-blue-dim: var(--blue-dim);
+
+  --color-pass: var(--pass);
+  --color-warn: var(--warn);
+  --color-fail: var(--fail);
+}
+
+/* Typography rule: mono == measured, sans == asserted.
+ *
+ * Fonts are deliberately NOT bridged into @theme. `--font-ui` / `--font-mono`
+ * are already token names, so re-declaring them here would collide with
+ * tokens.css, and next/font emits a hashed family name that the token's
+ * literal 'Inter' cannot resolve on its own. Instead the next/font variable is
+ * COMPOSED in front of the token stack, so the token remains the declared
+ * fallback and no literal value is restated.
+ *
+ * `.type-num` is the only way a measured number should be rendered: it pins
+ * tabular-nums in one place so columns of figures always align.
+ */
+@layer base {
+  html {
+    font-family: var(--font-inter), var(--font-ui);
+  }
+}
+
+@layer components {
+  .type-num {
+    font-family: var(--font-jetbrains-mono), var(--font-mono);
+    font-variant-numeric: tabular-nums;
+  }
+  .type-ui {
+    font-family: var(--font-inter), var(--font-ui);
+  }
+}
+
+/* ------------------------------------------------------------------------- *
+ * Judge-UI base layer.
+ *
+ * The inherited shadcn dark palette is remapped onto the tokens rather than
+ * left to run in parallel: two competing greys on one page is exactly the
+ * inconsistency the design system exists to prevent. These are var()
+ * references only -- no literal colour is introduced here.
+ * ------------------------------------------------------------------------- */
+@layer base {
+  .dark {
+    --background: var(--bg);
+    --foreground: var(--text);
+    --card: var(--surface-1);
+    --card-foreground: var(--text);
+    --popover: var(--surface-2);
+    --popover-foreground: var(--text);
+    --muted: var(--surface-2);
+    --muted-foreground: var(--text-dim);
+    --input: var(--border-hi);
+    --ring: var(--blue);
+    /* --border is intentionally absent: tokens.css already declares it on
+     * :root, and re-declaring it as var(--border) here would be a var() cycle.
+     * tokens.css is imported last, so its value wins at equal specificity. */
+  }
+
+  /* Max prose measure. Applied as a utility (`measure`) rather than to every
+   * <p>, so tables and charts are never constrained by it. */
+  .measure {
+    max-width: 68ch;
+  }
+
+  /* Keyboard access is a scored requirement, not a nicety: a visible ring on
+   * every focusable element, in the defender hue. */
+  :focus-visible {
+    outline: 2px solid var(--blue);
+    outline-offset: 2px;
+    border-radius: var(--r-sm);
+  }
+}
+
+/* One subtle scroll-triggered reveal per section. The end state is the
+ * default, so content is legible with JS disabled and screenshots are never
+ * captured mid-transition. */
+@layer components {
+  .reveal {
+    opacity: 1;
+    transform: none;
+    transition:
+      opacity 240ms ease-out,
+      transform 240ms ease-out;
+  }
+  .reveal[data-reveal="pending"] {
+    opacity: 0;
+    transform: translateY(var(--sp-2));
+  }
+
+  /* LoopDiagram stroke draw-in. Every path normalises its own length with
+   * pathLength="1" (the markup supplies it), so dasharray/dashoffset are unit
+   * fractions here and never conflict with the dashed rejected path, whose
+   * dashes are drawn IN CSS rather than as a competing SVG attribute. The
+   * static end state is the default: the transition only runs when [data-drawn]
+   * flips, once, on intersection. Solid paths reveal by dashoffset; dashed
+   * paths (rejected, return arc) keep offset 0 and fade in, so their dashes
+   * never march. */
+  .loop-line {
+    stroke-dasharray: 1;
+    stroke-dashoffset: 0;
+    opacity: 1;
+    transition:
+      stroke-dashoffset 700ms ease-out,
+      opacity 700ms ease-out;
+  }
+  .loop-line[data-drawn="false"] {
+    stroke-dashoffset: 1;
+  }
+  .loop-line-rejected {
+    stroke-dasharray: 0.06 0.06;
+  }
+  .loop-line-return {
+    stroke-dasharray: 0.003 0.012;
+  }
+  .loop-line-rejected[data-drawn="false"],
+  .loop-line-return[data-drawn="false"] {
+    stroke-dashoffset: 0;
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal,
+  .reveal[data-reveal="pending"] {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+  .loop-line,
+  .loop-line-rejected,
+  .loop-line-return {
+    stroke-dashoffset: 0 !important;
+    opacity: 1 !important;
+    transition: none;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
 :root {
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);

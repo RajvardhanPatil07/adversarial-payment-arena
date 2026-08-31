@@ -1,430 +1,470 @@
-"use client";
+import type { Metadata } from "next";
+
+import { ArtifactChip } from "@/components/evidence/artifact-chip";
+import { Boundary } from "@/components/evidence/boundary";
+import { Claim } from "@/components/evidence/claim";
+import { LatencyBudget } from "@/components/evidence/latency-budget";
+import { Reveal } from "@/components/evidence/reveal";
+import { Scissor } from "@/components/evidence/scissor";
+import { PageHeader } from "@/components/shell/page-header";
+import { loadArtifact } from "@/lib/artifacts";
+import { fmtInterval, fmtInr, fmtNum, fmtPct } from "@/lib/format";
+import { ROUTE } from "@/lib/site";
+
+const META = ROUTE["/evidence"];
+
+export const metadata: Metadata = {
+  title: "Evidence",
+  description: META.blurb,
+};
+
+const CL = "artifacts/closed_loop.json";
 
 /**
- * Evidence Ledger.
- *
- * This route exists to answer one question a judge will ask: which of these
- * numbers can I check? Every card reads from a generated artifact served by
- * /api/evidence, shows the boundary condition attached to the claim, and
- * prints the command that regenerates it.
- *
- * If the evidence set has not been generated, this page says so plainly rather
- * than rendering placeholder numbers.
+ * SECTION 1D: the explicit missing state. A failed validation renders this,
+ * naming the artifact and the exact missing field paths — never a fallback
+ * number, never a silent empty section.
  */
+function ArtifactUnavailable({ name, missing }: { name: string; missing: string[] }) {
+  return (
+    <div className="rounded-[var(--r-md)] border border-warn/40 bg-surface-1 p-4">
+      <p className="type-ui text-sm font-semibold text-warn">artifact unavailable</p>
+      <p className="type-ui measure mt-2 text-xs leading-relaxed text-text-dim">
+        <span className="type-num">{name}</span> failed validation. Missing:{" "}
+        <span className="type-num">{missing.join(", ")}</span>. Run{" "}
+        <code className="type-num">make reproduce</code> then{" "}
+        <code className="type-num">npm run snapshot:artifacts</code> and reload. This page
+        deliberately shows nothing rather than placeholder numbers.
+      </p>
+    </div>
+  );
+}
 
-import { useEffect, useState } from "react";
+export default async function EvidencePage() {
+  const [ledgerR, calibrationR, economicsR, latencyR, closedLoopR] = await Promise.all([
+    loadArtifact("claim_ledger"),
+    loadArtifact("calibration_audit"),
+    loadArtifact("economics"),
+    loadArtifact("latency"),
+    loadArtifact("closed_loop"),
+  ]);
 
-import { backendHttpUrl } from "@/lib/backend";
-import { HardeningLab } from "@/app/evidence/hardening-lab";
+  const ledger = ledgerR.ok ? ledgerR.data : null;
+  const calibration = calibrationR.ok ? calibrationR.data : null;
+  const economics = economicsR.ok ? economicsR.data : null;
+  const latency = latencyR.ok ? latencyR.data : null;
+  const closedLoop = closedLoopR.ok ? closedLoopR.data : null;
 
-// Resolved through lib/backend.ts so this page cannot drift onto a different
-// env var than the WebSocket dashboard (previously it read two of its own).
-const API_BASE = backendHttpUrl();
+  // -- Scissor wiring: mean real + synthetic recall per generation, both arms. --
+  const generations = closedLoop
+    ? Object.keys(closedLoop.aggregated["UNGATED_low_fidelity"]?.by_generation ?? {}).sort()
+    : [];
 
-type Interval = { mean: number; lo: number; hi: number; n?: number };
+  const realSeries = (armName: string): number[] | null => {
+    const arm = closedLoop?.aggregated[armName];
+    if (!arm) return null;
+    const series = generations.map((g) => arm.by_generation[g]?.recall_on_real_fraud.mean ?? null);
+    return series.every((v) => v !== null) ? (series as number[]) : null;
+  };
 
-type Summary = {
-  provenance?: { generated_at?: string; git_sha?: string; seeds?: number[] };
-  pinned_fpr?: number;
-  seeds?: number[];
-  baseline_recall?: Interval;
-  delta_recall_independent_marginal?: Interval;
-  delta_recall_gaussian_copula?: Interval;
-  c2st_independent_marginal?: Interval;
-  c2st_gaussian_copula?: Interval;
-  precision_at_production_prevalence?: Interval;
-  net_benefit_inr_at_production_prevalence?: number;
-  insult_share_of_total_cost?: number;
-  thesis?: string;
-};
+  /** Seed-mean recall on the loop's own synthetic attacks, per generation. */
+  const syntheticSeries = (armName: string): number[] | null => {
+    if (!closedLoop) return null;
+    const series = generations.map((_, gi) => {
+      const values = closedLoop.per_seed.map(
+        (s) =>
+          s.arms.find((a) => a.arm === armName)?.generations[gi]
+            ?.recall_on_synthetic_attacks ?? null,
+      );
+      return values.every((v) => v !== null)
+        ? (values as number[]).reduce((a, b) => a + b, 0) / values.length
+        : null;
+    });
+    return series.every((v) => v !== null) ? (series as number[]) : null;
+  };
 
-type Claim = {
-  claim: string;
-  artifact: string;
-  field: string;
-  derivation: string;
-  boundary: string;
-};
+  const ungatedReal = realSeries("UNGATED_low_fidelity");
+  const ungatedSynthetic = syntheticSeries("UNGATED_low_fidelity");
+  const gatedReal = realSeries("GATED_low_fidelity");
+  const gatedSynthetic = syntheticSeries("GATED_low_fidelity");
 
-type IndexEntry = {
-  name: string;
-  description: string;
-  available: boolean;
-  generated_at: string | null;
-  reproduce: string;
-};
+  // -- Calibration sweep rows, ordered by target FPR. --
+  const calibrationRows = calibration
+    ? Object.entries(calibration.aggregated)
+        .map(([key, row]) => ({ key, row }))
+        .sort((a, b) => a.row.target_fpr - b.row.target_fpr)
+    : [];
 
-const pct = (v?: number, digits = 1) =>
-  v === undefined || v === null || Number.isNaN(v) ? "--" : `${(v * 100).toFixed(digits)}%`;
-
-const signedPct = (v?: number, digits = 1) => {
-  if (v === undefined || v === null || Number.isNaN(v)) return "--";
-  const sign = v > 0 ? "+" : "";
-  return `${sign}${(v * 100).toFixed(digits)} pts`;
-};
-
-const num = (v?: number, digits = 3) =>
-  v === undefined || v === null || Number.isNaN(v) ? "--" : v.toFixed(digits);
-
-const inr = (v?: number) =>
-  v === undefined || v === null || Number.isNaN(v)
-    ? "--"
-    : new Intl.NumberFormat("en-IN", {
-        style: "currency",
-        currency: "INR",
-        maximumFractionDigits: 0,
-      }).format(v);
-
-const ci = (i?: Interval, fmt: (v?: number) => string = (v) => num(v)) =>
-  i ? `${fmt(i.mean)}  [${fmt(i.lo)}, ${fmt(i.hi)}]` : "--";
-
-const styles = {
-  page: {
-    minHeight: "100vh",
-    background: "#0b0f19",
-    color: "#e5e7eb",
-    padding: "40px 28px 80px",
-    fontFamily:
-      "ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
-  } as const,
-  shell: { maxWidth: 1180, margin: "0 auto" } as const,
-  eyebrow: {
-    fontSize: 12,
-    letterSpacing: "0.18em",
-    textTransform: "uppercase",
-    color: "#60a5fa",
-    marginBottom: 10,
-  } as const,
-  h1: { fontSize: 34, fontWeight: 700, margin: "0 0 12px", lineHeight: 1.15 } as const,
-  thesis: {
-    fontSize: 15,
-    lineHeight: 1.65,
-    color: "#cbd5e1",
-    maxWidth: 820,
-    borderLeft: "3px solid #2563eb",
-    paddingLeft: 16,
-    margin: "0 0 30px",
-  } as const,
-  grid: {
-    display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(255px, 1fr))",
-    gap: 16,
-    marginBottom: 34,
-  } as const,
-  card: {
-    background: "#111827",
-    border: "1px solid #1f2937",
-    borderRadius: 12,
-    padding: "18px 18px 16px",
-  } as const,
-  cardLabel: { fontSize: 12, color: "#94a3b8", marginBottom: 8, lineHeight: 1.4 } as const,
-  cardValue: { fontSize: 26, fontWeight: 700, letterSpacing: "-0.01em" } as const,
-  cardCi: { fontSize: 11.5, color: "#64748b", marginTop: 6, fontFamily: "ui-monospace, monospace" } as const,
-  cardNote: { fontSize: 11.5, color: "#94a3b8", marginTop: 10, lineHeight: 1.5 } as const,
-  h2: { fontSize: 20, fontWeight: 650, margin: "34px 0 6px" } as const,
-  sub: { fontSize: 13.5, color: "#94a3b8", margin: "0 0 16px", lineHeight: 1.6, maxWidth: 860 } as const,
-  table: { width: "100%", borderCollapse: "collapse", fontSize: 13 } as const,
-  th: {
-    textAlign: "left",
-    padding: "10px 12px",
-    borderBottom: "1px solid #1f2937",
-    color: "#94a3b8",
-    fontWeight: 600,
-    fontSize: 11.5,
-    letterSpacing: "0.06em",
-    textTransform: "uppercase",
-  } as const,
-  td: {
-    padding: "12px",
-    borderBottom: "1px solid #161e2e",
-    verticalAlign: "top",
-    lineHeight: 1.55,
-  } as const,
-  mono: { fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace", fontSize: 11.5 } as const,
-  code: {
-    display: "inline-block",
-    background: "#0f172a",
-    border: "1px solid #1e293b",
-    borderRadius: 6,
-    padding: "3px 8px",
-    fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
-    fontSize: 11.5,
-    color: "#93c5fd",
-  } as const,
-  warn: {
-    background: "#1c1917",
-    border: "1px solid #78350f",
-    borderRadius: 12,
-    padding: 20,
-    lineHeight: 1.65,
-    fontSize: 14,
-  } as const,
-  pill: (ok: boolean) =>
-    ({
-      display: "inline-block",
-      fontSize: 11,
-      fontWeight: 600,
-      padding: "2px 9px",
-      borderRadius: 999,
-      background: ok ? "#052e1a" : "#2a1113",
-      color: ok ? "#4ade80" : "#fca5a5",
-      border: `1px solid ${ok ? "#166534" : "#7f1d1d"}`,
-    } as const),
-};
-
-export default function EvidencePage() {
-  const [summary, setSummary] = useState<Summary | null>(null);
-  const [claims, setClaims] = useState<Claim[]>([]);
-  const [index, setIndex] = useState<IndexEntry[]>([]);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    async function load() {
-      try {
-        const indexRes = await fetch(`${API_BASE}/api/evidence/index`, { cache: "no-store" });
-        if (!indexRes.ok) throw new Error(`evidence index unavailable (${indexRes.status})`);
-        const indexJson = await indexRes.json();
-        if (cancelled) return;
-        setIndex(indexJson.artifacts ?? []);
-
-        const [summaryRes, claimsRes] = await Promise.all([
-          fetch(`${API_BASE}/api/evidence/summary`, { cache: "no-store" }),
-          fetch(`${API_BASE}/api/evidence/claims`, { cache: "no-store" }),
-        ]);
-
-        if (cancelled) return;
-        if (summaryRes.ok) setSummary(await summaryRes.json());
-        else
-          setError(
-            "The evidence set has not been generated yet. Run `make reproduce` to build it.",
-          );
-        if (claimsRes.ok) {
-          const claimsJson = await claimsRes.json();
-          setClaims(claimsJson.claims ?? []);
-        }
-      } catch (err) {
-        if (!cancelled) setError(err instanceof Error ? err.message : "failed to load evidence");
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    }
-
-    load();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  const deltaCopula = summary?.delta_recall_gaussian_copula;
-  const deltaIndependent = summary?.delta_recall_independent_marginal;
+  const headlineBudget = calibration?.protocol.headline_fpr ?? null;
+  const econCounts = economics?.at_production_prevalence.counts ?? null;
+  const econDerived = economics?.cost_model.derived ?? null;
+  const econOp = economics?.at_production_prevalence.operating_point ?? null;
+  const lat = latency?.overall ?? null;
 
   return (
-    <main style={styles.page}>
-      <div style={styles.shell}>
-        <div style={styles.eyebrow}>Evidence Ledger</div>
-        <h1 style={styles.h1}>Fidelity determines transfer</h1>
-        <p style={styles.thesis}>
-          {summary?.thesis ??
-            "Closing the red-team loop is not sufficient. Whether the loop improves real-world detection depends on the fidelity of the attack generator, and low-fidelity augmentation can measurably reduce recall on real fraud."}
+    <>
+      <PageHeader h1={META.h1} criterion={META.criterion} blurb={META.blurb} eyebrow="05" />
+
+      {/* The claim ledger: the spine of this page. */}
+      <section className="mx-auto w-full max-w-[1400px] px-4 py-12 md:px-6 md:py-16">
+        <h2 className="type-ui text-sm font-semibold tracking-tight text-text">The claim ledger</h2>
+        <p className="type-ui measure mt-3 text-sm leading-relaxed text-text-dim">
+          Every public claim, the artifact field that supports it, how the number was derived, and
+          the boundary beyond which it does not hold. The boundary column is mandatory — a claim
+          without a stated limit is marketing, not evidence.
         </p>
 
-        {loading && <p style={styles.sub}>Loading generated artifacts...</p>}
-
-        {!loading && error && (
-          <div style={styles.warn}>
-            <strong>Evidence not available.</strong>
-            <br />
-            {error}
-            <br />
-            <br />
-            This page deliberately shows nothing rather than placeholder numbers. Regenerate with{" "}
-            <span style={styles.code}>make reproduce</span> and reload.
+        {ledger ? (
+          <Reveal>
+            <div className="mt-6 overflow-x-auto rounded-[var(--r-md)] border border-border">
+              <table className="w-full min-w-[900px] text-left">
+                <thead>
+                  <tr className="border-b border-border bg-surface-2">
+                    <th className="type-ui px-4 py-2.5 text-[0.6875rem] uppercase tracking-[0.08em] text-text-dim">
+                      Claim
+                    </th>
+                    <th className="type-ui px-4 py-2.5 text-[0.6875rem] uppercase tracking-[0.08em] text-text-dim">
+                      Artifact · field
+                    </th>
+                    <th className="type-ui px-4 py-2.5 text-[0.6875rem] uppercase tracking-[0.08em] text-text-dim">
+                      Derivation
+                    </th>
+                    <th className="type-ui px-4 py-2.5 text-[0.6875rem] uppercase tracking-[0.08em] text-text-dim">
+                      Boundary
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {ledger.claims.map((c) => (
+                    <tr key={c.claim} className="border-b border-border align-top last:border-b-0">
+                      <td className="type-ui measure px-4 py-3 text-xs leading-relaxed text-text">
+                        {c.claim}
+                      </td>
+                      <td className="px-4 py-3">
+                        <ArtifactChip path={c.artifact} note={c.field} />
+                        <p className="type-num mt-1.5 text-[0.6875rem] leading-relaxed text-text-dim">
+                          {c.field}
+                        </p>
+                      </td>
+                      <td className="type-ui measure px-4 py-3 text-xs leading-relaxed text-text-dim">
+                        {c.derivation}
+                      </td>
+                      <td className="type-ui measure px-4 py-3 text-xs leading-relaxed text-warn">
+                        {c.boundary}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <p className="type-ui mt-3 text-xs text-text-faint">
+              {ledger.claims.length} claims · each row links to the raw JSON it is read from ·
+              regenerate the whole set with <code className="type-num">make reproduce</code>
+            </p>
+          </Reveal>
+        ) : (
+          <div className="mt-6">
+            <ArtifactUnavailable
+              name="claim_ledger.json"
+              missing={ledgerR.ok ? [] : ledgerR.missing}
+            />
           </div>
         )}
+      </section>
 
-        {summary && (
-          <>
-            <section style={styles.grid}>
-              <div style={styles.card}>
-                <div style={styles.cardLabel}>
-                  A2 Gaussian copula &mdash; change in recall on real fraud
-                </div>
-                <div
-                  style={{
-                    ...styles.cardValue,
-                    color: (deltaCopula?.mean ?? 0) >= 0 ? "#4ade80" : "#f87171",
-                  }}
-                >
-                  {signedPct(deltaCopula?.mean)}
-                </div>
-                <div style={styles.cardCi}>{ci(deltaCopula, (v) => signedPct(v))}</div>
-                <div style={styles.cardNote}>
-                  Versus the unaugmented baseline, at a false-positive rate pinned to{" "}
-                  {pct(summary.pinned_fpr, 2)} on a disjoint validation split.
-                </div>
-              </div>
-
-              <div style={styles.card}>
-                <div style={styles.cardLabel}>
-                  A1 independent marginals &mdash; change in recall on real fraud
-                </div>
-                <div
-                  style={{
-                    ...styles.cardValue,
-                    color: (deltaIndependent?.mean ?? 0) >= 0 ? "#4ade80" : "#f87171",
-                  }}
-                >
-                  {signedPct(deltaIndependent?.mean)}
-                </div>
-                <div style={styles.cardCi}>{ci(deltaIndependent, (v) => signedPct(v))}</div>
-                <div style={styles.cardNote}>
-                  The rule and template approach: correct marginals, destroyed joint structure.
-                </div>
-              </div>
-
-              <div style={styles.card}>
-                <div style={styles.cardLabel}>C2ST AUC &mdash; can real be told from synthetic?</div>
-                <div style={styles.cardValue}>{num(summary.c2st_gaussian_copula?.mean, 3)}</div>
-                <div style={styles.cardCi}>
-                  copula {ci(summary.c2st_gaussian_copula)} <br />
-                  independent {ci(summary.c2st_independent_marginal)}
-                </div>
-                <div style={styles.cardNote}>
-                  0.50 means indistinguishable from real fraud. 1.00 means trivially separable.
-                </div>
-              </div>
-
-              <div style={styles.card}>
-                <div style={styles.cardLabel}>
-                  Precision at production base rate (~1.3%)
-                </div>
-                <div style={styles.cardValue}>
-                  {pct(summary.precision_at_production_prevalence?.mean)}
-                </div>
-                <div style={styles.cardCi}>
-                  {ci(summary.precision_at_production_prevalence, (v) => pct(v))}
-                </div>
-                <div style={styles.cardNote}>
-                  The same detector, reported at a realistic base rate rather than laboratory
-                  prevalence. This number is the honest one.
-                </div>
-              </div>
-
-              <div style={styles.card}>
-                <div style={styles.cardLabel}>Net benefit per million authorisations</div>
-                <div style={styles.cardValue}>
-                  {inr(summary.net_benefit_inr_at_production_prevalence)}
-                </div>
-                <div style={styles.cardNote}>
-                  Fraud prevented, less fraud lost, less the insult cost of wrongly declining
-                  legitimate customers, less review cost.
-                </div>
-              </div>
-
-              <div style={styles.card}>
-                <div style={styles.cardLabel}>
-                  False positives as a share of total cost
-                </div>
-                <div style={styles.cardValue}>{pct(summary.insult_share_of_total_cost)}</div>
-                <div style={styles.cardNote}>
-                  At a 1% false-positive rate, wrongly declined legitimate payments are the
-                  single largest cost term — larger than the fraud losses that slip through.
-                  The asymmetric cost matrix is what keeps that term bounded. Most fraud demos
-                  price only the fraud they stopped.
-                </div>
-              </div>
-            </section>
-
-            <HardeningLab />
-
-            <h2 style={styles.h2}>Claim ledger</h2>
-            <p style={styles.sub}>
-              Every public claim, the artifact field that supports it, how it was derived, and the
-              boundary beyond which it does not hold. The boundary column is mandatory.
+      {/* Calibration audit: the anti-leakage sweep. */}
+      <section className="mx-auto w-full max-w-[1400px] px-4 pb-12 md:px-6 md:pb-16">
+        <Reveal>
+          <div className="rounded-[var(--r-lg)] border border-border bg-surface-1 p-6 md:p-8">
+            <h2 className="type-ui text-sm font-semibold tracking-tight text-text">
+              Calibration, audited without leakage
+            </h2>
+            <p className="type-ui measure mt-3 text-sm leading-relaxed text-text-dim">
+              The threshold is pinned on a legitimate validation split temporally disjoint from the
+              test split, because pinning a threshold on the rows used to report it converts a
+              measurement into a fit. The gap between target and realised FPR is then audited at
+              every budget, with bootstrap intervals.
             </p>
-            <table style={styles.table}>
-              <thead>
-                <tr>
-                  <th style={styles.th}>Claim</th>
-                  <th style={styles.th}>Artifact field</th>
-                  <th style={styles.th}>Derivation</th>
-                  <th style={styles.th}>Boundary</th>
-                </tr>
-              </thead>
-              <tbody>
-                {claims.map((claim) => (
-                  <tr key={claim.claim}>
-                    <td style={{ ...styles.td, fontWeight: 550 }}>{claim.claim}</td>
-                    <td style={{ ...styles.td, ...styles.mono, color: "#93c5fd" }}>
-                      {claim.artifact}
-                      <br />
-                      {claim.field}
-                    </td>
-                    <td style={{ ...styles.td, color: "#cbd5e1" }}>{claim.derivation}</td>
-                    <td style={{ ...styles.td, color: "#fcd34d" }}>{claim.boundary}</td>
-                  </tr>
-                ))}
-                {claims.length === 0 && (
-                  <tr>
-                    <td style={styles.td} colSpan={4}>
-                      No claim ledger generated yet.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </>
-        )}
 
-        {index.length > 0 && (
-          <>
-            <h2 style={styles.h2}>Artifacts and reproduction</h2>
-            <p style={styles.sub}>
-              Each artifact is a JSON file stamped with the git sha, seeds, Python version and the
-              command that produced it.
+            {calibration ? (
+              <div className="mt-6 overflow-x-auto rounded-[var(--r-md)] border border-border">
+                <table className="w-full min-w-[820px] text-left">
+                  <thead>
+                    <tr className="border-b border-border bg-surface-2">
+                      <th className="type-ui px-4 py-2.5 text-[0.6875rem] uppercase tracking-[0.08em] text-text-dim">
+                        Target FPR
+                      </th>
+                      <th className="type-ui px-4 py-2.5 text-[0.6875rem] uppercase tracking-[0.08em] text-text-dim">
+                        Realised test FPR
+                      </th>
+                      <th className="type-ui px-4 py-2.5 text-[0.6875rem] uppercase tracking-[0.08em] text-text-dim">
+                        Recall · held-out fraud
+                      </th>
+                      <th className="type-ui px-4 py-2.5 text-[0.6875rem] uppercase tracking-[0.08em] text-text-dim">
+                        Calibration gap
+                      </th>
+                      <th className="type-ui px-4 py-2.5 text-[0.6875rem] uppercase tracking-[0.08em] text-text-dim">
+                        Precision @ production prevalence
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {calibrationRows.map(({ key, row }) => {
+                      const isHeadline =
+                        headlineBudget !== null && row.target_fpr === headlineBudget;
+                      return (
+                        <tr
+                          key={key}
+                          className={`border-b border-border last:border-b-0 ${isHeadline ? "bg-blue-dim/30" : ""}`}
+                        >
+                          <td className="type-num px-4 py-2.5 text-sm text-text">
+                            {fmtPct(row.target_fpr)}
+                            {isHeadline && (
+                              <span className="type-num ml-2 text-[0.6875rem] text-blue">headline</span>
+                            )}
+                          </td>
+                          <td className="type-num px-4 py-2.5 text-sm text-text-dim">
+                            {fmtInterval(row.realised_test_fpr)}
+                          </td>
+                          <td className="type-num px-4 py-2.5 text-sm text-text">
+                            {fmtInterval(row.recall_on_held_out_fraud)}
+                          </td>
+                          <td className="type-num px-4 py-2.5 text-sm text-text-dim">
+                            {fmtInterval(row.calibration_gap_pct_points)}
+                          </td>
+                          <td className="type-num px-4 py-2.5 text-sm text-text">
+                            {fmtInterval(row.precision_at_production_prevalence)}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div className="mt-6">
+                <ArtifactUnavailable
+              name="calibration_audit.json"
+              missing={calibrationR.ok ? [] : calibrationR.missing}
+            />
+              </div>
+            )}
+
+            {calibration && (
+              <p className="type-ui measure mt-4 text-xs leading-relaxed text-text-dim">
+                All intervals are nonparametric bootstrap 95% CIs over the recorded seeds. The
+                headline operating point pins{" "}
+                <span className="type-num">{fmtPct(calibration.protocol.headline_fpr)}</span> FPR
+                and reports precision at the production prevalence assumption of{" "}
+                <span className="type-num">
+                  {fmtPct(calibration.protocol.production_prevalence)}
+                </span>
+                .
+              </p>
+            )}
+          </div>
+        </Reveal>
+      </section>
+
+      {/* The scissor, on the evidence record. */}
+      <section className="mx-auto w-full max-w-[1400px] px-4 pb-12 md:px-6 md:pb-16">
+        <Reveal>
+          <div className="rounded-[var(--r-lg)] border border-border bg-surface-1 p-6 md:p-8">
+            <h2 className="type-ui text-sm font-semibold tracking-tight text-text">
+              The scissor, on the record
+            </h2>
+            <p className="type-ui measure mt-3 text-sm leading-relaxed text-text-dim">
+              The vanity metric and the real metric move in opposite directions in the ungated
+              low-fidelity arm: recall on the generator&apos;s own attacks rises while recall on
+              held-out real fraud falls. The gate removes it by refusing the escape batches that
+              cause it — using only a label-free fidelity measurement computable before retraining.
             </p>
-            <table style={styles.table}>
-              <thead>
-                <tr>
-                  <th style={styles.th}>Artifact</th>
-                  <th style={styles.th}>What it proves</th>
-                  <th style={styles.th}>Status</th>
-                  <th style={styles.th}>Reproduce</th>
-                </tr>
-              </thead>
-              <tbody>
-                {index.map((entry) => (
-                  <tr key={entry.name}>
-                    <td style={{ ...styles.td, ...styles.mono, color: "#93c5fd" }}>{entry.name}</td>
-                    <td style={{ ...styles.td, color: "#cbd5e1" }}>{entry.description}</td>
-                    <td style={styles.td}>
-                      <span style={styles.pill(entry.available)}>
-                        {entry.available ? "generated" : "missing"}
-                      </span>
-                      {entry.generated_at && (
-                        <div style={{ ...styles.cardCi, marginTop: 6 }}>{entry.generated_at}</div>
-                      )}
-                    </td>
-                    <td style={styles.td}>
-                      <span style={styles.code}>{entry.reproduce}</span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </>
-        )}
+            {closedLoop && ungatedReal && ungatedSynthetic && gatedReal && gatedSynthetic ? (
+              <div className="mt-6">
+                <Scissor
+                  generations={generations}
+                  ungatedReal={ungatedReal}
+                  ungatedSynthetic={ungatedSynthetic}
+                  gatedReal={gatedReal}
+                  gatedSynthetic={gatedSynthetic}
+                  artifactPath={`${CL} · aggregated.*.by_generation + per_seed`}
+                />
+              </div>
+            ) : (
+              <div className="mt-6">
+                <ArtifactUnavailable
+                  name="closed_loop.json"
+                  missing={closedLoopR.ok ? ["aggregated.*.by_generation"] : closedLoopR.missing}
+                />
+              </div>
+            )}
+          </div>
+        </Reveal>
+      </section>
 
-        <p style={{ ...styles.sub, marginTop: 36, color: "#64748b" }}>
-          Boundary of the whole result: &ldquo;real fraud&rdquo; here means held-out fraud from the
-          arena&rsquo;s topology-aware environment, not issuer production data. The claim is about
-          the relationship between generator fidelity and transfer, not an absolute recall figure
-          for live card traffic.
-        </p>
-      </div>
-    </main>
+      {/* Economics + the false-positive cost panel. */}
+      <section className="mx-auto w-full max-w-[1400px] px-4 pb-12 md:px-6 md:pb-16">
+        <Reveal>
+          <div className="rounded-[var(--r-lg)] border border-border bg-surface-1 p-6 md:p-8">
+            <h2 className="type-ui text-sm font-semibold tracking-tight text-text">
+              The cost ledger, priced asymmetrically
+            </h2>
+            <p className="type-ui measure mt-3 text-sm leading-relaxed text-text-dim">
+              Most fraud demos price only the fraud they stopped. This ledger prices all four
+              cells of the confusion matrix at the production prevalence assumption, including the
+              insult cost of wrongly declining a legitimate customer — support contact, lost
+              interchange margin, and churn probability priced against lifetime value.
+            </p>
+
+            {economics && econCounts && econDerived && econOp ? (
+              <>
+                {/* The asymmetric cost matrix (SECTION 8.4). */}
+                <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                  <div className="rounded-[var(--r-md)] border border-blue/40 bg-blue-dim/20 p-4">
+                    <p className="type-ui text-[0.6875rem] font-semibold uppercase tracking-[0.08em] text-blue">
+                      True positives · declined fraud
+                    </p>
+                    <p className="type-num mt-2 text-2xl text-text">{fmtNum(econCounts.tp, 0)}</p>
+                    <p className="type-ui mt-2 text-xs leading-relaxed text-text-dim">
+                      Value <span className="type-num">{fmtInr(econDerived.value_per_true_positive_inr)}</span>{" "}
+                      each — the fraud amount, since recovery on declined fraud is assumed total.
+                    </p>
+                  </div>
+                  <div className="rounded-[var(--r-md)] border border-red/40 bg-red-dim/40 p-4">
+                    <p className="type-ui text-[0.6875rem] font-semibold uppercase tracking-[0.08em] text-red">
+                      False positives · insulted good customers
+                    </p>
+                    <p className="type-num mt-2 text-2xl text-text">{fmtNum(econCounts.fp, 0)}</p>
+                    <p className="type-ui mt-2 text-xs leading-relaxed text-text-dim">
+                      Cost <span className="type-num">{fmtInr(econDerived.insult_cost_per_false_positive_inr)}</span>{" "}
+                      each — support contact plus lost margin plus churn risk priced at CLV.
+                    </p>
+                  </div>
+                  <div className="rounded-[var(--r-md)] border border-red/40 bg-red-dim/40 p-4">
+                    <p className="type-ui text-[0.6875rem] font-semibold uppercase tracking-[0.08em] text-red">
+                      False negatives · fraud that slipped through
+                    </p>
+                    <p className="type-num mt-2 text-2xl text-text">{fmtNum(econCounts.fn, 0)}</p>
+                    <p className="type-ui mt-2 text-xs leading-relaxed text-text-dim">
+                      Loss <span className="type-num">{fmtInr(econDerived.loss_per_false_negative_inr)}</span>{" "}
+                      each — the full fraud amount plus chargeback admin, unrecovered.
+                    </p>
+                  </div>
+                  <div className="rounded-[var(--r-md)] border border-border bg-surface-2 p-4">
+                    <p className="type-ui text-[0.6875rem] font-semibold uppercase tracking-[0.08em] text-text-dim">
+                      True negatives · untouched good traffic
+                    </p>
+                    <p className="type-num mt-2 text-2xl text-text">{fmtNum(econCounts.tn, 0)}</p>
+                    <p className="type-ui mt-2 text-xs leading-relaxed text-text-dim">
+                      The silent majority; the whole point is to leave them alone.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Headline economics claims, all from economics.json. */}
+                <div className="mt-4 grid gap-4 md:grid-cols-3">
+                  <Claim
+                    variant="card"
+                    label="Net benefit per million authorisations"
+                    value={fmtInr(economics.at_production_prevalence.net_benefit_inr)}
+                    interpretation="Fraud prevented, less fraud lost, less the insult cost of wrongly declining legitimate customers, less review cost — all four cells, priced."
+                    artifactPath="artifacts/economics.json · at_production_prevalence.net_benefit_inr"
+                    reproduceCmd="make reproduce"
+                    tone="blue"
+                  />
+                  <Claim
+                    variant="card"
+                    label="False positives as a share of total cost"
+                    value={fmtPct(economics.at_production_prevalence.insult_share_of_total_cost)}
+                    interpretation="Wrongly declined legitimate payments are the single largest cost term — larger than the fraud losses that slip through. The asymmetric cost matrix is what keeps that term bounded."
+                    artifactPath="artifacts/economics.json · at_production_prevalence.insult_share_of_total_cost"
+                    reproduceCmd="make reproduce"
+                    tone="neutral"
+                  />
+                  <Claim
+                    variant="card"
+                    label="Operating point this is priced at"
+                    value={
+                      econOp
+                        ? `${fmtPct(econOp.recall)} recall · ${fmtPct(econOp.fpr)} FPR`
+                        : null
+                    }
+                    interpretation={`Assumed prevalence ${fmtPct(econOp?.prevalence ?? null)} on a volume of ${fmtNum(econOp?.volume ?? null, 0)} authorisations per run.`}
+                    artifactPath="artifacts/economics.json · at_production_prevalence.operating_point"
+                    reproduceCmd="make reproduce"
+                    tone="neutral"
+                  />
+                </div>
+              </>
+            ) : (
+              <div className="mt-6">
+                <ArtifactUnavailable
+              name="economics.json"
+              missing={economicsR.ok ? [] : economicsR.missing}
+            />
+              </div>
+            )}
+          </div>
+        </Reveal>
+      </section>
+
+      {/* Latency percentiles vs budget. */}
+      <section className="mx-auto w-full max-w-[1400px] px-4 pb-12 md:px-6 md:pb-16">
+        <Reveal>
+          <div className="rounded-[var(--r-lg)] border border-border bg-surface-1 p-6 md:p-8">
+            <h2 className="type-ui text-sm font-semibold tracking-tight text-text">
+              Latency percentiles vs the inline budget
+            </h2>
+            <p className="type-ui measure mt-3 text-sm leading-relaxed text-text-dim">
+              The full four-layer decision stack — feature assembly with sliding-window velocity
+              counters, XGBoost, Isolation Forest, the entity-graph ring check, thresholding —
+              measured per transaction on the exact call the WebSocket server makes.
+            </p>
+            {lat && latency ? (
+              <div className="mt-6">
+                <LatencyBudget
+                  p50={lat.p50_ms}
+                  p95={lat.p95_ms}
+                  p99={lat.p99_ms}
+                  budget={latency.protocol.inline_budget_ms}
+                  n={lat.n}
+                  artifactPath="artifacts/latency.json · overall"
+                />
+              </div>
+            ) : (
+              <div className="mt-6">
+                <ArtifactUnavailable
+              name="latency.json"
+              missing={latencyR.ok ? [] : latencyR.missing}
+            />
+              </div>
+            )}
+          </div>
+        </Reveal>
+      </section>
+
+      {/* Every boundary, stated rather than hidden. */}
+      <section className="mx-auto w-full max-w-[1400px] px-4 pb-12 md:px-6 md:pb-16">
+        {calibration ? (
+          <Boundary items={calibration.boundaries} />
+        ) : (
+          <Boundary>
+            Boundary statements for the calibration audit are read from{" "}
+            <code className="type-num">artifacts/calibration_audit.json</code>, which is currently
+            unavailable.
+          </Boundary>
+        )}
+        <div className="mt-4">
+          <Boundary title="Boundary of the whole result">
+            &ldquo;Real fraud&rdquo; here means held-out fraud from the arena&apos;s
+            topology-aware environment, not issuer production data. The claim is about the
+            relationship between generator fidelity and transfer, not an absolute recall figure
+            for live card traffic. Every per-claim boundary is stated in the ledger above; the
+            per-cell INR rates in the cost panel are order-of-magnitude assumptions and are
+            overridable.
+          </Boundary>
+        </div>
+      </section>
+    </>
   );
 }

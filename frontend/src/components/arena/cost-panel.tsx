@@ -27,42 +27,42 @@ export function CostPanel({ costs }: { costs: CostUpdate | null }) {
   const positive = c.net_savings >= 0;
 
   return (
-    <Card className="border-zinc-800 bg-zinc-950/60">
+    <Card className="border-border bg-surface-1">
       <CardHeader className="pb-2">
-        <CardTitle className="flex items-center justify-between text-sm">
+        <CardTitle className="type-ui flex items-center justify-between text-sm">
           Cost Matrix
-          <span className="font-mono text-[9.5px] font-normal text-muted-foreground">
+          <span className="type-num text-[9.5px] font-normal text-text-dim">
             FP 15bps · FN 100% · TP saves
           </span>
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-2">
         <div className="grid grid-cols-3 gap-2 text-center">
-          <div className="rounded border border-amber-900/60 bg-amber-500/5 p-1.5">
-            <div className="font-mono text-base font-bold text-amber-400">{c.fp_cost_bps.toFixed(1)}</div>
-            <div className="text-[9px] uppercase tracking-wide text-muted-foreground">FP cost (bps)</div>
-            <div className="font-mono text-[9px] text-muted-foreground">
+          <div className="rounded-[var(--r-sm)] border border-warn/50 bg-warn/5 p-1.5">
+            <div className="type-num text-base font-bold text-warn">{c.fp_cost_bps.toFixed(1)}</div>
+            <div className="type-ui text-[9px] uppercase tracking-wide text-text-dim">FP cost (bps)</div>
+            <div className="type-num text-[9px] text-text-dim">
               {usd(c.fp_cost_usd)} · {c.counts.false_positives} flagged
             </div>
           </div>
-          <div className="rounded border border-red-900/60 bg-red-500/5 p-1.5">
-            <div className="font-mono text-base font-bold text-red-400">{usd(c.fn_loss)}</div>
-            <div className="text-[9px] uppercase tracking-wide text-muted-foreground">FN loss</div>
-            <div className="font-mono text-[9px] text-muted-foreground">{c.counts.false_negatives} missed</div>
+          <div className="rounded-[var(--r-sm)] border border-fail/50 bg-fail/5 p-1.5">
+            <div className="type-num text-base font-bold text-fail">{usd(c.fn_loss)}</div>
+            <div className="type-ui text-[9px] uppercase tracking-wide text-text-dim">FN loss</div>
+            <div className="type-num text-[9px] text-text-dim">{c.counts.false_negatives} missed</div>
           </div>
-          <div className="rounded border border-emerald-900/60 bg-emerald-500/5 p-1.5">
-            <div className="font-mono text-base font-bold text-emerald-400">{usd(c.tp_saved)}</div>
-            <div className="text-[9px] uppercase tracking-wide text-muted-foreground">TP saved</div>
-            <div className="font-mono text-[9px] text-muted-foreground">
+          <div className="rounded-[var(--r-sm)] border border-pass/50 bg-pass/5 p-1.5">
+            <div className="type-num text-base font-bold text-pass">{usd(c.tp_saved)}</div>
+            <div className="type-ui text-[9px] uppercase tracking-wide text-text-dim">TP saved</div>
+            <div className="type-num text-[9px] text-text-dim">
               {c.counts.true_positives_declined} blocked
             </div>
           </div>
         </div>
-        <Separator className="bg-zinc-800" />
+        <Separator className="bg-border" />
         <div className="flex items-baseline justify-between">
-          <span className="text-[10px] uppercase tracking-wide text-muted-foreground">Net savings</span>
+          <span className="type-ui text-[10px] uppercase tracking-wide text-text-dim">Net savings</span>
           <span
-            className={`font-mono text-xl font-bold ${positive ? "text-emerald-400" : "text-red-400"}`}
+            className={`type-num text-xl font-bold ${positive ? "text-pass" : "text-fail"}`}
           >
             {usd(c.net_savings)}
           </span>
