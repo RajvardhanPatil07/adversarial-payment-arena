@@ -16,10 +16,10 @@ import { getHealth, listAttacks, loadAttack, type LoadAttackResponse } from "@/l
 import type { ConnState } from "@/lib/ws";
 
 const STATE_STYLE: Record<ConnState, { label: string; cls: string }> = {
-  idle: { label: "IDLE", cls: "border-zinc-700 text-zinc-400" },
-  connecting: { label: "CONNECTING", cls: "border-amber-700 text-amber-400 animate-pulse" },
-  open: { label: "LIVE", cls: "border-emerald-700 text-emerald-400" },
-  closed: { label: "RECONNECTING", cls: "border-red-800 text-red-400 animate-pulse" },
+  idle: { label: "IDLE", cls: "border-border-hi text-text-dim" },
+  connecting: { label: "CONNECTING", cls: "border-warn/70 text-warn animate-pulse" },
+  open: { label: "LIVE", cls: "border-pass/70 text-pass" },
+  closed: { label: "RECONNECTING", cls: "border-fail/70 text-fail animate-pulse" },
 };
 
 export function ControlBar({
@@ -61,21 +61,21 @@ export function ControlBar({
 
   return (
     <div className="space-y-2">
-      <div className="flex flex-wrap items-center gap-3 rounded-lg border border-zinc-800 bg-zinc-950/60 p-3">
-        <Badge variant="outline" className={`font-mono text-[10px] ${st.cls}`}>{st.label}</Badge>
+      <div className="flex flex-wrap items-center gap-3 rounded-[var(--r-md)] border border-border bg-surface-1 p-3">
+        <Badge variant="outline" className={`type-ui text-[10px] font-semibold tracking-wide ${st.cls}`}>{st.label}</Badge>
 
         <select
           value={selected}
           onChange={(e) => setSelected(e.target.value)}
           disabled={running}
-          className="h-8 rounded-md border border-zinc-700 bg-zinc-900 px-2 font-mono text-xs text-zinc-200"
+          className="type-num h-8 rounded-[var(--r-md)] border border-border-hi bg-surface-2 px-2 text-xs text-text"
         >
           {(attacks.length > 0 ? attacks : ["attack_2_synthetic_mule_ring"]).map((a) => (
             <option key={a} value={a}>{a}</option>
           ))}
         </select>
 
-        <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
+        <label className="type-ui flex items-center gap-1.5 text-xs text-text-dim">
           size
           <Input
             type="number"
@@ -84,11 +84,11 @@ export function ControlBar({
             value={size}
             disabled={running}
             onChange={(e) => setSize(Math.max(1, Math.min(200, Number(e.target.value) || 1)))}
-            className="h-8 w-20 border-zinc-700 bg-zinc-900 font-mono text-xs"
+            className="type-num h-8 w-20 border-border-hi bg-surface-2 text-xs"
           />
         </label>
 
-        <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
+        <label className="type-ui flex items-center gap-1.5 text-xs text-text-dim">
           turbo (offline)
           <Switch checked={turbo} onCheckedChange={onTurboChange} disabled={running} />
         </label>
@@ -97,7 +97,7 @@ export function ControlBar({
           size="sm"
           disabled={running || conn !== "open"}
           onClick={onGuidedDemo}
-          className="ml-auto bg-emerald-700 font-mono text-xs font-bold tracking-wider text-white hover:bg-emerald-600"
+          className="type-ui ml-auto rounded-[var(--r-md)] bg-blue text-xs font-bold tracking-wider text-bg hover:bg-blue/85"
         >
           ▶ GUIDED DEMO
         </Button>
@@ -106,29 +106,29 @@ export function ControlBar({
           size="sm"
           disabled={running || conn !== "open"}
           onClick={() => onLaunch(selected, size)}
-          className="bg-red-600 font-mono text-xs font-bold tracking-wider text-white hover:bg-red-500"
+          className="type-ui rounded-[var(--r-md)] bg-red text-xs font-bold tracking-wider text-bg hover:bg-red/85"
         >
           {running ? "CAMPAIGN LIVE…" : "▶ LAUNCH CAMPAIGN"}
         </Button>
       </div>
 
       {spec && (
-        <div className="flex flex-wrap items-center gap-2 rounded-lg border border-zinc-800 bg-zinc-950/40 px-3 py-2 text-[10.5px] text-muted-foreground">
-          <span className="font-semibold text-zinc-300">{spec.spec.attack_name}</span>
+        <div className="type-ui flex flex-wrap items-center gap-2 rounded-[var(--r-md)] border border-border bg-surface-2 px-3 py-2 text-[10.5px] text-text-dim">
+          <span className="type-num font-semibold text-text">{spec.spec.attack_name}</span>
           <span>·</span>
-          <span className="font-mono">
+          <span className="type-num">
             cost ${spec.spec.economic_model.acquisition_cost_usd} → payoff $
             {spec.spec.economic_model.expected_payoff_usd} · breakeven{" "}
             {spec.spec.economic_model.breakeven_txns} txns
           </span>
           <span>·</span>
-          <span className="font-mono">
+          <span className="type-num">
             rails {spec.spec.constraints.pos_entry_modes.join("/")} · 3DS{" "}
             {spec.spec.constraints.preferred_three_ds.join("/")} · ${spec.spec.constraints.min_amount_usd}-
             {spec.spec.constraints.max_amount_usd}
           </span>
           {models && (
-            <span className="ml-auto font-mono text-[9px]">
+            <span className="type-num ml-auto text-[9px] text-text-dim">
               xgb:{models.xgb.includes("loaded") ? "✓" : "fallback"} iforest:
               {models.iforest.includes("loaded") ? "✓" : "fallback"}
             </span>

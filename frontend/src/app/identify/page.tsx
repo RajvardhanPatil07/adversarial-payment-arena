@@ -2,160 +2,158 @@ import type { Metadata } from "next";
 
 import { PageHeader } from "@/components/shell/page-header";
 import { StatusChip } from "@/components/shell/status-chip";
+import { Boundary } from "@/components/evidence/boundary";
+import { Claim } from "@/components/evidence/claim";
+import { Reveal } from "@/components/evidence/reveal";
+import { AttackAtlas, type AtlasEntry } from "@/components/evidence/attack-atlas";
+import { loadArtifact } from "@/lib/artifacts";
+import { fmtPct } from "@/lib/format";
+import { TAXONOMY } from "@/data/taxonomy";
 import { ROUTE } from "@/lib/site";
-import {
-  readTyped,
-  fmtInterval,
-  fmtPct,
-  type FamilyCoverageArtifact,
-} from "@/lib/artifacts";
 
 const META = ROUTE["/identify"];
+const ARTIFACT = "artifacts/family_coverage.json";
 
 export const metadata: Metadata = {
   title: "Identify",
   description: META.blurb,
 };
 
-/** Short human label for an ATTACK_N_* family id. */
-function familyLabel(id: string, meta: { label?: string }): string {
-  return meta.label ?? id
-    .replace(/^ATTACK_\d+_/, "")
-    .toLowerCase()
-    .replace(/_/g, " ");
-}
-
 export default async function IdentifyPage() {
-  const coverage = await readTyped<FamilyCoverageArtifact>("family_coverage");
+  const coverageR = await loadArtifact("family_coverage");
+  const coverage = coverageR.ok ? coverageR.data : null;
 
   const summary = coverage?.summary ?? null;
   const inTraining = coverage?.family_in_training ?? null;
   const withheld = coverage?.family_withheld_zero_day ?? null;
-  const defeats = coverage?.families_defeat ?? null;
 
-  // Ordered by the withheld (zero-day) recall -- the honest column -- so the
-  // weakest generaliser is the first row a judge sees, not buried at the bottom.
-  const ids = withheld ? Object.keys(withheld) : inTraining ? Object.keys(inTraining) : [];
-  const ordered = ids.sort((a, b) => {
-    const ra = withheld?.[a]?.recall.mean ?? 0;
-    const rb = withheld?.[b]?.recall.mean ?? 0;
-    return ra - rb;
+  // Join the 22-taxon taxonomy to the measured families. The prose facts are
+  // static; every measurement is read from the artifact at render time. A
+  // [SPEC] taxon carries no family key, so it can never pick up another
+  // family's number — it renders "not yet executable", never a placeholder.
+  const entries: AtlasEntry[] = TAXONOMY.map((taxon) => {
+    const fam = taxon.family;
+    const t = fam ? (inTraining?.[fam] ?? null) : null;
+    const w = fam ? (withheld?.[fam] ?? null) : null;
+    const defeatsFromArtifact = fam ? (coverage?.families_defeat[fam] ?? null) : null;
+    return {
+      id: taxon.id,
+      title: taxon.title,
+      channel: taxon.channel,
+      rail: taxon.rail,
+      genaiEnabler: taxon.genaiEnabler,
+      defeats: defeatsFromArtifact ?? taxon.defeats,
+      executable: taxon.executable,
+      recallInTraining: taxon.executable ? (t?.recall ?? null) : null,
+      recallWithheld: taxon.executable ? (w?.recall ?? null) : null,
+      artifactPath: taxon.executable
+        ? `${ARTIFACT} · family_in_training["${fam}"].recall`
+        : ARTIFACT,
+      reproduceCmd: "make coverage",
+    };
   });
+
+  // Weakest zero-day generaliser first: order by withheld recall, ascending,
+  // then by in-training recall, then by id for a stable order. [SPEC] taxa sort
+  // last so a judge first meets the families that carry measurements.
+  entries.sort((a, b) => {
+    if (a.executable !== b.executable) return a.executable ? -1 : 1;
+    const ra = a.recallWithheld?.mean ?? 0;
+    const rb = b.recallWithheld?.mean ?? 0;
+    if (ra !== rb) return ra - rb;
+    const ta = a.recallInTraining?.mean ?? 0;
+    const tb = b.recallInTraining?.mean ?? 0;
+    if (ta !== tb) return ta - tb;
+    return a.id.localeCompare(b.id);
+  });
+
+  const weakest = summary?.weakest_family_when_withheld ?? null;
 
   return (
     <>
       <PageHeader h1={META.h1} criterion={META.criterion} blurb={META.blurb} eyebrow="01" />
 
       <section className="mx-auto w-full max-w-[1400px] px-4 py-12 md:px-6 md:py-16">
-        <div className="grid gap-4 md:grid-cols-3">
-          <div className="rounded-[var(--r-md)] border border-border bg-surface-1 p-5">
-            <p className="type-ui text-[0.6875rem] uppercase tracking-[0.08em] text-text-dim">
-              Executable families
-            </p>
-            <p className="type-num mt-3 text-xl font-medium tracking-tight text-text md:text-2xl">
-              {summary?.executable_families ?? <span className="text-text-dim">not measured</span>}
-            </p>
-            <p className="type-num mt-3 text-[0.6875rem] text-text-dim">
-              artifacts/family_coverage.json
-            </p>
+        <Reveal>
+          <div className="grid gap-4 md:grid-cols-3">
+            <Claim
+              variant="card"
+              label="Executable families"
+              value={summary ? `${summary.executable_families}` : null}
+              interpretation="Fourteen of the twenty-two mapped taxa are executable: generated, admitted through the Plausibility Gate, and individually measured."
+              artifactPath={`${ARTIFACT} · summary.executable_families`}
+              reproduceCmd="make coverage"
+              tone="neutral"
+            />
+            <Claim
+              variant="card"
+              label="Mean recall, family in training"
+              value={summary ? fmtPct(summary.mean_recall_family_in_training) : null}
+              interpretation="Per-family non-APPROVE rate with the family present in supervised training, averaged across families."
+              artifactPath={`${ARTIFACT} · summary.mean_recall_family_in_training`}
+              reproduceCmd="make coverage"
+              tone="blue"
+            />
+            <Claim
+              variant="card"
+              label="Mean recall, family withheld (zero-day)"
+              value={summary ? fmtPct(summary.mean_recall_family_withheld_zero_day) : null}
+              interpretation="The same families absent from supervised training: whatever still catches them is architecture, not memorisation."
+              artifactPath={`${ARTIFACT} · summary.mean_recall_family_withheld_zero_day`}
+              reproduceCmd="make coverage"
+              tone="blue"
+            />
           </div>
-          <div className="rounded-[var(--r-md)] border border-border bg-surface-1 p-5">
-            <p className="type-ui text-[0.6875rem] uppercase tracking-[0.08em] text-text-dim">
-              Mean recall, family in training
-            </p>
-            <p className="type-num mt-3 text-xl font-medium tracking-tight text-text md:text-2xl">
-              {summary ? fmtPct(summary.mean_recall_family_in_training) : <span className="text-text-dim">not measured</span>}
-            </p>
-            <p className="type-num mt-3 text-[0.6875rem] text-text-dim">
-              artifacts/family_coverage.json
-            </p>
-          </div>
-          <div className="rounded-[var(--r-md)] border border-border bg-surface-1 p-5">
-            <p className="type-ui text-[0.6875rem] uppercase tracking-[0.08em] text-text-dim">
-              Mean recall, family withheld (zero-day)
-            </p>
-            <p className="type-num mt-3 text-xl font-medium tracking-tight text-text md:text-2xl">
-              {summary ? fmtPct(summary.mean_recall_family_withheld_zero_day) : <span className="text-text-dim">not measured</span>}
-            </p>
-            <p className="type-num mt-3 text-[0.6875rem] text-text-dim">
-              artifacts/family_coverage.json
-            </p>
-          </div>
-        </div>
+        </Reveal>
 
         <p className="type-ui measure mt-6 text-sm leading-relaxed text-text-dim">
           {summary?.reading ??
             "The taxonomy maps twenty-two vectors; fourteen are executable and measured. Every executable family carries its own measured detection number, both with the family in supervised training and with it withheld (leave-one-family-out)."}
         </p>
+
+        {weakest && (
+          <div className="mt-4 flex flex-wrap items-center gap-2">
+            <StatusChip tone="warn">weakest when withheld</StatusChip>
+            <span className="type-ui text-xs text-text-dim">
+              {weakest.label} — {fmtPct(weakest.recall)} when absent from supervised training; it defeats{" "}
+              {weakest.defeats}.
+            </span>
+          </div>
+        )}
       </section>
 
-      {/* The atlas: one row per executable family, both conditions side by side. */}
+      {/* The atlas: 22 taxa, filters, per-family measured recall on every
+          executable card. */}
       <section className="mx-auto w-full max-w-[1400px] px-4 pb-12 md:px-6 md:pb-16">
         <div className="flex flex-col gap-3 md:flex-row md:items-baseline md:justify-between">
           <h2 className="type-ui text-sm font-semibold tracking-tight text-text">
-            The attack atlas — measured per family
+            The attack atlas — 22 mapped, 14 executable
           </h2>
           <p className="type-ui text-xs text-text-dim">
-            Ordered by the withheld column, ascending: the weakest zero-day generaliser is first.
+            Ordered by withheld (zero-day) recall, ascending: the weakest generaliser is first.
           </p>
         </div>
 
-        {ordered.length === 0 ? (
-          <div className="type-ui mt-6 rounded-[var(--r-lg)] border border-border bg-surface-1 p-6 text-sm text-text-dim">
-            The atlas is read from <code className="type-num">artifacts/family_coverage.json</code>,
-            which has not been generated yet. Run <code className="type-num">make reproduce</code>{" "}
-            to build it.
+        <p className="type-ui measure mt-3 text-sm leading-relaxed text-text-dim">
+          Stated honestly: fourteen of twenty-two are executable. Claiming twenty-two{" "}
+          <em>implemented</em> attacks would be the kind of number this repository is built to
+          argue against. Each unmapped row names its fields and its target signal, so each is an
+          afternoon of work rather than a research question.
+        </p>
+
+        {coverageR.ok ? (
+          <div className="mt-6">
+            <AttackAtlas entries={entries} />
           </div>
         ) : (
-          <div className="mt-6 overflow-x-auto rounded-[var(--r-lg)] border border-border bg-surface-1">
-            <table className="w-full min-w-[880px] text-left">
-              <thead>
-                <tr className="border-b border-border bg-surface-2">
-                  <th className="type-ui px-4 py-3 text-[0.6875rem] uppercase tracking-[0.08em] text-text-dim">
-                    Family
-                  </th>
-                  <th className="type-ui px-4 py-3 text-[0.6875rem] uppercase tracking-[0.08em] text-text-dim">
-                    Control it defeats
-                  </th>
-                  <th className="type-ui px-4 py-3 text-[0.6875rem] uppercase tracking-[0.08em] text-text-dim">
-                    Recall · in training
-                  </th>
-                  <th className="type-ui px-4 py-3 text-[0.6875rem] uppercase tracking-[0.08em] text-text-dim">
-                    Recall · withheld (zero-day)
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {ordered.map((id) => {
-                  const w = withheld?.[id];
-                  const t = inTraining?.[id];
-                  const worst = summary?.weakest_family_when_withheld.family === id;
-                  return (
-                    <tr key={id} className="border-b border-border last:border-b-0">
-                      <td className="px-4 py-3">
-                        <span className="type-ui text-sm text-text">
-                          {familyLabel(id, { label: w?.label ?? t?.label })}
-                        </span>
-                        {worst && (
-                          <span className="type-num ml-2">
-                            <StatusChip tone="warn">weakest when withheld</StatusChip>
-                          </span>
-                        )}
-                      </td>
-                      <td className="type-ui px-4 py-3 text-sm text-text-dim">
-                        {defeats?.[id] ?? w?.defeats ?? "—"}
-                      </td>
-                      <td className="type-num px-4 py-3 text-sm text-text">
-                        {fmtInterval(t?.recall)}
-                      </td>
-                      <td className="type-num px-4 py-3 text-sm text-text">
-                        {fmtInterval(w?.recall)}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+          <div className="type-ui mt-6 rounded-[var(--r-lg)] border border-border bg-surface-1 p-6 text-sm text-text-dim">
+            The atlas is read from <code className="type-num">artifacts/family_coverage.json</code>,
+            which is unavailable. Run <code className="type-num">make reproduce</code> to build it.
+            {coverageR.ok === false && (
+              <span className="type-num mt-2 block text-xs text-text-faint">
+                missing: {coverageR.missing.join(", ")}
+              </span>
+            )}
           </div>
         )}
 
@@ -166,17 +164,9 @@ export default async function IdentifyPage() {
           novelty layer and the entity graph — not memorisation.
         </p>
 
-        {/* Boundaries, stated rather than hidden. */}
         {coverage?.boundaries && (
-          <div className="mt-6 rounded-[var(--r-md)] border border-border bg-surface-2 p-5">
-            <h3 className="type-ui text-[0.6875rem] uppercase tracking-[0.08em] text-text-dim">
-              Boundary conditions
-            </h3>
-            <ul className="type-ui measure mt-3 list-disc space-y-1.5 pl-5 text-xs leading-relaxed text-text-dim">
-              {coverage.boundaries.map((b) => (
-                <li key={b}>{b}</li>
-              ))}
-            </ul>
+          <div className="mt-6">
+            <Boundary title="Boundary conditions" items={coverage.boundaries} />
           </div>
         )}
       </section>

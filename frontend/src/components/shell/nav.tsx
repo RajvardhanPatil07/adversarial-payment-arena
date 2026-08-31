@@ -16,8 +16,14 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 
+import { START_EVENT } from "@/components/shell/judge-tour";
 import { StatusChip } from "@/components/shell/status-chip";
 import { ROUTES, SITE } from "@/lib/site";
+
+/** Opens the guided tour by dispatching the start event JudgeTour listens for. */
+function startTour(): void {
+  window.dispatchEvent(new Event(START_EVENT));
+}
 
 export interface NavProps {
   /**
@@ -101,6 +107,15 @@ export function Nav({ validatedArtifacts = null }: NavProps) {
 
         {/* Right: status chips */}
         <div className="ml-auto hidden items-center gap-2 lg:flex">
+          {/* JUDGE MODE: the ~90s guided tour (SECTION 8). */}
+          <button
+            type="button"
+            onClick={startTour}
+            title="A ~90 second guided tour of the whole argument, one step per page."
+            className="type-ui rounded-[var(--r-sm)] border border-blue/50 bg-blue-dim/40 px-3 py-1.5 text-sm text-blue transition-colors hover:border-blue hover:bg-blue-dim"
+          >
+            Judge mode
+          </button>
           <StatusChip tone="neutral" title="No cardholder data. Every transaction is generated.">
             {SITE.chips.synthetic}
           </StatusChip>
@@ -148,6 +163,13 @@ export function Nav({ validatedArtifacts = null }: NavProps) {
               })}
             </ul>
             <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-border pt-3">
+              <button
+                type="button"
+                onClick={startTour}
+                className="type-ui rounded-[var(--r-sm)] border border-blue/50 bg-blue-dim/40 px-3 py-1.5 text-sm text-blue transition-colors hover:border-blue hover:bg-blue-dim"
+              >
+                Judge mode
+              </button>
               <StatusChip>{SITE.chips.synthetic}</StatusChip>
               <StatusChip>{SITE.chips.offline}</StatusChip>
               {manifestChip}

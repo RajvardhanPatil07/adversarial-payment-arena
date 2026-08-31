@@ -18,6 +18,24 @@
  * the one interactive page (/arena) does not import this module.
  */
 
+/**
+ * Formatters and the Interval shape live in the client-safe `format.ts` and are
+ * re-exported here so server pages keep one import site. Client components MUST
+ * import from `@/lib/format` directly — this module is server-only (node:fs).
+ */
+export {
+  fmtInterval,
+  fmtNum,
+  fmtDeltaPts,
+  fmtPct,
+  fmtInr,
+  fmtDate,
+  isInterval,
+  type Interval,
+} from "./format";
+import { VALIDATORS } from "./validators";
+import type { Interval } from "./format";
+
 import { promises as fs } from "node:fs";
 import path from "node:path";
 
@@ -69,50 +87,53 @@ export function readTyped<T>(name: ArtifactName): Promise<T | null> {
   return readArtifact(name) as Promise<T | null>;
 }
 
+/** The validated document type each artifact name maps to. */
+export type ValidatedDoc<N extends ArtifactName> = ReturnType<(typeof VALIDATORS)[N]>;
+
+type AnyValidated = { ok: true; data: unknown } | { ok: false; missing: string[] };
+
+/**
+ * The PHASE 3 loader: read + validate + discriminate, in one call.
+ *
+ * Returns `{ok, data}` only when the per-artifact validator found every field
+ * the UI consumes; otherwise `{ok: false, missing}` listing the dot-paths, so
+ * the page can render an explicit "artifact unavailable" state (SECTION 1D)
+ * naming exactly what is absent — a missing number stays discoverable, never
+ * silently defaulted. The validator result is cached with the document.
+ */
+export async function loadArtifact<N extends ArtifactName>(
+  name: N,
+): Promise<Extract<ValidatedDoc<N>, { ok: true }> | { ok: false; missing: string[] }> {
+  const doc = await readArtifact(name);
+  if (doc === null) {
+    return { ok: false, missing: [`${name}.json (file missing or unparseable)`] };
+  }
+  const result = VALIDATORS[name](doc) as AnyValidated;
+  return result.ok
+    ? { ok: true, data: result.data } as Extract<ValidatedDoc<N>, { ok: true }>
+    : { ok: false, missing: result.missing };
+}
+
+/**
+ * The manifest validation pass: every artifact, validated, with its missing
+ * paths. PHASE 3 requires proving the pipeline by printing which artifacts
+ * validated and which fields are missing; this is the single function that
+ * produces that proof, and the root layout reuses it for the Nav chip so the
+ * chip means "validated", not merely "present".
+ */
+export async function validateManifest(): Promise<
+  Array<{ name: ArtifactName; ok: boolean; missing: string[] }>
+> {
+  const out: Array<{ name: ArtifactName; ok: boolean; missing: string[] }> = [];
+  for (const name of ALL_ARTIFACTS) {
+    const r = await loadArtifact(name);
+    out.push({ name, ok: r.ok, missing: r.ok ? [] : r.missing });
+  }
+  return out;
+}
+
 // --------------------------------------------------------------------------- //
-// Bootstrap CI shape — shared by nearly every measured field.
-// --------------------------------------------------------------------------- //
-
-export interface Interval {
-  mean: number;
-  lo: number;
-  hi: number;
-  n: number;
-  method?: string;
-}
-
-/** Format an Interval as "mean (lo–hi)" in the caller's unit. Mono-rendered. */
-export function fmtInterval(i: Interval | null | undefined, unit = ""): string | null {
-  if (!i) return null;
-  const f = (v: number) => (Math.abs(v) >= 100 ? v.toFixed(0) : v.toFixed(3));
-  return `${f(i.mean)}${unit} (${f(i.lo)}–${f(i.hi)})`;
-}
-
-/** Format a bare number, or null when the value is absent. */
-export function fmtNum(v: number | null | undefined, digits = 3): string | null {
-  if (v === null || v === undefined || Number.isNaN(v)) return null;
-  return v.toFixed(digits);
-}
-
-/** Signed percentage-point delta, e.g. "-35.8 pts". Null when absent. */
-export function fmtDeltaPts(v: number | null | undefined): string | null {
-  if (v === null || v === undefined || Number.isNaN(v)) return null;
-  const sign = v > 0 ? "+" : "";
-  return `${sign}${(v * 100).toFixed(1)} pts`;
-}
-
-/** Absolute percentage, e.g. "48.3%". Null when absent. */
-export function fmtPct(v: number | null | undefined, digits = 1): string | null {
-  if (v === null || v === undefined || Number.isNaN(v)) return null;
-  return `${(v * 100).toFixed(digits)}%`;
-}
-
-/** Strip the ISO timestamp to its date for compact display. */
-export function fmtDate(iso: string | null | undefined): string | null {
-  if (!iso) return null;
-  return iso.slice(0, 10);
-}
-
+// Formatters + Interval: see ./format (re-exported above).
 // --------------------------------------------------------------------------- //
 // Typed views over the artifacts the evidence pages consume.
 // --------------------------------------------------------------------------- //
@@ -279,12 +300,14 @@ export interface BehaviouralFidelityArtifact {
 // --------------------------------------------------------------------------- //
 
 export interface SiteProvenance {
-  /** Artifacts present and parseable in the snapshot. Null when none. */
+  /** Artifacts present and VALIDATED (PHASE 3 manifest pass). Null when none. */
   artifactCount: number | null;
   /** Git SHA of the newest artifact's provenance. Null when none. */
   gitSha: string | null;
   /** generated_at of the newest artifact. Null when none. */
   generatedAt: string | null;
+  /** Seeds common to the measured artifacts, for the footer stamp. Null when absent. */
+  seeds: number[] | null;
 }
 
 const ALL_ARTIFACTS: readonly ArtifactName[] = [
@@ -316,16 +339,31 @@ export async function readSiteProvenance(): Promise<SiteProvenance> {
   let count = 0;
   let newestAt: string | null = null;
   let newestSha: string | null = null;
+  let seeds: number[] | null = null;
 
   for (const name of ALL_ARTIFACTS) {
-    const doc = (await readArtifact(name)) as MinimalProvenance | null;
-    if (!doc || typeof doc !== "object" || !doc.provenance) continue;
+    // PHASE 3: the chip counts VALIDATED artifacts, not merely present ones.
+    const r = await loadArtifact(name);
+    if (!r.ok) continue;
     count += 1;
-    const at = doc.provenance.generated_at;
+    const doc = r.data as unknown as MinimalProvenance & { provenance?: { seeds?: unknown } };
+    const at = doc.provenance?.generated_at;
     if (typeof at === "string" && (newestAt === null || at > newestAt)) {
       newestAt = at;
-      const sha = doc.provenance.git_sha;
+      const sha = doc.provenance?.git_sha;
       newestSha = typeof sha === "string" ? sha : null;
+    }
+    // Seeds for the footer stamp: keep the first non-empty list. Some artifacts
+    // record an empty seed list by design (e.g. the claim ledger); a union of
+    // differing lists would be an invented number, so the first wins.
+    const docSeeds = doc.provenance?.seeds;
+    if (
+      seeds === null &&
+      Array.isArray(docSeeds) &&
+      docSeeds.length > 0 &&
+      docSeeds.every((s) => typeof s === "number")
+    ) {
+      seeds = docSeeds as number[];
     }
   }
 
@@ -333,5 +371,6 @@ export async function readSiteProvenance(): Promise<SiteProvenance> {
     artifactCount: count > 0 ? count : null,
     gitSha: newestSha,
     generatedAt: newestAt,
+    seeds,
   };
 }

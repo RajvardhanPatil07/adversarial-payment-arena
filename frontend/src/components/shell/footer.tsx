@@ -22,6 +22,8 @@ export interface FooterProps {
   artifactCount?: number | null;
   /** ISO timestamp of the newest artifact's `provenance.generated_at`. */
   evidenceGeneratedAt?: string | null;
+  /** Seeds common to the measured artifacts, for the reproducibility stamp. */
+  seeds?: number[] | null;
 }
 
 /** Renders a value, or an explicit unmeasured state. Never a fallback number. */
@@ -52,11 +54,12 @@ export function Footer({
   gitSha = null,
   artifactCount = null,
   evidenceGeneratedAt = null,
+  seeds = null,
 }: FooterProps) {
   return (
     <footer className="mt-auto border-t border-border bg-surface-1">
       <div className="mx-auto max-w-[1400px] px-4 py-8 md:px-6">
-        <dl className="grid grid-cols-2 gap-6 md:grid-cols-3 lg:grid-cols-5">
+        <dl className="grid grid-cols-2 gap-6 md:grid-cols-3 lg:grid-cols-6">
           <Row label="UI build">
             <Value>{gitSha}</Value>
           </Row>
@@ -65,6 +68,11 @@ export function Footer({
           </Row>
           <Row label="Evidence generated">
             <Value>{evidenceGeneratedAt}</Value>
+          </Row>
+          <Row label="Seeds">
+            <Value>
+              {seeds && seeds.length > 0 ? seeds.join(", ") : null}
+            </Value>
           </Row>
           <Row label="Reproduce">
             <code className="text-text-dim">{SITE.footer.reproduce}</code>

@@ -173,6 +173,37 @@
     opacity: 0;
     transform: translateY(var(--sp-2));
   }
+
+  /* LoopDiagram stroke draw-in. Every path normalises its own length with
+   * pathLength="1" (the markup supplies it), so dasharray/dashoffset are unit
+   * fractions here and never conflict with the dashed rejected path, whose
+   * dashes are drawn IN CSS rather than as a competing SVG attribute. The
+   * static end state is the default: the transition only runs when [data-drawn]
+   * flips, once, on intersection. Solid paths reveal by dashoffset; dashed
+   * paths (rejected, return arc) keep offset 0 and fade in, so their dashes
+   * never march. */
+  .loop-line {
+    stroke-dasharray: 1;
+    stroke-dashoffset: 0;
+    opacity: 1;
+    transition:
+      stroke-dashoffset 700ms ease-out,
+      opacity 700ms ease-out;
+  }
+  .loop-line[data-drawn="false"] {
+    stroke-dashoffset: 1;
+  }
+  .loop-line-rejected {
+    stroke-dasharray: 0.06 0.06;
+  }
+  .loop-line-return {
+    stroke-dasharray: 0.003 0.012;
+  }
+  .loop-line-rejected[data-drawn="false"],
+  .loop-line-return[data-drawn="false"] {
+    stroke-dashoffset: 0;
+    opacity: 0;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -180,6 +211,13 @@
   .reveal[data-reveal="pending"] {
     opacity: 1;
     transform: none;
+    transition: none;
+  }
+  .loop-line,
+  .loop-line-rejected,
+  .loop-line-return {
+    stroke-dashoffset: 0 !important;
+    opacity: 1 !important;
     transition: none;
   }
   *,

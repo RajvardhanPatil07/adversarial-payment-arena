@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "snapshot:artifacts": "mkdir -p public/artifacts && cp ../artifacts/*.json public/artifacts/"
   },
   "dependencies": {
     "@ai-sdk/openai": "^4.0.47",
