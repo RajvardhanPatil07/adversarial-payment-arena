@@ -1,298 +1,301 @@
+<div align="center">
+
 # Adversarial Payment Arena
 
-**Mastercard Innovation Challenge 2026 submission:** a closed-loop adversarial simulation and real-time payment-defense testbed.
+### A closed-loop fraud-defense testbed that proves its own loop can be an attack surface
 
-> **Most red-team loops celebrate when recall on their own synthetic attacks rises. We prove that
-> the same loop can silently destroy recall on held-out real fraud—and our label-free fidelity gate
-> prevents 35.3 points of that damage before retraining.**
+**An adaptive LLM red team fights a four-layer payment defense in real time — and a label-free
+fidelity gate stops the loop from degrading real-fraud recall *before* retraining.**
 
-**Submission links:** **Live Demo — PLACEHOLDER: add final public URL** ·
-[`90-second Judge Path`](docs/JUDGES.md#90-second-judge-path) ·
-[`Evidence`](artifacts/closed_loop.json) ·
-[`Walkthrough`](docs/Solution_Walkthrough_Adversarial_Payment_Arena.docx) ·
-[`Reproduce`](#reproduce-the-evidence) ·
-**Video — PLACEHOLDER: add final public URL** ·
-**PDF — PLACEHOLDER: add final public URL**
-
+[![Live demo](https://img.shields.io/badge/live%20demo-Render-10b981?style=flat-square)](https://adversarial-payment-arena.onrender.com)
+[![No API key](https://img.shields.io/badge/attacker-runs%20key--free-0f766e?style=flat-square)](#the-ai-boundary)
+[![Deterministic evidence](https://img.shields.io/badge/evidence-reproducible-d97706?style=flat-square)](#the-evidence-map)
 [![CI](https://github.com/RajvardhanPatil07/adversarial-payment-arena/actions/workflows/ci.yml/badge.svg)](https://github.com/RajvardhanPatil07/adversarial-payment-arena/actions/workflows/ci.yml)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![MIT License](https://img.shields.io/badge/license-MIT-2563eb?style=flat-square)](LICENSE)
 
-### The three numbers
+[Explore the live fight](https://adversarial-payment-arena.onrender.com) &nbsp;·&nbsp;
+[90-second judge path](docs/JUDGES.md#90-second-judge-path) &nbsp;·&nbsp;
+[The evidence](#the-evidence-map) &nbsp;·&nbsp;
+[Run it](#run-it)
 
-- **+85.7 pts** recall on synthetic attacks
-- **−35.8 pts** recall on held-out arena fraud
-- **+35.3 pts** real-fraud recall protected by the fidelity gate
+</div>
 
-> **Evaluation boundary:** “held-out arena fraud” is simulated evaluation data from the arena,
-> not issuer production traffic. This submission does not claim production validation.
+> **A red-team loop that celebrates rising recall on its own synthetic attacks can be quietly
+> destroying recall on real fraud. The fidelity gate is what makes the loop safe to close.**
 
-### 90-second judge path
+Most fraud demos show a detector getting better at stopping the attacks they generate. This
+repository goes one step further: it shows **when closing the adversarial loop helps, when it hurts,
+and which label-free measurement tells you which — before you retrain**. Every number below is
+regenerable with `make reproduce` and lands in `artifacts/` with a provenance stamp.
 
-1. **Live fight** — run the stack (or open the deployed URL) and press **▶ GUIDED DEMO**: a synthetic
-   mule ring is built in front of you and the narration advances only on real events (gate verdicts,
-   graph ring detection, declines, final cost).
-2. **The scissor** — open **/evidence**: an ungated closed loop loses **−35.8 pts** on held-out arena
-   fraud while gaining **+85.7 pts** on its own synthetic attacks; the same loop with the fidelity gate on loses
-   **−0.5 pts**. That gap is the whole argument.
-3. **Verify** — `make reproduce` regenerates every figure in `artifacts/` with a provenance stamp
-   (git SHA, seeds, command), mapped claim-by-claim in [`artifacts/claim_ledger.json`](artifacts/claim_ledger.json).
-
-A deeper walkthrough for evaluators lives in [`docs/JUDGES.md`](docs/JUDGES.md).
+**Live demo:** <https://adversarial-payment-arena.onrender.com> — no login, no API key, no build step.
+(Free tier sleeps; the first request can take ~50 s to wake.)
 
 ---
 
-## Architecture Overview
+## The scissor in one figure
 
-The arena simulates an active fight between an autonomous **LLM Red-Team Attacker** and a **Multi-Layer Defense Decisioning Stack**, streaming live telemetry, graph mutations, and financial cost impact to a Next.js 16 SOC Dashboard over WebSockets.
+An adaptive attacker refits on the transactions it escaped, retrains the detector on them, and is
+re-scored for three generations — once with a **low-fidelity** escape generator, once with a
+**high-fidelity** one, each with the gate off and on. Same detector, same budget, same held-out
+fraud in every arm.
 
-```
- ┌──────────────────────────────────────────────────────────────┐
- │                  RED-TEAM ATTACKER AGENT                    │
- │        Autonomous LLM (OpenRouter / Claude / Stealth)        │
- └──────────────────────────────┬───────────────────────────────┘
-                                │
-                                ▼
- ┌──────────────────────────────────────────────────────────────┐
- │                      PLAUSIBILITY GATE                       │
- │    Economic Floors · Metadata Coherence · Rail Feasibility   │
- └──────────────────────────────┬───────────────────────────────┘
-                                │ (Valid Transactions)
-                                ▼
- ┌──────────────────────────────────────────────────────────────┐
- │                 DEFENSE DECISIONING STACK                    │
- │  1. XGBoost Velocity Model (Supervised Behavioral Scoring)   │
- │  2. Isolation Forest (Unsupervised Novelty & Anomaly Layer)  │
- │  3. NetworkX Entity Graph (Mule Ring & Topology Detection)   │
- │  4. Asymmetric Cost Matrix Optimizer ($ Block vs False Pos)  │
- └──────────────────────────────┬───────────────────────────────┘
-                                │
-                                ▼
- ┌──────────────────────────────────────────────────────────────┐
- │               FASTAPI WEBSOCKET STREAM ENGINE                │
- └──────────────────────────────┬───────────────────────────────┘
-                                │
-                                ▼
- ┌──────────────────────────────────────────────────────────────┐
- │              NEXT.js 16 SOC COMMAND DASHBOARD                │
- │   xyflow Entity Graph · Live Log Triage · Cost Matrix Analytics │
- └──────────────────────────────────────────────────────────────┘
-```
+![The fidelity scissor: gated vs ungated closed loop](docs/closed_loop.png)
 
----
+| Arm | Δ recall, generator's own attacks | Δ recall, held-out arena fraud | Batches the gate rejected |
+|---|---|---|---|
+| Low-fidelity generator, **ungated** | **+85.7 pts** | **−35.8 pts** | — |
+| Low-fidelity generator, **gated** | +5.3 pts | **−0.5 pts** | 3 of 3 |
+| High-fidelity generator, ungated | +0.8 pts | −0.5 pts | — |
+| High-fidelity generator, gated | −2.8 pts | −0.5 pts | 0–2 of 3 |
 
-## Key Capabilities
+The first two rows are the scissor: the vanity metric and the metric that matters move in opposite
+directions, and the only thing separating the rows is a gate that never looks at a fraud label.
+The gate protects **35.3 pts** of held-out recall.
 
-### 1. Autonomous LLM Red-Team Agent
-- Dynamically crafts attacks constrained by real-world fraud economics (acquisition costs, target verticals, 3DS tolerances, POS entry modes).
-- Operates online via **OpenRouter** (any model, set with `OPENROUTER_MODEL`; defaults to a free reasoning model, and uses `stealth/ox-alpha` when that slug is served to the account) or fully offline via a deterministic fallback fraudster — so the demo runs with **no API key**.
-- Adaptive payload mutation based on real-time defense feedback and system telemetry.
+Source: [`artifacts/closed_loop.json`](artifacts/closed_loop.json) → `headline.arms[]`,
+regenerated by `make closed-loop`.
 
-### 2. Multi-Layer Defense Decisioning Stack
-- **Supervised Velocity Scoring (XGBoost):** Evaluates sliding-window burst dynamics across cards, IPs, and merchant terminals.
-- **Unsupervised Anomaly Detection (Isolation Forest):** Flag novel out-of-distribution patterns without requiring prior labels.
-- **Graph Intelligence (NetworkX):** Real-time entity-resolution graph tracking shared infrastructure across unrelated accounts to uncover mule rings.
-- **Asymmetric Cost Matrix:** Dynamically weighs False Negatives (fraud loss) vs False Positives (customer insult cost) to optimize net business impact.
+### The gate acts before any retraining, on two label-free measurements
 
-### 3. Reproducible Headline: the closed-loop fidelity scissor
+The gate refuses an escape batch — and so refuses to train on it — if either test fails, against
+thresholds fixed in advance and never tuned per seed
+([`closed_loop.json → gate`](artifacts/closed_loop.json)):
 
-- **Research question:** closing an adversarial red-team loop is not, by itself, evidence that the
-  loop makes a fraud detector better on real fraud. Whether it helps or hurts depends on the
-  *fidelity* of the attack generator — and a label-free fidelity gate is what keeps a low-fidelity
-  generator from degrading a live detector.
+| Gate test | Rejects when | Low-fidelity arm | High-fidelity arm |
+|---|---|---|---|
+| C2ST AUC, escape batch vs the real fraud already in training | > **0.90** (0.5 = indistinguishable) | 1.000 in all 9 measured batches | 1.000 in both measurable batches |
+| Rank-dependence error (correlation Frobenius) | > **1.50** (lower = more realistic) | 4.42 – 5.12 | 3.82 / 4.26 |
+| **Escape batches refused** | | **3 of 3 seeds, every generation** | 0, 2, 0 by seed |
 
-- **The scissor (every number emitted by `make reproduce` into `artifacts/closed_loop.json`):** an
-  **ungated** loop trained on a low-fidelity generator's escapes loses **−35.8 pts** of recall on
-  held-out arena fraud while *gaining* **+85.7 pts** on the generator's own attacks — the vanity metric
-  and the real metric move in opposite directions. The **same loop with the fidelity gate on** loses
-  **−0.5 pts**: the gate refuses the escape batches that cause the scissor, using only a label-free
-  measurement computable before retraining (**+35.3 pts** of recall protected).
+Neither input needs a fraud label beyond the real fraud already in the training set, and both are
+computable on the escape batch alone — which is what lets an issuer reject a harmful generator
+*before* it has degraded a live detector. The high-fidelity arm's low refusal count is not the gate
+staying quiet on harmful data: that arm escapes only 0–124 transactions per generation, so there is
+usually no batch large enough to gate. A generator the current detector already catches gives the
+gate nothing to do — the reassuring reading of the same column.
 
-  ![The fidelity scissor: gated vs ungated closed loop](docs/closed_loop.png)
-
-- **Fidelity separates the generators, decisively.** C2ST AUC **0.873 (copula) vs 0.964
-  (independent)** (0.5 = indistinguishable from real, 1.0 = trivially fake); rank-dependence error
-  **0.795 vs 2.47** (Frobenius, lower = more realistic). The *marginal* fit is matched across arms
-  (mean JSD 0.020 vs 0.021), so the entire gap is **joint structure** — the one variable under test.
-
-- **The honest ceiling is part of the result.** On this corpus the unaugmented baseline already sits
-  at **0.996 recall**, so the three-arm transfer ablation is at a ceiling: both synthetic arms show
-  ~0 delta this run and the *ordering* of transfer harm is not observable. We report that ceiling
-  instead of manufacturing a positive delta by handicapping the baseline. What generalises is the
-  *relationship* — fidelity is measurable before deployment (C2ST / Frobenius need no fraud labels)
-  and the closed loop shows it ranking real-fraud harm after. That is precisely what a pre-registered
-  fidelity gate buys an issuer.
-
-- **Economics:** at a 1.3% production base rate and 1% FPR the stack nets **≈ ₹229.3M (₹22.9Cr) per
-  million authorisations** — and wrongly-declined legitimate payments are **the majority of all cost
-  incurred (≈ 60%)**, which is exactly why the cost matrix is asymmetric. Precision at that base rate
-  is reported honestly at **48.8%**, and the four-layer stack scores inline at **p99 15.1 ms** against
-  a 100 ms authorisation budget.
-
-- **No unverifiable hero numbers.** Every figure in this README is reachable from `make reproduce`,
-  lands in `artifacts/*.json` with a provenance stamp (git SHA, seeds, command), and is mapped
-  claim-by-claim in [`artifacts/claim_ledger.json`](artifacts/claim_ledger.json) / the `/evidence`
-  page. A separate zero-day holdout (`make zero-day`) stress-tests an unseen attack family.
-
-### 4. Interactive SOC Command Center
-- **Next.js 16 + React 19 + Tailwind CSS v4** interface.
-- **Interactive Entity Graph (@xyflow/react):** Dynamic DAG canvas highlighting compromised nodes, mule clusters, and merchant hotspots in real-time.
-- **Real-Time WebSocket Ingestion:** Live streaming of attacker reasoning, plausibility checks, defense decisions, and financial cost metrics.
+Two things the artifact forces into the open. Inside the loop the C2ST term saturates at 1.00 in
+both arms, so the gate's decision *there* is carried by the rank-dependence term. Separating the
+*generators* is a different measurement, from the dedicated fidelity run (`make fidelity` →
+[`fidelity_report.json`](artifacts/fidelity_report.json)): the Gaussian-copula generator scores C2ST
+**0.905** and dependence **0.795**, the independent-marginal generator **0.978** and **2.470**, while
+their *marginals* stay matched (mean JSD 0.0199 vs 0.0211) — so the gap between them is joint
+structure, the one variable under test. The independent transfer run scores the same pair at 0.873 /
+0.964 (`make transfer` → [`transfer_ledger.json`](artifacts/transfer_ledger.json)). Both are
+published; each claim above cites the run that produced it.
 
 ---
 
-## Attack Specifications — 14 Executable Attack Families
+## From attack to a decision
 
-The repository maps a 22-scenario GenAI fraud taxonomy
-([`docs/ATTACK_TAXONOMY.md`](docs/ATTACK_TAXONOMY.md)); fourteen of the twenty-two
-are executable. Each has a YAML spec, a generator admitted only after passing the
-Plausibility Gate, and an individual detection measurement in
-[`artifacts/family_coverage.json`](artifacts/family_coverage.json):
+| Attack | Decide | Learn safely |
+|---|---|---|
+| An autonomous LLM red team crafts transactions bounded by real fraud economics — acquisition cost, rail feasibility, 3DS tolerance, merchant vertical. | A four-layer stack (XGBoost velocity · Isolation Forest · NetworkX entity graph · asymmetric cost matrix) scores every transaction inline and streams each verdict. | Escapes are folded back into training **only if** the label-free gate admits the batch; otherwise the loop is refused before it can poison the detector. |
+
+The result is a live SOC dashboard where a synthetic mule ring is built in front of you and the
+narration advances only on real events — gate verdicts, graph ring detection, declines, final cost.
+
+---
+
+## What sets it apart
+
+| Existing approach | Strength | What this adds |
+|---|---|---|
+| Static fraud benchmarks | Fixed, comparable scores | An *adaptive* attacker that refits on its own escapes each generation |
+| Closed-loop red teams | Show self-improvement on synthetic attacks | Measure the same loop's harm to **held-out** fraud, and the gate that removes it |
+| Fidelity metrics on generators | Rank realism of synthetic data | Use them **as a pre-retraining gate**, not just a report |
+| Single-model dashboards | One detector's view | Four complementary layers + entity graph, priced in rupees and milliseconds |
+
+The contribution is the combination of an **adaptive attacker**, a **held-out real-fraud evaluation**,
+and a **label-free, pre-retraining fidelity gate** — measured together, not asserted.
+
+---
+
+## The AI boundary
+
+The LLM attacker owns attack *crafting*: payloads, sequencing, and adaptation to feedback. It never
+touches the defense, the gate, or any reported number.
+
+- **Key-free by design.** With no `OPENROUTER_API_KEY` — or an unusable provider response — the
+  attacker degrades to a deterministic offline fraudster and the campaign still forms a mule ring and
+  still gets declined. Both serialized detectors are committed, so a fresh clone demos a working
+  four-layer defense with no training and no key.
+- **Numbers are deterministic.** Every headline figure is produced by a seeded experiment script and
+  lands in `artifacts/` with a provenance stamp (git SHA, seeds, command). The model cannot change a
+  score, threshold, or gate decision.
+
+---
+
+## Attacks: 14 executable families
+
+The arena maps a 22-scenario GenAI fraud taxonomy
+([`docs/ATTACK_TAXONOMY.md`](docs/ATTACK_TAXONOMY.md)); fourteen rows are executable, each with a YAML
+spec in [`backend/attack_specs/`](backend/attack_specs), a generator admitted only after passing the
+Plausibility Gate, and an individual detection measurement.
 
 | Spec | Attack | Taxon | What it defeats |
 |---|---|---|---|
-| ATTACK_1 | MFA Reset via Voice Cloning (IVR takeover) | T-03 | device binding / step-up trust |
-| ATTACK_2 | Synthetic Mule Ring Cash-Out | T-01 | per-account monitoring (shared device) |
-| ATTACK_3 | Compromised Merchant Checkout Burst | T-18 | per-card normality |
-| ATTACK_4 | CNP Card-Testing Velocity Burst | T-08 | fixed velocity rules |
-| ATTACK_5 | AI-Personalised APP Scam (authorised push) | T-12 | every stolen-credential control |
-| ATTACK_6 | VPA-Rental Mule Network (fan-in) | T-14 | per-account monitoring (shared payee) |
-| ATTACK_7 | Synchronised Burst Cash-Out | T-17 | the independence assumption |
-| ATTACK_8 | Learned Threshold Structuring | T-09 | static amount thresholds |
-| ATTACK_9 | Real-time OTP-Relay Vishing | T-05 | 3DS pass treated as proof of presence |
-| ATTACK_10 | 3DS Exemption-Band Abuse | T-06 | RBA exemption policy + velocity counters |
-| ATTACK_11 | Delegated Agent Scope Expansion | T-19 | device binding + one-time consent |
-| ATTACK_12 | Geo-Velocity Spoof with Generated Itinerary | T-11 | impossible-travel (adjacent-pair) rules |
-| ATTACK_13 | Fake Merchant Shell Bust-Out (acquiring side) | T-04 | merchant onboarding document review |
-| ATTACK_14 | Adversarial Decision-Boundary Probing | T-20 | the deployed scorer itself (oracle) |
+| ATTACK_1 | MFA reset via voice cloning (IVR takeover) | T-03 | device binding / step-up trust |
+| ATTACK_2 | Synthetic mule ring cash-out | T-01 | per-account monitoring (shared device) |
+| ATTACK_3 | Compromised merchant checkout burst | T-18 | per-card normality |
+| ATTACK_4 | CNP card-testing velocity burst | T-08 | fixed velocity rules |
+| ATTACK_5 | AI-personalised APP scam (authorised push) | T-12 | every stolen-credential control |
+| ATTACK_6 | VPA-rental mule network (fan-in) | T-14 | per-account monitoring (shared payee) |
+| ATTACK_7 | Synchronised burst cash-out | T-17 | the independence assumption |
+| ATTACK_8 | Learned-threshold structuring | T-09 | static amount thresholds |
+| ATTACK_9 | Real-time OTP-relay vishing | T-05 | 3DS pass read as proof of presence |
+| ATTACK_10 | 3DS exemption-band abuse | T-06 | RBA exemption policy + velocity counters |
+| ATTACK_11 | Delegated agent scope expansion | T-19 | device binding + one-time consent |
+| ATTACK_12 | Geo-velocity spoof with generated itinerary | T-11 | impossible-travel adjacent-pair rules |
+| ATTACK_13 | Fake merchant shell bust-out (acquiring side) | T-04 | merchant onboarding document review |
+| ATTACK_14 | Adversarial decision-boundary probing | T-20 | the deployed scorer itself (oracle) |
 
-Per-family recall, leave-one-family-out zero-day generalisation, and which defense
-layer catches each family: `make coverage`. The eight remaining taxonomy rows name
-their fields and target signals, so each is an afternoon of work, not a research
-question.
+Measured at a calibrated operating point by `make coverage` →
+[`artifacts/family_coverage.json`](artifacts/family_coverage.json): mean per-family recall **0.909**
+when the family is in supervised training, **0.841** when the whole family is withheld and scored as
+a zero-day, with validation FPR held to **1.07%** (upper 95% CI). The eight remaining taxonomy rows
+name their fields and target signals, so each is an afternoon of work, not a research question.
 
 ---
 
-## Project Structure
+## Economics and latency
+
+`make transfer` prices the stack at production prevalence
+([`artifacts/economics.json`](artifacts/economics.json), [`prevalence_metrics.json`](artifacts/prevalence_metrics.json)),
+and `make latency` times the exact call the server makes
+([`artifacts/latency.json`](artifacts/latency.json)):
+
+| | Measured |
+|---|---|
+| Net benefit, 1M authorisations at 1.3% fraud prevalence | **₹22.93 Cr** (₹229,336,080) |
+| Wrongly-declined-legitimate cost, as a share of all cost | **59.7%** — the largest term, which is why the cost matrix is asymmetric |
+| Precision at 1.3% prevalence | **48.3%** (falls to 6.6% at 0.1% — a base-rate property, reported not hidden) |
+| Inline decision latency, n=4,180 | p50 **6.73 ms** · p95 **7.45 ms** · p99 **9.09 ms** · max 41.1 ms, against a 100 ms budget |
+
+---
+
+## Built to be checked
+
+| Property | Where to verify it |
+|---|---|
+| The headline is reproducible | `make reproduce` regenerates every artifact with a provenance stamp; `make clean-artifacts` forces a real regeneration |
+| Claims map to evidence | [`artifacts/claim_ledger.json`](artifacts/claim_ledger.json) and the `/evidence` page map claim → artifact → field |
+| Thresholds are leakage-free | [`calibration_audit.json`](artifacts/calibration_audit.json) — calibrated on a split disjoint from every evaluation split |
+| The gate needs no labels | [`closed_loop.json → gate`](artifacts/closed_loop.json) — computable on the escape batch alone, before retraining |
+| The backend is tested | `make test` — 62 passed, 1 skipped |
+| The demo is immediately usable | The [live dashboard](https://adversarial-payment-arena.onrender.com) works with no account, key, or build |
+
+---
+
+## Boundaries, stated plainly
+
+- "Held-out arena fraud" is simulated, topology-aware ring fraud from the arena corpus — **not**
+  issuer production traffic. This submission claims no production validation.
+- The argument is about the *relationship* between gating and transfer harm, not an absolute recall
+  figure for live traffic. Absolute recall in a synthetic environment is directional.
+- Three seeds per arm; every number is a seed-level mean with a nonparametric bootstrap CI (2,000
+  resamples). The −35.8 pt scissor is `[-82.9, 0.0]` and is negative in two of three seeds — the
+  upper bound touches zero, which is why we show the interval.
+- Attack budget per generation is fixed and identical across arms, so no arm wins by volume.
+- Leave-one-family-out withholds a family from *supervised* training only; the unsupervised layers
+  are trained on legitimate traffic alone by design. Layer attribution overlaps and does not sum to
+  recall.
+- Latency is single-threaded on one machine and excludes network transport and ISO message parsing.
+
+---
+
+## Run it
+
+**Requirements:** Python 3.12 (what CI runs), Node 24 and pnpm 11.22.0 (pinned in
+`frontend/package.json` via `packageManager`). No API key is needed.
+
+```bash
+# 1. Backend (FastAPI + the arena engine) — port 8000
+cd backend
+python3.12 -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+pytest tests/ -q          # 62 passed, 1 skipped
+
+# 2. Dashboard — port 3000, in a second terminal
+cd frontend && pnpm install && cd ..
+
+# 3. Both from the repo root, with the venv active
+make serve                # cd backend && uvicorn main:app --reload --port 8000
+make ui                   # cd frontend && pnpm dev
+```
+
+Open <http://localhost:3000> and press **▶ Guided demo**.
+
+### One URL
+
+The `Dockerfile` builds the UI to static assets and serves them from the same FastAPI origin as the
+WebSocket — one process, no CORS or mixed-content surface, which is what a judge opening a single
+link needs.
+
+```bash
+docker build -t arena . && docker run -p 8000:8000 arena
+```
+
+Deploy with [`render.yaml`](render.yaml) (the live demo above; Docker runtime, free plan, Singapore
+region closest to the panel) or [`fly.toml`](fly.toml). The same image rehearses offline.
+
+---
+
+## The evidence map
+
+Nothing here is hand-entered. `make reproduce` runs the first six stages below, and each writes JSON
+into `artifacts/` with a provenance stamp — git SHA, seeds, command, Python version. The headline
+claims are additionally mapped claim-by-claim in
+[`artifacts/claim_ledger.json`](artifacts/claim_ledger.json) and rendered on the `/evidence` page.
+
+| Target | Writes | Supports which claim above |
+|---|---|---|
+| `make calibration` | `calibration_audit.json` | Thresholds calibrated without leakage |
+| `make fidelity` | `fidelity_report.json` | Generator separation: C2ST, JSD, Frobenius, TSTR |
+| **`make closed-loop`** | `closed_loop.json` | **The scissor**, the gate table, batch refusals |
+| `make transfer` | `transfer_ledger.json`, `metrics.json`, `prevalence_metrics.json`, `economics.json` | The ceiling statement; the whole economics table |
+| `make coverage` | `family_coverage.json` | 14-family recall + leave-one-family-out zero-day |
+| `make latency` | `latency.json` | p50 / p95 / p99 inline decision latency |
+| `make zero-day` | `docs/zero_day_results.png` + console report | [`docs/ZERO_DAY_EXPERIMENT.md`](docs/ZERO_DAY_EXPERIMENT.md) |
+
+Three further audits run outside the headline chain and are not cited above:
+`run_action_policy.py`, `run_behavioural_fidelity.py` and `run_privacy_audit.py`.
+
+The `make` targets resolve `python` from `PATH`, so activate the backend virtualenv first.
+
+---
+
+## Layout
 
 ```
 adversarial-payment-arena/
 ├── backend/
-│   ├── agents/            # LLM red-team attacker agent & prompt templates
-│   ├── attack_specs/      # Structured YAML attack definitions
-│   ├── data/              # Synthetic generator, corpus builder & schemas
-│   ├── defense/           # XGBoost, Isolation Forest, NetworkX Graph & Cost Engine
-│   ├── environment/       # Payment state machine & Plausibility Gate
-│   ├── evidence/          # Calibration, economics & the claim→artifact ledger
-│   ├── experiments/       # Transfer-vs-fidelity ablation + zero-day holdout
-│   ├── models/            # Serialized ML models (committed: xgb .json + iForest .joblib)
-│   ├── schemas/           # Pydantic data schemas
-│   ├── tests/             # Pytest test suite
-│   ├── main.py            # FastAPI REST & WebSocket streaming server
-│   └── run_campaign.py    # CLI runner for headless campaign benchmarks
-├── artifacts/             # Provenance-stamped JSON evidence (via `make reproduce`)
-├── docs/
-│   ├── TRANSFER_LEDGER.md      # Headline fidelity-vs-transfer experiment write-up
-│   ├── transfer_ledger.png     # The three-arm result figure
-│   ├── ATTACK_TAXONOMY.md      # Full attack taxonomy
-│   └── FEASIBILITY.md          # ISO 8583/20022 mapping & deployment path
-└── frontend/
-    ├── src/
-    │   ├── app/           # Next.js App Router (SOC dashboard + /evidence page)
-    │   ├── components/    # xyflow canvas, logs feed, cost telemetry, analyst panel
-    │   └── lib/           # WebSocket client & state management
-    └── package.json
+│   ├── agents/            # LLM red-team attacker + prompt templates
+│   ├── attack_specs/      # YAML attack definitions (one per executable family)
+│   ├── data/              # Synthetic generator, corpus builder, schemas
+│   ├── defense/           # XGBoost · Isolation Forest · NetworkX graph · cost engine
+│   ├── environment/       # Payment state machine + plausibility gate
+│   ├── evidence/          # Calibration, economics, claim→artifact ledger
+│   ├── experiments/       # One script per `make` stage above
+│   ├── models/            # Serialized detectors (committed: xgb .json + iForest .joblib)
+│   ├── tests/             # Pytest suite
+│   ├── main.py            # FastAPI REST + WebSocket server
+│   └── run_campaign.py    # Headless campaign CLI
+├── frontend/src/
+│   ├── app/               # App Router: / (SOC dashboard) + /evidence
+│   ├── components/arena/  # Entity graph, feeds, cost panel, outcome + judge panels
+│   └── lib/               # WebSocket client, state, committed evidence constants
+├── artifacts/             # Provenance-stamped JSON evidence
+├── docs/                  # JUDGES.md · ATTACK_TAXONOMY.md · TRANSFER_LEDGER.md ·
+│                          # ZERO_DAY_EXPERIMENT.md · FEASIBILITY.md · result figures
+├── Makefile               # The evidence pipeline
+├── Dockerfile             # Single-origin deployable
+└── render.yaml / fly.toml
 ```
-
----
-
-## Quick Start
-
-### Prerequisites
-- **Python 3.11+**
-- **Node.js 20+** & **pnpm**
-- *(Optional)* `OPENROUTER_API_KEY` for live LLM attacker reasoning
-
-### 1. Backend Setup
-
-```bash
-cd backend
-
-# Create & activate virtual environment
-python3 -m venv .venv
-source .venv/bin/activate
-
-# Install dependencies
-pip install -r requirements.txt
-
-# Run automated test suite
-pytest tests/
-
-# (Optional) retrain + re-serialize the defense models into backend/models/.
-# The repo already ships trained models, so this is only needed if you change
-# the corpus or feature pipeline. Run from the repo root:
-#   make models
-
-# Start FastAPI server (Port 8000)
-uvicorn main:app --reload --port 8000
-```
-
-> The two serialized detectors (`backend/models/xgb_model.json`, `iforest_model.joblib`) are **committed**, so a fresh clone demos a working four-layer defense with **no build and no API key**.
-
-### 2. Frontend Setup
-
-```bash
-cd frontend
-
-# Install dependencies
-pnpm install
-
-# Start development server (Port 3000)
-pnpm dev
-```
-
-Open [http://localhost:3000](http://localhost:3000) to view the SOC dashboard.
-
-### 3. Deploy as a single URL (recommended for judging)
-
-The `Dockerfile` builds the UI to static assets and serves them from the same FastAPI origin as the
-WebSocket — one URL, one process, no CORS or mixed-content surface. A judge opens one link and the
-whole arena works. Deploy to whichever platform you have an account on:
-
-```bash
-# Fly.io (keeps one warm instance so the first click is instant)
-fly launch --no-deploy --copy-config && fly deploy && fly open
-
-# or Render
-# use the provided render.yaml blueprint
-```
-
-The same image runs locally for a rehearsal: `docker build -t arena . && docker run -p 8000:8000 arena`.
-
----
-
-## Running Campaigns & Experiments
-
-### Headless Campaign Execution
-```bash
-# Offline (no key): the mule-ring campaign visibly forms a ring and gets DECLINED.
-python backend/run_campaign.py --attack attack_2_synthetic_mule_ring --size 25 --fast
-python backend/run_campaign.py --attack attack_1 --size 50
-```
-
-### Reproduce the evidence
-```bash
-make reproduce        # calibration + fidelity + transfer ablation -> artifacts/*.json
-```
-
-### Zero-Day Holdout Experiment Benchmark
-```bash
-make zero-day         # or: python backend/experiments/zero_day_holdout.py
-```
-
----
 
 ---
 
 ## License
 
-MIT License. Developed for research and demonstration in payment security.
+MIT. Built for research and demonstration in payment security.
