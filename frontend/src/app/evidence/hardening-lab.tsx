@@ -13,8 +13,7 @@
 import { useEffect, useState } from "react";
 
 import { backendHttpUrl } from "@/lib/backend";
-
-type Interval = { mean: number; lo: number; hi: number; n?: number };
+import { COMMITTED_SCISSOR } from "@/lib/committed-evidence";
 
 type Arm = {
   arm: string;
@@ -27,6 +26,7 @@ type Arm = {
 };
 
 type ClosedLoop = {
+  provenance?: { generated_at?: string; git_sha?: string; seeds?: number[]; command?: string };
   question?: string;
   protocol?: { seeds?: number[]; generations?: number; target_fpr?: number };
   gate?: {
@@ -105,8 +105,33 @@ const styles = {
 };
 
 export function HardeningLab() {
-  const [data, setData] = useState<ClosedLoop | null>(null);
-  const [missing, setMissing] = useState(false);
+  const [data, setData] = useState<ClosedLoop>({
+    provenance: {
+      generated_at: COMMITTED_SCISSOR.generatedAt,
+      git_sha: COMMITTED_SCISSOR.gitSha,
+      seeds: [...COMMITTED_SCISSOR.seeds],
+      command: COMMITTED_SCISSOR.command,
+    },
+    protocol: {
+      seeds: [...COMMITTED_SCISSOR.seeds],
+      generations: COMMITTED_SCISSOR.generations,
+      target_fpr: COMMITTED_SCISSOR.targetFpr,
+    },
+    gate: {
+      c2st_auc_max: COMMITTED_SCISSOR.gate.c2stAucMax,
+      dependence_frobenius_max: COMMITTED_SCISSOR.gate.dependenceFrobeniusMax,
+      labels_required: COMMITTED_SCISSOR.gate.labelsRequired,
+      computable_before_retraining: true,
+    },
+    low_fidelity_generator: {
+      ungated_delta_real_recall: COMMITTED_SCISSOR.realRecallLoss,
+      gated_delta_real_recall: COMMITTED_SCISSOR.gatedRealRecallLoss,
+      recall_protected_by_gate: COMMITTED_SCISSOR.recallProtected,
+      ungated_delta_synthetic_recall: COMMITTED_SCISSOR.syntheticRecallGain,
+    },
+    boundaries: [...COMMITTED_SCISSOR.boundaries],
+  });
+  const [usingCommittedFallback, setUsingCommittedFallback] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
@@ -116,72 +141,59 @@ export function HardeningLab() {
         return r.json();
       })
       .then((d) => {
-        if (!cancelled) setData(d);
+        if (!cancelled) {
+          setData(d);
+          setUsingCommittedFallback(false);
+        }
       })
-      .catch(() => {
-        if (!cancelled) setMissing(true);
-      });
+      .catch(() => {});
     return () => {
       cancelled = true;
     };
   }, []);
-
-  if (missing) {
-    return (
-      <>
-        <h2 style={styles.h2}>The fidelity scissor — gated vs ungated closed loop</h2>
-        <p style={styles.sub}>
-          Not generated yet. Run <span style={styles.code}>python backend/experiments/run_closed_loop.py</span>{" "}
-          and reload.
-        </p>
-      </>
-    );
-  }
-  if (!data) return null;
 
   const low = data.low_fidelity_generator ?? {};
   const arms = data.arms ?? [];
 
   return (
     <>
-      <h2 style={styles.h2}>The fidelity scissor — gated vs ungated closed loop</h2>
+      <h2 id="fidelity-scissor" style={styles.h2}>The fidelity scissor</h2>
       <p style={styles.sub}>
-        {data.question ??
-          "Does folding red-team escapes back into training improve detection of real fraud, and does a label-free fidelity gate change the answer?"}
+        The label-free gate compares each synthetic escape batch with known fraud structure using
+        C2ST and rank dependence. Because both checks run before retraining and need no new outcome
+        labels, an unsafe batch can be rejected before it damages the detector.
       </p>
 
       <section style={styles.grid}>
         <div style={{ ...styles.card, border: "1px solid #7f1d1d" }}>
           <div style={styles.cardLabel}>
-            Ungated loop, low-fidelity generator — the vanity metric and the real metric move in opposite
-            directions
+            Synthetic attack recall rises
           </div>
-          <div style={{ ...styles.cardValue, color: "#f87171" }}>
+          <div style={{ ...styles.cardValue, color: "#4ade80" }}>
+            {signedPts(low.ungated_delta_synthetic_recall)}
+            <span style={{ fontSize: 13, color: "#94a3b8", fontWeight: 500 }}> on synthetic attacks</span>
+          </div>
+          <div style={{ ...styles.cardValue, color: "#f87171", fontSize: 20, marginTop: 4 }}>
             {signedPts(low.ungated_delta_real_recall)}
-            <span style={{ fontSize: 13, color: "#94a3b8", fontWeight: 500 }}> real-fraud recall</span>
-          </div>
-          <div style={{ ...styles.cardValue, color: "#4ade80", fontSize: 20, marginTop: 4 }}>
-            {signedPts(low.ungated_delta_synthetic_recall, 0)}
             <span style={{ fontSize: 13, color: "#94a3b8", fontWeight: 500 }}>
-              {" "}
-              on the generator&apos;s own attacks
+              {" "}on held-out arena fraud
             </span>
           </div>
           <div style={styles.cardNote}>
-            Every internal dashboard number improves while the detector rots on held-out real fraud. This is
-            the failure mode a closed loop hides.
+            The two yardsticks move in opposite directions in the ungated loop. Held-out arena fraud is
+            simulated evaluation data, not issuer production traffic.
           </div>
         </div>
 
         <div style={{ ...styles.card, border: "1px solid #166534" }}>
           <div style={styles.cardLabel}>Same loop, fidelity gate on — the gate refuses the escape batches</div>
           <div style={{ ...styles.cardValue, color: "#4ade80" }}>
-            {signedPts(low.gated_delta_real_recall)}
-            <span style={{ fontSize: 13, color: "#94a3b8", fontWeight: 500 }}> real-fraud recall</span>
+            {signedPts(low.recall_protected_by_gate)}
+            <span style={{ fontSize: 13, color: "#94a3b8", fontWeight: 500 }}> real-fraud recall protected</span>
           </div>
           <div style={{ ...styles.cardValue, color: "#93c5fd", fontSize: 20, marginTop: 4 }}>
-            {signedPts(low.recall_protected_by_gate)}
-            <span style={{ fontSize: 13, color: "#94a3b8", fontWeight: 500 }}> of recall protected</span>
+            {signedPts(low.gated_delta_real_recall)}
+            <span style={{ fontSize: 13, color: "#94a3b8", fontWeight: 500 }}> gated change on held-out arena fraud</span>
           </div>
           <div style={styles.cardNote}>
             {data.gate?.why ??
@@ -202,7 +214,7 @@ export function HardeningLab() {
       )}
 
       {arms.length > 0 && (
-        <table style={{ ...styles.table, marginBottom: 20 }}>
+        <div style={{ overflowX: "auto", marginBottom: 20 }}><table style={styles.table}>
           <thead>
             <tr>
               <th style={styles.th}>Arm</th>
@@ -242,11 +254,11 @@ export function HardeningLab() {
               </tr>
             ))}
           </tbody>
-        </table>
+        </table></div>
       )}
 
       {data.reading && (
-        <p style={{ ...styles.sub, borderLeft: "3px solid #2563eb", paddingLeft: 16 }}>{data.reading}</p>
+        <p style={{ ...styles.sub, borderTop: "1px solid #2563eb", paddingTop: 14 }}>{data.reading}</p>
       )}
 
       {data.boundaries && data.boundaries.length > 0 && (
@@ -262,7 +274,9 @@ export function HardeningLab() {
       <p style={styles.sub}>
         Reproduce: <span style={styles.code}>python backend/experiments/run_closed_loop.py</span> — seeds{" "}
         {data.protocol?.seeds?.join(", ") ?? "—"}, {data.protocol?.generations ?? "—"} generations, FPR pinned
-        at {data.protocol?.target_fpr ?? "—"}.
+        at {data.protocol?.target_fpr ?? "—"}. Artifact <span style={styles.code}>artifacts/closed_loop.json</span>,
+        git <span style={styles.code}>{data.provenance?.git_sha ?? COMMITTED_SCISSOR.gitSha}</span>.
+        {usingCommittedFallback ? " Showing the committed artifact snapshot while the live evidence API wakes." : ""}
       </p>
     </>
   );

@@ -45,8 +45,8 @@ export function DefenseFeed({ rows }: { rows: DecisionRow[] }) {
       <CardHeader className="pb-2">
         <CardTitle className="text-sm">
           Defense Decisions
-          <span className="ml-2 font-mono text-[10px] font-normal text-muted-foreground">
-            velocity · iForest · graph
+          <span className="ml-2 text-[10px] font-normal text-muted-foreground">
+            behavioral · anomaly · network
           </span>
         </CardTitle>
       </CardHeader>
@@ -61,43 +61,43 @@ export function DefenseFeed({ rows }: { rows: DecisionRow[] }) {
               <TableRow className="border-zinc-800 hover:bg-transparent">
                 <TableHead className="h-8 text-[10px] text-muted-foreground">TXN</TableHead>
                 <TableHead className="h-8 text-[10px] text-muted-foreground">DECISION</TableHead>
-                <TableHead className="h-8 text-[10px] text-muted-foreground">VEL</TableHead>
-                <TableHead className="h-8 text-[10px] text-muted-foreground">ANOM</TableHead>
-                <TableHead className="h-8 text-[10px] text-muted-foreground">RING</TableHead>
+                <TableHead className="h-8 text-[10px] text-muted-foreground" title="Behavioral velocity score">VELOCITY</TableHead>
+                <TableHead className="h-8 text-[10px] text-muted-foreground" title="Novelty and anomaly score">ANOMALY</TableHead>
+                <TableHead className="h-8 text-[10px] text-muted-foreground" title="Coordinated entity-ring risk">NETWORK</TableHead>
                 <TableHead className="h-8 text-[10px] text-muted-foreground">WHY</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {rows.slice().reverse().map((r) => (
-                <TableRow key={r.id} className="border-zinc-900">
-                  <TableCell className="py-1.5 font-mono text-[10.5px] text-muted-foreground">
+                <TableRow key={r.id} className="defense-row-enter border-zinc-900">
+                  <TableCell className="py-2 font-mono text-[11px] text-muted-foreground">
                     {r.txn ?? "—"}
                   </TableCell>
-                  <TableCell className="py-1.5">
+                  <TableCell className="py-2">
                     <span
                       className={`inline-block rounded border px-1.5 py-0.5 font-mono text-[9.5px] font-bold ${DECISION_STYLE[r.decision]}`}
                     >
                       {r.decision}
                     </span>
                   </TableCell>
-                  <TableCell className="py-1.5 font-mono text-[10.5px]">
+                  <TableCell className="py-2 font-mono text-[11px]">
                     {r.scores.velocity.toFixed(2)}
                   </TableCell>
-                  <TableCell className="py-1.5 font-mono text-[10.5px]">
+                  <TableCell className="py-2 font-mono text-[11px]">
                     {r.scores.is_anomaly ? (
                       <span className="text-emerald-400">{pct(r.scores.novelty_anomaly)}</span>
                     ) : (
                       <span className="text-muted-foreground">{r.scores.novelty_anomaly.toFixed(2)}</span>
                     )}
                   </TableCell>
-                  <TableCell className="py-1.5 font-mono text-[10.5px]">
+                  <TableCell className="py-2 font-mono text-[11px]">
                     {r.scores.ring_detected ? (
                       <Badge variant="destructive" className="px-1 py-0 text-[9px]">RING</Badge>
                     ) : (
                       <span className="text-muted-foreground">{r.scores.ring_risk.toFixed(2)}</span>
                     )}
                   </TableCell>
-                  <TableCell className="max-w-[150px] truncate py-1.5 font-mono text-[9.5px] text-muted-foreground">
+                  <TableCell className="max-w-[150px] truncate py-2 text-[10px] text-muted-foreground" title={r.reasons.join(", ")}>
                     {r.reasons.length > 0 ? r.reasons.join(", ") : "clean"}
                   </TableCell>
                 </TableRow>

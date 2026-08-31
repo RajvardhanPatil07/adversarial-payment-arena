@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist_Mono, Manrope } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
 
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const manrope = Manrope({
+  variable: "--font-manrope",
   subsets: ["latin"],
 });
 
@@ -15,16 +15,16 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Adversarial Payment Arena — SOC",
+  title: "Adversarial Payment Arena — Fidelity-Gated Fraud Defense",
   description:
-    "LLM fraud campaigns vs. a simulated issuer stack: attacker reasoning, plausibility gate, and layered defense decisions in real time.",
+    "See the fidelity scissor: synthetic-attack recall rises while held-out simulated fraud recall falls, and a label-free gate prevents the damage.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} dark h-full antialiased`}
+      className={`${manrope.variable} ${geistMono.variable} dark h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-background">
         {children}

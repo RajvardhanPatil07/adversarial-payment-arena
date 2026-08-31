@@ -61,7 +61,7 @@ export function AnalystPanel({ getStats }: { getStats: () => AnalystStats }) {
   return (
     <Card className="flex min-h-0 flex-col border-zinc-800 bg-zinc-950/60">
       <CardHeader className="flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm">AI Field Notes</CardTitle>
+        <CardTitle className="text-sm">Analyst brief</CardTitle>
         <Button
           size="sm"
           variant="outline"
@@ -69,16 +69,16 @@ export function AnalystPanel({ getStats }: { getStats: () => AnalystStats }) {
           onClick={() => (busy ? abortRef.current?.abort() : void run())}
           className="h-7 border-zinc-700 px-2 font-mono text-[10px] text-zinc-300 hover:bg-zinc-800"
         >
-          {busy ? "STOP" : "SUMMARIZE FIGHT"}
+          {busy ? "Stop" : "Summarize the fight"}
         </Button>
       </CardHeader>
       <CardContent className="min-h-0 flex-1 overflow-y-auto">
         {text ? (
-          <p className="whitespace-pre-wrap text-[11px] leading-relaxed text-zinc-300">{text}</p>
+          <p className="whitespace-pre-wrap text-xs leading-relaxed text-zinc-300">{text}</p>
         ) : (
-          <p className="text-[11px] text-muted-foreground">
-            Streams a fraud-ops read of the current session — cost matrix, decision mix,
-            and what the defense layers are doing — from the same model that plays the attacker.
+          <p className="text-xs leading-relaxed text-muted-foreground">
+            Generate a plain-language read of the current session: cost, decision mix,
+            and which defense layers exposed the attack.
           </p>
         )}
       </CardContent>

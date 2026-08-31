@@ -13,9 +13,11 @@
  */
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 
 import { backendHttpUrl } from "@/lib/backend";
 import { HardeningLab } from "@/app/evidence/hardening-lab";
+import { WINNING_THESIS } from "@/lib/committed-evidence";
 
 // Resolved through lib/backend.ts so this page cannot drift onto a different
 // env var than the WebSocket dashboard (previously it read two of its own).
@@ -88,21 +90,15 @@ const styles = {
       "ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
   } as const,
   shell: { maxWidth: 1180, margin: "0 auto" } as const,
-  eyebrow: {
-    fontSize: 12,
-    letterSpacing: "0.18em",
-    textTransform: "uppercase",
-    color: "#60a5fa",
-    marginBottom: 10,
-  } as const,
+  back: { display: "inline-block", color: "#86efac", fontSize: 13, marginBottom: 28 } as const,
   h1: { fontSize: 34, fontWeight: 700, margin: "0 0 12px", lineHeight: 1.15 } as const,
   thesis: {
     fontSize: 15,
     lineHeight: 1.65,
     color: "#cbd5e1",
     maxWidth: 820,
-    borderLeft: "3px solid #2563eb",
-    paddingLeft: 16,
+    borderTop: "1px solid #2563eb",
+    paddingTop: 14,
     margin: "0 0 30px",
   } as const,
   grid: {
@@ -224,14 +220,15 @@ export default function EvidencePage() {
   return (
     <main style={styles.page}>
       <div style={styles.shell}>
-        <div style={styles.eyebrow}>Evidence Ledger</div>
-        <h1 style={styles.h1}>Fidelity determines transfer</h1>
+        <Link href="/" style={styles.back}>← Live arena</Link>
+        <h1 style={styles.h1}>The red-team metric that lies</h1>
         <p style={styles.thesis}>
-          {summary?.thesis ??
-            "Closing the red-team loop is not sufficient. Whether the loop improves real-world detection depends on the fidelity of the attack generator, and low-fidelity augmentation can measurably reduce recall on real fraud."}
+          {WINNING_THESIS}
         </p>
 
-        {loading && <p style={styles.sub}>Loading generated artifacts...</p>}
+        <HardeningLab />
+
+        {loading && <p style={styles.sub}>Loading supporting artifacts from the live evidence API…</p>}
 
         {!loading && error && (
           <div style={styles.warn}>
@@ -240,8 +237,9 @@ export default function EvidencePage() {
             {error}
             <br />
             <br />
-            This page deliberately shows nothing rather than placeholder numbers. Regenerate with{" "}
-            <span style={styles.code}>make reproduce</span> and reload.
+            The fidelity-scissor result above is still rendered from the committed artifact snapshot.
+            Supporting ledgers will return when the backend wakes. To regenerate them, run{" "}
+            <span style={styles.code}>make reproduce</span>.
           </div>
         )}
 
@@ -250,7 +248,7 @@ export default function EvidencePage() {
             <section style={styles.grid}>
               <div style={styles.card}>
                 <div style={styles.cardLabel}>
-                  A2 Gaussian copula &mdash; change in recall on real fraud
+                  A2 Gaussian copula &mdash; change in recall on held-out arena fraud (simulated)
                 </div>
                 <div
                   style={{
@@ -269,7 +267,7 @@ export default function EvidencePage() {
 
               <div style={styles.card}>
                 <div style={styles.cardLabel}>
-                  A1 independent marginals &mdash; change in recall on real fraud
+                  A1 independent marginals &mdash; change in recall on held-out arena fraud (simulated)
                 </div>
                 <div
                   style={{
@@ -338,14 +336,12 @@ export default function EvidencePage() {
               </div>
             </section>
 
-            <HardeningLab />
-
             <h2 style={styles.h2}>Claim ledger</h2>
             <p style={styles.sub}>
               Every public claim, the artifact field that supports it, how it was derived, and the
               boundary beyond which it does not hold. The boundary column is mandatory.
             </p>
-            <table style={styles.table}>
+            <div style={{ overflowX: "auto" }}><table style={styles.table}>
               <thead>
                 <tr>
                   <th style={styles.th}>Claim</th>
@@ -375,18 +371,18 @@ export default function EvidencePage() {
                   </tr>
                 )}
               </tbody>
-            </table>
+            </table></div>
           </>
         )}
 
         {index.length > 0 && (
           <>
-            <h2 style={styles.h2}>Artifacts and reproduction</h2>
+            <h2 id="reproduce" style={styles.h2}>Artifacts and reproduction</h2>
             <p style={styles.sub}>
               Each artifact is a JSON file stamped with the git sha, seeds, Python version and the
               command that produced it.
             </p>
-            <table style={styles.table}>
+            <div style={{ overflowX: "auto" }}><table style={styles.table}>
               <thead>
                 <tr>
                   <th style={styles.th}>Artifact</th>
@@ -414,7 +410,7 @@ export default function EvidencePage() {
                   </tr>
                 ))}
               </tbody>
-            </table>
+            </table></div>
           </>
         )}
 

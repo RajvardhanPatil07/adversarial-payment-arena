@@ -7,6 +7,7 @@
  */
 
 import { Badge } from "@/components/ui/badge";
+import { ShieldAlert } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { PaymentPayload } from "@/lib/arena-types";
@@ -46,7 +47,7 @@ function money(n: number): string {
 function PayloadCard({ row }: { row: PayloadRow }) {
   const p = row.payload;
   return (
-    <div className="rounded-md border border-l-2 border-l-amber-500 bg-amber-500/5 p-2 font-mono text-[10.5px] leading-relaxed text-muted-foreground">
+    <div className="stream-entry rounded-lg border border-amber-900/60 bg-amber-500/5 p-2.5 font-mono text-[11px] leading-relaxed text-muted-foreground">
       <div className="flex items-center justify-between">
         <span className="font-semibold text-amber-400">{p.merchant_id.replace("MERCH_", "")}</span>
         <span className="text-foreground">{money(p.amount)}</span>
@@ -57,7 +58,7 @@ function PayloadCard({ row }: { row: PayloadRow }) {
         <span>3DS:{p["3ds_status"]}</span>
         <span>mcc {p.mcc}</span>
         {p.stolen_resource ? (
-          <span className="text-red-400">⚠ {p.stolen_resource}</span>
+          <span className="inline-flex items-center gap-1 text-red-400"><ShieldAlert className="size-3" aria-hidden="true" /> {p.stolen_resource}</span>
         ) : null}
       </div>
     </div>
@@ -78,8 +79,8 @@ export function AttackerFeed({
       <CardHeader className="pb-2">
         <CardTitle className="flex items-center gap-2 text-sm">
           Attacker Stream
-          <Badge variant="outline" className="font-mono text-[9px] text-red-400 border-red-900">
-            LLM red team
+          <Badge variant="outline" className="border-red-900 font-mono text-[9px] text-red-400">
+            AI red team
           </Badge>
         </CardTitle>
       </CardHeader>
@@ -106,7 +107,7 @@ export function AttackerFeed({
             {thoughts.map((t) => (
               <div
                 key={`t-${t.id}`}
-                className={`rounded-md border p-2 text-[11px] leading-snug ${
+                className={`stream-entry rounded-lg border p-2.5 text-xs leading-relaxed ${
                   t.role === "PLANNER"
                     ? "border-violet-900 bg-violet-500/10 text-violet-200"
                     : t.role === "SYSTEM"
@@ -143,7 +144,7 @@ export function AttackerFeed({
             {checks.slice().reverse().map((c) => (
               <div
                 key={`c-${c.id}`}
-                className={`flex items-center justify-between rounded border px-2 py-1.5 font-mono text-[10.5px] ${
+                className={`stream-entry flex items-center justify-between rounded border px-2 py-1.5 font-mono text-[10.5px] ${
                   c.ok ? "border-emerald-900 bg-emerald-500/5" : "border-red-900 bg-red-500/10"
                 }`}
               >
