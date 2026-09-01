@@ -28,7 +28,7 @@ import { OutcomePanel } from "@/components/arena/outcome-panel";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { ArenaEvent, CampaignSummaryData, CostUpdate, GraphEdge, GraphNode } from "@/lib/arena-types";
-import { COMMITTED_SCISSOR, signedPoints, WINNING_THESIS } from "@/lib/committed-evidence";
+import { COMMITTED_SCISSOR, signedPoints } from "@/lib/committed-evidence";
 import { ArenaSocket, backendWsUrl, type ConnState } from "@/lib/ws";
 
 // --------------------------------------------------------------------------- //
@@ -61,17 +61,17 @@ const initialState: ArenaState = {
   running: false,
 };
 
-const CAPS = { thoughts: 120, payloads: 60, checks: 150, decisions: 150, graphNodes: 160, graphEdges: 220 };
+const CAPS = { thoughts: 120, payloads: 60, checks: 150, decisions: 150, graphNodes: 2000, graphEdges: 4000 };
 
 // --------------------------------------------------------------------------- //
 // Guided demo ("Judge Mode")
 // --------------------------------------------------------------------------- //
 
 const GUIDED_ATTACK = "attack_2_synthetic_mule_ring";
-const GUIDED_SIZE = 25;
+const GUIDED_SIZE = 12;
 
 /**
- * The scripted 90-second walkthrough. Steps advance on real WebSocket events,
+ * The scripted walkthrough. Steps advance on real WebSocket events,
  * never on timers, so the narration cannot drift ahead of the fight.
  */
 const GUIDED_STEPS: string[] = [
@@ -98,7 +98,10 @@ function reducer(state: ArenaState, action: Action): ArenaState {
         payloads: [],
         checks: [],
         decisions: [],
+        costs: null,
         summary: null,
+        graphNodes: [],
+        graphEdges: [],
         running: true,
       };
     case "event": {
@@ -227,12 +230,6 @@ export default function ArenaPage() {
 
       // side-effects that must not live in the reducer
       if (e.type === "defense_decision") {
-        if (e.decision === "DECLINE") {
-          toast.error(`TXN ${e.txn_index ?? "?"} DECLINED`, {
-            description: e.reasons.join(", ") || "policy",
-            duration: 3500,
-          });
-        }
         if (e.scores.ring_detected && !ringToastedRef.current) {
           ringToastedRef.current = true;
           toast.warning("Mule ring detected in entity graph", {
@@ -273,6 +270,7 @@ export default function ArenaPage() {
 
   const launch = useCallback(
     (attackFile: string, size: number) => {
+      ringToastedRef.current = false;
       dispatch({ type: "reset" });
       const ok = socketRef.current?.send({
         type: "start_campaign",
@@ -286,6 +284,7 @@ export default function ArenaPage() {
   );
 
   const sendGuidedCampaign = useCallback(() => {
+    ringToastedRef.current = false;
     dispatch({ type: "reset" });
     const ok = socketRef.current?.send({
       type: "start_campaign",
@@ -360,7 +359,10 @@ export default function ArenaPage() {
           </span>
         </Link>
         <nav className="arena-nav" aria-label="Primary navigation">
-          <a href="#arena">Live arena</a>
+          <span className={`arena-live-state arena-live-state--${conn}`}>
+            <i aria-hidden="true" /> {conn === "open" ? "Engine live" : conn === "connecting" ? "Engine waking" : "Engine offline"}
+          </span>
+          <a href="#arena">Arena</a>
           <Link href="/evidence">Evidence <ArrowRight aria-hidden="true" /></Link>
         </nav>
       </header>
@@ -368,9 +370,9 @@ export default function ArenaPage() {
       {!hasActivity && (
         <section className="arena-briefing">
           <div className="arena-briefing__copy">
-            <h1>{WINNING_THESIS}</h1>
+            <h1>Red-team the payment stack. Learn without poisoning it.</h1>
             <p className="arena-briefing__lede">
-              Watch one synthetic mule-ring campaign become visible, contained, and safe to learn from.
+              An adaptive attacker builds a fraud ring in real time. Four defense layers contain it, then a fidelity gate decides whether its escapes are safe to learn from.
             </p>
             <div className="arena-briefing__actions">
               <Button
@@ -378,7 +380,7 @@ export default function ArenaPage() {
                 aria-describedby={conn === "open" ? undefined : "engine-status"}
                 className="h-14 gap-2 bg-emerald-400 px-6 text-sm font-semibold text-emerald-950 shadow-lg shadow-emerald-950/30 hover:bg-emerald-300"
               >
-                {guidedQueued ? "Start when engine is ready" : "Start the 90-second demo"}
+                {guidedQueued ? "Start when engine is ready" : "Run the judge demo"}
                 <ArrowRight className="size-4" />
               </Button>
               <div className="arena-briefing__secondary">
@@ -402,6 +404,10 @@ export default function ArenaPage() {
             )}
           </div>
           <div className="arena-proof" aria-label="Headline fidelity-scissor result">
+            <div className="arena-proof__heading">
+              <strong>The fidelity scissor</strong>
+              <span>More synthetic wins can still make real-fraud detection worse.</span>
+            </div>
             <div data-tone="synthetic"><b>{signedPoints(COMMITTED_SCISSOR.syntheticRecallGain)}</b><span>recall on synthetic attacks</span></div>
             <div data-tone="harm"><b>{signedPoints(COMMITTED_SCISSOR.realRecallLoss)}</b><span>recall on held-out arena fraud</span></div>
             <div data-tone="protected"><b>{signedPoints(COMMITTED_SCISSOR.recallProtected)}</b><span>real-fraud recall protected by the gate</span></div>

@@ -48,7 +48,7 @@ export function ControlBar({
 }) {
   const [attacks, setAttacks] = useState<string[]>([]);
   const [selected, setSelected] = useState("attack_2_synthetic_mule_ring");
-  const [size, setSize] = useState(25);
+  const [size, setSize] = useState(12);
   const [spec, setSpec] = useState<LoadAttackResponse | null>(null);
   const [models, setModels] = useState<{ xgb: string; iforest: string } | null>(null);
   const [expanded, setExpanded] = useState(false);

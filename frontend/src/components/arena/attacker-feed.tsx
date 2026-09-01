@@ -12,6 +12,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { PaymentPayload } from "@/lib/arena-types";
 
+const STREAM_LIMIT = 6;
+const PAYLOAD_LIMIT = 4;
+const GATE_LIMIT = 12;
+
 export interface ThoughtRow {
   id: number;
   role: "PLANNER" | "OPERATOR" | "SYSTEM";
@@ -42,6 +46,13 @@ const REASON_STYLE: Record<string, "destructive" | "secondary" | "outline"> = {
 
 function money(n: number): string {
   return `$${n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
+function presentThought(row: ThoughtRow): string {
+  if (row.role === "SYSTEM" && /provider unavailable|deterministic offline attacker/i.test(row.text)) {
+    return "Deterministic red-team strategy is active while the live model is unavailable.";
+  }
+  return row.text;
 }
 
 function PayloadCard({ row }: { row: PayloadRow }) {
@@ -77,12 +88,21 @@ export function AttackerFeed({
   return (
     <Card className="flex min-h-0 flex-1 flex-col border-zinc-800 bg-zinc-950/60">
       <CardHeader className="pb-2">
-        <CardTitle className="flex items-center gap-2 text-sm">
-          Attacker Stream
-          <Badge variant="outline" className="border-red-900 font-mono text-[9px] text-red-400">
-            AI red team
-          </Badge>
-        </CardTitle>
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <CardTitle className="flex items-center gap-2 text-sm">
+              Red-team trace
+              <Badge variant="outline" className="border-red-900 font-mono text-[9px] text-red-400">
+                adaptive
+              </Badge>
+            </CardTitle>
+            <p className="mt-1 text-[10px] text-zinc-500">Strategy, generated payments, and live plausibility checks.</p>
+          </div>
+          <div className="stream-totals" aria-label="Campaign event totals">
+            <span><b>{payloads.length}</b> attempts</span>
+            <span><b>{checks.filter((check) => !check.ok).length}</b> rejected</span>
+          </div>
+        </div>
       </CardHeader>
       <CardContent className="min-h-0 flex-1 overflow-y-auto pr-1">
         <Tabs defaultValue="stream" className="flex h-full flex-col gap-2">
@@ -104,7 +124,7 @@ export function AttackerFeed({
                 No campaign running. Pick an attack and press LAUNCH.
               </p>
             )}
-            {thoughts.map((t) => (
+            {thoughts.slice(-STREAM_LIMIT).map((t) => (
               <div
                 key={`t-${t.id}`}
                 className={`stream-entry rounded-lg border p-2.5 text-xs leading-relaxed ${
@@ -127,12 +147,15 @@ export function AttackerFeed({
                   {t.role}
                   {t.txn ? ` #${t.txn}` : ""}
                 </span>
-                {t.text}
+                {presentThought(t)}
               </div>
             )).reverse()}
-            {payloads.map((p) => (
+            {payloads.slice(-PAYLOAD_LIMIT).map((p) => (
               <PayloadCard key={`p-${p.id}`} row={p} />
             )).reverse()}
+            {(thoughts.length > STREAM_LIMIT || payloads.length > PAYLOAD_LIMIT) && (
+              <p className="stream-history-note">Showing the latest campaign signals · totals remain in the campaign recap.</p>
+            )}
           </TabsContent>
 
           <TabsContent value="gate" className="min-h-0 flex-1 space-y-1.5 overflow-y-auto pr-1">
@@ -141,7 +164,7 @@ export function AttackerFeed({
                 Gate verdicts will appear here.
               </p>
             )}
-            {checks.slice().reverse().map((c) => (
+            {checks.slice(-GATE_LIMIT).reverse().map((c) => (
               <div
                 key={`c-${c.id}`}
                 className={`stream-entry flex items-center justify-between rounded border px-2 py-1.5 font-mono text-[10.5px] ${

@@ -34,7 +34,8 @@ import type { GraphEdge, GraphNode } from "@/lib/arena-types";
 
 const NODE_W = 150;
 const NODE_H = 34;
-const MAX_NODES = 150; // keep the canvas readable during long campaigns
+const MAX_NODES = 64; // focus on the active campaign instead of ambient graph history
+const MAX_COMPONENTS = 3;
 
 // Keep the ring readable: never zoom out below 0.45 (was 0.15) so nodes and
 // edges stay legible even on a busy graph.
@@ -217,12 +218,25 @@ export function EntityGraphCanvas({
 
   // Pre-compute layout positions per component so toFlowNode can reuse them.
   const layoutById = useMemo(() => {
-    const capped = nodes.length > MAX_NODES ? nodes.slice(nodes.length - MAX_NODES) : nodes;
-    const ids = capped.map((n) => n.id);
-    const cappedEdges = edges.filter(
-      (e) => ids.includes(e.source) && ids.includes(e.target),
+    const allIds = nodes.map((node) => node.id);
+    const allIdSet = new Set(allIds);
+    const allEdges = edges.filter(
+      (edge) => allIdSet.has(edge.source) && allIdSet.has(edge.target),
     );
-    const components = connectedComponents(ids, cappedEdges);
+    const components = connectedComponents(allIds, allEdges);
+    const hotIds = new Set(
+      allEdges.filter((edge) => edge.weight >= 3).flatMap((edge) => [edge.source, edge.target]),
+    );
+    const connected = components
+      .filter((component) => component.length > 1)
+      .sort((a, b) => Number(b.some((id) => hotIds.has(id))) - Number(a.some((id) => hotIds.has(id))));
+    const focusedComponents = (connected.length > 0 ? connected : components).slice(0, MAX_COMPONENTS);
+    const focusedIds = new Set(focusedComponents.flat().slice(0, MAX_NODES));
+    const capped = nodes.filter((node) => focusedIds.has(node.id));
+    const cappedEdges = allEdges.filter(
+      (edge) => focusedIds.has(edge.source) && focusedIds.has(edge.target),
+    );
+    const visibleComponents = connectedComponents(capped.map((node) => node.id), cappedEdges);
     const map = new Map<string, { x: number; y: number }>();
     // At the minimum legal zoom the frame shows frame/MIN_ZOOM_VIS world pixels;
     // wrapping a row at that width keeps every component framed instead of
@@ -231,7 +245,7 @@ export function EntityGraphCanvas({
     let cursorX = 0;
     let cursorY = 0;
     let rowHeight = 0;
-    for (const comp of components) {
+    for (const comp of visibleComponents) {
       const { nodes: laidOut, width, height } = layoutComponent(comp, cappedEdges);
       if (cursorX > 0 && cursorX + width > rowLimit) {
         cursorX = 0;
